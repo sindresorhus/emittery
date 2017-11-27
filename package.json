@@ -1,0 +1,50 @@
+{
+	"name": "emittery",
+	"version": "0.0.0",
+	"description": "Simple and modern async event emitter",
+	"license": "MIT",
+	"repository": "sindresorhus/emittery",
+	"author": {
+		"name": "Sindre Sorhus",
+		"email": "sindresorhus@gmail.com",
+		"url": "sindresorhus.com"
+	},
+	"engines": {
+		"node": ">=8"
+	},
+	"scripts": {
+		"test": "xo && ava"
+	},
+	"files": [
+		"index.js"
+	],
+	"keywords": [
+		"event",
+		"emitter",
+		"eventemitter",
+		"events",
+		"async",
+		"emit",
+		"on",
+		"once",
+		"off",
+		"listener",
+		"subscribe",
+		"unsubscribe",
+		"pubsub",
+		"tiny",
+		"addlistener",
+		"addeventlistener",
+		"dispatch",
+		"dispatcher",
+		"observer",
+		"trigger",
+		"await",
+		"promise"
+	],
+	"devDependencies": {
+		"ava": "*",
+		"delay": "^2.0.0",
+		"xo": "*"
+	}
+}
