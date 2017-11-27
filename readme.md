@@ -58,7 +58,7 @@ Subscribe to an event only once. It will be unsubscribed after the first event.
 Returns a promise for the event data when `eventName` is emitted.
 
 ```js
-emitter.waitFor('🦄').then(data => {
+emitter.once('🦄').then(data => {
 	console.log(data);
 	//=> '🌈'
 });
