@@ -1,5 +1,7 @@
 'use strict';
 
+const resolvedPromise = Promise.resolve();
+
 module.exports = class Emittery {
 	constructor() {
 		this._events = new Map();
@@ -38,8 +40,9 @@ module.exports = class Emittery {
 	}
 
 	async emit(eventName, eventData) {
-		const listeners = [...this._getListeners(eventName)].map(listener => listener(eventData));
-		const anyListeners = [...this._anyEvents].map(listener => listener(eventName, eventData));
+		await resolvedPromise;
+		const listeners = [...this._getListeners(eventName)].map(async listener => listener(eventData));
+		const anyListeners = [...this._anyEvents].map(async listener => listener(eventName, eventData));
 		return Promise.all([...listeners, ...anyListeners]);
 	}
 

@@ -98,6 +98,23 @@ test.cb('emit() - multiple events', t => {
 	emitter.emit('🦄');
 });
 
+test.cb('emit() - is async', t => {
+	t.plan(2);
+
+	const emitter = new Emittery();
+	let unicorn = false;
+
+	emitter.on('🦄', () => {
+		unicorn = true;
+		t.pass();
+		t.end();
+	});
+
+	emitter.emit('🦄');
+
+	t.false(unicorn);
+});
+
 test.cb('emitSerial()', t => {
 	t.plan(1);
 
