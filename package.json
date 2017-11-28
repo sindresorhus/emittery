@@ -13,7 +13,7 @@
 		"node": ">=8"
 	},
 	"scripts": {
-		"test": "xo && ava"
+		"test": "xo && ava && size-limit"
 	},
 	"files": [
 		"index.js"
@@ -45,6 +45,13 @@
 	"devDependencies": {
 		"ava": "*",
 		"delay": "^2.0.0",
+		"size-limit": "^0.13.2",
 		"xo": "*"
-	}
+	},
+	"size-limit": [
+		{
+			"path": "index.js",
+			"limit": "338 B"
+		}
+	]
 }
