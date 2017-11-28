@@ -4,7 +4,7 @@
 
 [![Build Status](https://travis-ci.org/sindresorhus/emittery.svg?branch=master)](https://travis-ci.org/sindresorhus/emittery)
 
-It's only ~200 bytes minified and gzipped.
+It's only ~200 bytes minified and gzipped. [I'm not fanatic about keeping the size at this level though.](https://github.com/sindresorhus/emittery/pull/5#issuecomment-347479211)
 
 Emitting events asynchronously is important for production code where you want the least amount of synchronous operations.
 
