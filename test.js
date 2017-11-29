@@ -140,6 +140,23 @@ test.cb('emitSerial()', t => {
 	emitter.emitSerial('🦄', 'e');
 });
 
+test.cb('emitSerial() - is async', t => {
+	t.plan(2);
+
+	const emitter = new Emittery();
+	let unicorn = false;
+
+	emitter.on('🦄', () => {
+		unicorn = true;
+		t.pass();
+		t.end();
+	});
+
+	emitter.emitSerial('🦄');
+
+	t.false(unicorn);
+});
+
 test('onAny()', t => {
 	const emitter = new Emittery();
 	t.is(emitter._anyEvents.size, 0);

@@ -47,6 +47,8 @@ module.exports = class Emittery {
 	}
 
 	async emitSerial(eventName, eventData) {
+		await resolvedPromise;
+
 		/* eslint-disable no-await-in-loop */
 		for (const listener of this._getListeners(eventName)) {
 			await listener(eventData);
