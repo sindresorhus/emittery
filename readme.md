@@ -32,7 +32,8 @@ emitter.emit('🦄', '🌈');
 
 ### Node.js 4 and 6
 
-The above only works in Node.js 8 or newer. For older Node.js versions you can use `emittery/legacy`.
+The above only works in Node.js 8 or newer. For older Node.js versions you can use `require('emittery/legacy')`.
+
 
 ## API
 

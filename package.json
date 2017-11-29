@@ -10,10 +10,10 @@
 		"url": "sindresorhus.com"
 	},
 	"engines": {
-		"node": ">=8"
+		"node": ">=4"
 	},
 	"scripts": {
-		"build": "babel -o legacy.js index.js",
+		"build": "babel --out-file=legacy.js index.js",
 		"prepack": "npm install && npm run build",
 		"test": "xo && ava"
 	},
