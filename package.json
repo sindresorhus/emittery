@@ -13,10 +13,13 @@
 		"node": ">=8"
 	},
 	"scripts": {
+		"build": "babel -o legacy.js index.js",
+		"prepack": "npm install && npm run build",
 		"test": "xo && ava"
 	},
 	"files": [
-		"index.js"
+		"index.js",
+		"legacy.js"
 	],
 	"keywords": [
 		"event",
@@ -44,7 +47,17 @@
 	],
 	"devDependencies": {
 		"ava": "*",
+		"babel-cli": "^6.26.0",
+		"babel-core": "^6.26.0",
+		"babel-plugin-transform-async-to-generator": "^6.24.1",
+		"babel-plugin-transform-es2015-spread": "^6.22.0",
 		"delay": "^2.0.0",
 		"xo": "*"
+	},
+	"babel": {
+		"plugins": [
+			"transform-async-to-generator",
+			"transform-es2015-spread"
+		]
 	}
 }
