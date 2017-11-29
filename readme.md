@@ -78,7 +78,7 @@ Same as above, but it waits for each listener to resolve before triggering the n
 
 If any of the listeners throw/reject, the returned promise will be rejected with the error and the remaining listeners will *not* be called.
 
-#### onAll(listener)
+#### onAny(listener)
 
 Subscribe to be notified about any event.
 
