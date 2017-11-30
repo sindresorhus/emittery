@@ -14,7 +14,7 @@
   },
   "scripts": {
     "build": "babel --out-file=legacy.js index.js",
-    "prepack": "npm install && npm run build",
+    "prepublish": "npm run build",
     "test": "xo && ava"
   },
   "files": [
