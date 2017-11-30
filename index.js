@@ -81,7 +81,7 @@ module.exports = class Emittery {
 		if (eventName) {
 			return this._anyEvents.size + this._getListeners(eventName).size;
 		}
-		
+
 		let count = this._anyEvents.size;
 
 		for (const value of this._events.values()) {
