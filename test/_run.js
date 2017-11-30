@@ -157,11 +157,19 @@ module.exports = Emittery => {
 		t.false(unicorn);
 	});
 
-	test('onAny()', t => {
+	test('onAny()', async t => {
+		t.plan(4);
+
 		const emitter = new Emittery();
-		t.is(emitter._anyEvents.size, 0);
-		emitter.onAny(() => {});
-		t.is(emitter._anyEvents.size, 1);
+		const eventFixture = {foo: true};
+
+		emitter.onAny((eventName, data) => {
+			t.is(eventName, '🦄');
+			t.deepEqual(data, eventFixture);
+		});
+
+		await emitter.emit('🦄', eventFixture);
+		await emitter.emitSerial('🦄', eventFixture);
 	});
 
 	test('offAny()', t => {
