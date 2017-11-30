@@ -14,6 +14,7 @@
   },
   "scripts": {
     "build": "babel --out-file=legacy.js index.js",
+    "build:watch": "npm run build -- --watch",
     "prepublish": "npm run build",
     "test": "xo && ava"
   },
