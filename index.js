@@ -2,6 +2,12 @@
 
 const resolvedPromise = Promise.resolve();
 
+function assertEventName(eventName) {
+	if (typeof eventName !== 'string') {
+		throw new TypeError('eventName must be a string');
+	}
+}
+
 module.exports = class Emittery {
 	constructor() {
 		this._events = new Map();
@@ -17,11 +23,13 @@ module.exports = class Emittery {
 	}
 
 	on(eventName, listener) {
+		assertEventName(eventName);
 		this._getListeners(eventName).add(listener);
 		return this.off.bind(this, eventName, listener);
 	}
 
 	off(eventName, listener) {
+		assertEventName(eventName);
 		if (listener) {
 			this._getListeners(eventName).delete(listener);
 		} else {
@@ -31,6 +39,7 @@ module.exports = class Emittery {
 
 	once(eventName) {
 		return new Promise(resolve => {
+			assertEventName(eventName);
 			const off = this.on(eventName, data => {
 				off();
 				resolve(data);
@@ -39,6 +48,7 @@ module.exports = class Emittery {
 	}
 
 	async emit(eventName, eventData) {
+		assertEventName(eventName);
 		await resolvedPromise;
 		const listeners = [...this._getListeners(eventName)].map(async listener => listener(eventData));
 		const anyListeners = [...this._anyEvents].map(async listener => listener(eventName, eventData));
@@ -46,6 +56,7 @@ module.exports = class Emittery {
 	}
 
 	async emitSerial(eventName, eventData) {
+		assertEventName(eventName);
 		await resolvedPromise;
 
 		/* eslint-disable no-await-in-loop */
@@ -78,8 +89,12 @@ module.exports = class Emittery {
 	}
 
 	listenerCount(eventName) {
-		if (eventName) {
+		if (typeof eventName === 'string') {
 			return this._anyEvents.size + this._getListeners(eventName).size;
+		}
+
+		if (typeof eventName !== 'undefined') {
+			assertEventName(eventName);
 		}
 
 		let count = this._anyEvents.size;

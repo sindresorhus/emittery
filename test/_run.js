@@ -11,6 +11,11 @@ module.exports = Emittery => {
 		t.deepEqual([...emitter._events.get('🦄')], [listener1, listener2]);
 	});
 
+	test('on() - eventName must be a string', t => {
+		const emitter = new Emittery();
+		t.throws(() => emitter.on(42, () => {}), TypeError);
+	});
+
 	test('on() - returns a unsubcribe method', t => {
 		const emitter = new Emittery();
 		const listener = () => {};
@@ -43,6 +48,11 @@ module.exports = Emittery => {
 		t.is(emitter._events.get('🦄').size, 0);
 	});
 
+	test('off() - eventName must be a string', t => {
+		const emitter = new Emittery();
+		t.throws(() => emitter.off(42), TypeError);
+	});
+
 	test('off() - all listeners', t => {
 		const emitter = new Emittery();
 
@@ -60,6 +70,11 @@ module.exports = Emittery => {
 		const promise = emitter.once('🦄');
 		emitter.emit('🦄', fixture);
 		t.is(await promise, fixture);
+	});
+
+	test('once() - eventName must be a string', async t => {
+		const emitter = new Emittery();
+		await t.throws(emitter.once(42), TypeError);
 	});
 
 	test.cb('emit() - one event', t => {
@@ -96,6 +111,11 @@ module.exports = Emittery => {
 		emitter.emit('🦄');
 		emitter.emit('🦄');
 		emitter.emit('🦄');
+	});
+
+	test('emit() - eventName must be a string', async t => {
+		const emitter = new Emittery();
+		await t.throws(emitter.emit(42), TypeError);
 	});
 
 	test.cb('emit() - is async', t => {
@@ -140,6 +160,11 @@ module.exports = Emittery => {
 		emitter.emitSerial('🦄', 'e');
 	});
 
+	test('emitSerial() - eventName must be a string', async t => {
+		const emitter = new Emittery();
+		await t.throws(emitter.emitSerial(42), TypeError);
+	});
+
 	test.cb('emitSerial() - is async', t => {
 		t.plan(2);
 
@@ -157,11 +182,19 @@ module.exports = Emittery => {
 		t.false(unicorn);
 	});
 
-	test('onAny()', t => {
+	test('onAny()', async t => {
+		t.plan(4);
+
 		const emitter = new Emittery();
-		t.is(emitter._anyEvents.size, 0);
-		emitter.onAny(() => {});
-		t.is(emitter._anyEvents.size, 1);
+		const eventFixture = {foo: true};
+
+		emitter.onAny((eventName, data) => {
+			t.is(eventName, '🦄');
+			t.deepEqual(data, eventFixture);
+		});
+
+		await emitter.emit('🦄', eventFixture);
+		await emitter.emitSerial('🦄', eventFixture);
 	});
 
 	test('offAny()', t => {
@@ -207,5 +240,16 @@ module.exports = Emittery => {
 		t.is(emitter.listenerCount('🦄'), 4);
 		t.is(emitter.listenerCount('🌈'), 3);
 		t.is(emitter.listenerCount(), 5);
+	});
+
+	test('listenerCount() - works with empty eventName strings', t => {
+		const emitter = new Emittery();
+		emitter.on('', () => {});
+		t.is(emitter.listenerCount(''), 1);
+	});
+
+	test('listenerCount() - eventName must be undefined if not a string', t => {
+		const emitter = new Emittery();
+		t.throws(() => emitter.listenerCount(42), TypeError);
 	});
 };

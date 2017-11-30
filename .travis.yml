@@ -3,6 +3,10 @@ node_js:
   - '8'
   - '6'
   - '4'
-install:
-  - npm install
-  - npm run build
+cache:
+  directories:
+    - $HOME/.npm
+before_install:
+  - npm install --global npm@5.6.0
+  - npm --version
+after_success: npx codecov --file=./coverage/lcov.info
