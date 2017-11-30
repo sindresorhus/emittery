@@ -78,16 +78,16 @@ module.exports = class Emittery {
 	}
 
 	listenerCount(eventName) {
-		if (!eventName) {
-			let count = this._anyEvents.size;
+		if (eventName) {
+			return this._anyEvents.size + this._getListeners(eventName).size;
+		}
+		
+		let count = this._anyEvents.size;
 
-			for (const value of this._events.values()) {
-				count += value.size;
-			}
-
-			return count;
+		for (const value of this._events.values()) {
+			count += value.size;
 		}
 
-		return this._anyEvents.size + this._getListeners(eventName).size;
+		return count;
 	}
 };
