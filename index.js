@@ -22,12 +22,11 @@ module.exports = class Emittery {
 	}
 
 	off(eventName, listener) {
-		if (!listener) {
+		if (listener) {
+			this._getListeners(eventName).delete(listener);
+		} else {
 			this._getListeners(eventName).clear();
-			return;
 		}
-
-		this._getListeners(eventName).delete(listener);
 	}
 
 	once(eventName) {
@@ -66,12 +65,11 @@ module.exports = class Emittery {
 	}
 
 	offAny(listener) {
-		if (!listener) {
+		if (listener) {
+			this._anyEvents.delete(listener);
+		} else {
 			this._anyEvents.clear();
-			return;
 		}
-
-		this._anyEvents.delete(listener);
 	}
 
 	clear() {
@@ -80,16 +78,16 @@ module.exports = class Emittery {
 	}
 
 	listenerCount(eventName) {
-		if (!eventName) {
-			let count = this._anyEvents.size;
-
-			for (const value of this._events.values()) {
-				count += value.size;
-			}
-
-			return count;
+		if (eventName) {
+			return this._anyEvents.size + this._getListeners(eventName).size;
 		}
 
-		return this._anyEvents.size + this._getListeners(eventName).size;
+		let count = this._anyEvents.size;
+
+		for (const value of this._events.values()) {
+			count += value.size;
+		}
+
+		return count;
 	}
 };
