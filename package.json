@@ -16,7 +16,7 @@
     "build": "babel --out-file=legacy.js index.js",
     "build:watch": "npm run build -- --watch",
     "prepublish": "npm run build",
-    "test": "xo && ava"
+    "test": "xo && nyc ava"
   },
   "files": [
     "index.js",
@@ -52,13 +52,22 @@
     "babel-core": "^6.26.0",
     "babel-plugin-transform-async-to-generator": "^6.24.1",
     "babel-plugin-transform-es2015-spread": "^6.22.0",
+    "codecov": "^3.0.0",
     "delay": "^2.0.0",
+    "nyc": "^11.3.0",
     "xo": "*"
   },
   "babel": {
     "plugins": [
       "transform-async-to-generator",
       "transform-es2015-spread"
+    ]
+  },
+  "nyc": {
+  "reporter": [
+      "html",
+      "lcov",
+      "text"
     ]
   }
 }
