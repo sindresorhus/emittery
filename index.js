@@ -24,10 +24,9 @@ module.exports = class Emittery {
 	off(eventName, listener) {
 		if (listener) {
 			this._getListeners(eventName).delete(listener);
-		} else {		
+		} else {
 			this._getListeners(eventName).clear();
 		}
-
 	}
 
 	once(eventName) {
@@ -66,12 +65,11 @@ module.exports = class Emittery {
 	}
 
 	offAny(listener) {
-		if (!listener) {
+		if (listener) {
+			this._anyEvents.delete(listener);
+		} else {
 			this._anyEvents.clear();
-			return;
 		}
-
-		this._anyEvents.delete(listener);
 	}
 
 	clear() {
