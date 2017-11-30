@@ -22,12 +22,12 @@ module.exports = class Emittery {
 	}
 
 	off(eventName, listener) {
-		if (!listener) {
+		if (listener) {
+			this._getListeners(eventName).delete(listener);
+		} else {		
 			this._getListeners(eventName).clear();
-			return;
 		}
 
-		this._getListeners(eventName).delete(listener);
 	}
 
 	once(eventName) {
