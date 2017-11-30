@@ -1,73 +1,73 @@
 {
-  "name": "emittery",
-  "version": "0.2.0",
-  "description": "Simple and modern async event emitter",
-  "license": "MIT",
-  "repository": "sindresorhus/emittery",
-  "author": {
-    "name": "Sindre Sorhus",
-    "email": "sindresorhus@gmail.com",
-    "url": "sindresorhus.com"
-  },
-  "engines": {
-    "node": ">=4"
-  },
-  "scripts": {
-    "build": "babel --out-file=legacy.js index.js",
-    "build:watch": "npm run build -- --watch",
-    "prepublish": "npm run build",
-    "test": "xo && nyc ava"
-  },
-  "files": [
-    "index.js",
-    "legacy.js"
-  ],
-  "keywords": [
-    "event",
-    "emitter",
-    "eventemitter",
-    "events",
-    "async",
-    "emit",
-    "on",
-    "once",
-    "off",
-    "listener",
-    "subscribe",
-    "unsubscribe",
-    "pubsub",
-    "tiny",
-    "addlistener",
-    "addeventlistener",
-    "dispatch",
-    "dispatcher",
-    "observer",
-    "trigger",
-    "await",
-    "promise"
-  ],
-  "devDependencies": {
-    "ava": "*",
-    "babel-cli": "^6.26.0",
-    "babel-core": "^6.26.0",
-    "babel-plugin-transform-async-to-generator": "^6.24.1",
-    "babel-plugin-transform-es2015-spread": "^6.22.0",
-    "codecov": "^3.0.0",
-    "delay": "^2.0.0",
-    "nyc": "^11.3.0",
-    "xo": "*"
-  },
-  "babel": {
-    "plugins": [
-      "transform-async-to-generator",
-      "transform-es2015-spread"
-    ]
-  },
-  "nyc": {
-    "reporter": [
-      "html",
-      "lcov",
-      "text"
-    ]
-  }
+	"name": "emittery",
+	"version": "0.2.0",
+	"description": "Simple and modern async event emitter",
+	"license": "MIT",
+	"repository": "sindresorhus/emittery",
+	"author": {
+		"name": "Sindre Sorhus",
+		"email": "sindresorhus@gmail.com",
+		"url": "sindresorhus.com"
+	},
+	"engines": {
+		"node": ">=4"
+	},
+	"scripts": {
+		"build": "babel --out-file=legacy.js index.js",
+		"build:watch": "npm run build -- --watch",
+		"prepublish": "npm run build",
+		"test": "xo && nyc ava"
+	},
+	"files": [
+		"index.js",
+		"legacy.js"
+	],
+	"keywords": [
+		"event",
+		"emitter",
+		"eventemitter",
+		"events",
+		"async",
+		"emit",
+		"on",
+		"once",
+		"off",
+		"listener",
+		"subscribe",
+		"unsubscribe",
+		"pubsub",
+		"tiny",
+		"addlistener",
+		"addeventlistener",
+		"dispatch",
+		"dispatcher",
+		"observer",
+		"trigger",
+		"await",
+		"promise"
+	],
+	"devDependencies": {
+		"ava": "*",
+		"babel-cli": "^6.26.0",
+		"babel-core": "^6.26.0",
+		"babel-plugin-transform-async-to-generator": "^6.24.1",
+		"babel-plugin-transform-es2015-spread": "^6.22.0",
+		"codecov": "^3.0.0",
+		"delay": "^2.0.0",
+		"nyc": "^11.3.0",
+		"xo": "*"
+	},
+	"babel": {
+		"plugins": [
+			"transform-async-to-generator",
+			"transform-es2015-spread"
+		]
+	},
+	"nyc": {
+		"reporter": [
+			"html",
+			"lcov",
+			"text"
+		]
+	}
 }

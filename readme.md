@@ -2,7 +2,7 @@
 
 > Simple and modern async event emitter
 
-[![Build Status](https://travis-ci.org/sindresorhus/emittery.svg?branch=master)](https://travis-ci.org/sindresorhus/emittery)
+[![Build Status](https://travis-ci.org/sindresorhus/emittery.svg?branch=master)](https://travis-ci.org/sindresorhus/emittery) [![codecov](https://codecov.io/gh/sindresorhus/emittery/branch/master/graph/badge.svg)](https://codecov.io/gh/sindresorhus/emittery)
 
 It's only ~200 bytes minified and gzipped. [I'm not fanatic about keeping the size at this level though.](https://github.com/sindresorhus/emittery/pull/5#issuecomment-347479211)
 
@@ -54,6 +54,8 @@ Using the same listener multiple times for the same event will result in only on
 Unsubscribe to an event.
 
 If you don't pass in a `listener`, it will remove all listeners for that event.
+
+##### listener(data)
 
 #### once(eventName)
 
@@ -134,11 +136,14 @@ But I would argue doing that shows a deeper lack of Node.js and async comprehens
 
 ### Can you support multiple arguments for `emit()`?
 
-No, just use the [spread operator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Spread_operator):
+No, just use [destructuring](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring_assignment):
 
 ```js
+emitter.on('🦄', ([foo, bar]) => {
+	console.log(foo, bar);
+});
+
 emitter.emit('🦄', [foo, bar]);
-emitter.on('🦄', data => console.log(...data));
 ```
 
 
