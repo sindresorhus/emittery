@@ -1,0 +1,11 @@
+{
+	"compilerOptions": {
+		"target": "es2017",
+		"lib": ["es2017"],
+		"module": "commonjs",
+		"strict": true,
+		"moduleResolution": "node",
+		"allowSyntheticDefaultImports": true
+	},
+	"include": ["*.ts"]
+}

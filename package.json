@@ -13,14 +13,17 @@
 		"node": ">=4"
 	},
 	"scripts": {
-		"build": "babel --out-file=legacy.js index.js",
-		"build:watch": "npm run build -- --watch",
+		"build": "npm run build:legacy && cp index.d.ts legacy.d.ts",
+		"build:legacy": "babel --out-file=legacy.js index.js",
+		"build:watch": "npm run build:legacy -- --watch",
 		"prepublish": "npm run build",
-		"test": "xo && nyc ava"
+		"test": "xo && tsc --noEmit && nyc ava"
 	},
 	"files": [
 		"index.js",
-		"legacy.js"
+		"index.d.ts",
+		"legacy.js",
+		"legacy.d.ts"
 	],
 	"keywords": [
 		"event",
@@ -47,6 +50,7 @@
 		"promise"
 	],
 	"devDependencies": {
+		"@types/node": "^8.0.54",
 		"ava": "*",
 		"babel-cli": "^6.26.0",
 		"babel-core": "^6.26.0",
@@ -55,6 +59,8 @@
 		"codecov": "^3.0.0",
 		"delay": "^2.0.0",
 		"nyc": "^11.3.0",
+		"pkg-dir": "^2.0.0",
+		"typescript": "^2.6.2",
 		"xo": "*"
 	},
 	"babel": {
