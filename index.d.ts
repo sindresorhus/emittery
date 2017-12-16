@@ -107,16 +107,27 @@ declare namespace Emittery {
 	 * Alternative interface for an Emittery object; must list supported events
 	 * the data type they emit.
 	 */
-	export interface IMapped<Events extends IEvents> {
-		on<Name extends keyof Events>(eventName: Name, listener: (eventData: Events[Name]) => any): () => void;
-		once<Name extends keyof Events>(eventName: Name): Promise<Events[Name]>;
-		off<Name extends keyof Events>(eventName: Name, listener?: (eventData: Events[Name]) => any): void;
+	export interface IMapped<EventDataMap extends IEvents, EmptyEvents = never> {
+		on<Name extends keyof EventDataMap>(eventName: Name, listener: (eventData: EventDataMap[Name]) => any): () => void;
+		on<Name extends EmptyEvents>(eventName: Name, listener: () => any): () => void;
 
-		onAny<Name extends keyof Events>(listener: (eventName: Name, eventData: Events[Name]) => any): () => void;
-		offAny<Name extends keyof Events>(listener?: (eventName: Name, eventData: Events[Name]) => any): void;
+		once<Name extends keyof EventDataMap>(eventName: Name): Promise<EventDataMap[Name]>;
+		once<Name extends EmptyEvents>(eventName: Name): Promise<void>;
 
-		emit<Name extends keyof Events>(eventName: Name, eventData: Events[Name]): Promise<void>;
-		emitSerial<Name extends keyof Events>(eventName: Name, eventData: Events[Name]): Promise<void>;
+		off<Name extends keyof EventDataMap>(eventName: Name, listener?: (eventData: EventDataMap[Name]) => any): void;
+		off<Name extends EmptyEvents>(eventName: Name, listener?: () => any): void;
+
+		onAny<Name extends keyof EventDataMap>(listener: (eventName: Name, eventData: EventDataMap[Name]) => any): () => void;
+		onAny<Name extends EmptyEvents>(listener: (eventName: Name) => any): () => void;
+
+		offAny<Name extends keyof EventDataMap>(listener?: (eventName: Name, eventData: EventDataMap[Name]) => any): void;
+		offAny<Name extends EmptyEvents>(listener?: (eventName: Name) => any): void;
+
+		emit<Name extends keyof EventDataMap>(eventName: Name, eventData: EventDataMap[Name]): Promise<void>;
+		emit<Name extends EmptyEvents>(eventName: Name): Promise<void>;
+
+		emitSerial<Name extends keyof EventDataMap>(eventName: Name, eventData: EventDataMap[Name]): Promise<void>;
+		emitSerial<Name extends EmptyEvents>(eventName: Name): Promise<void>;
 	}
 
 	/**
@@ -137,7 +148,7 @@ declare namespace Emittery {
 	 * ```
 	 */
 	interface IMappedCtor {
-		new <Events extends IEvents>(): IMapped<Events>
+		new <Events extends IEvents, OptionalData = never>(): IMapped<Events, OptionalData>
 	}
 
 }

@@ -9,15 +9,16 @@ interface ITickData {
 	duration: number;
 }
 
-// Define Clock's events and the data they emit.
-type ClockEvents = {
+// Map Clock's events emitting data to the type of their data.
+type EventDataMap = {
 	tick: ITickData,
-	error: Error,
-	stopped: null,
-	started: null
+	error: Error
 };
 
-class Clock extends Emittery<ClockEvents> {
+// List of event which do not required data
+type EmptyEvents = 'started' | 'stopped';
+
+class Clock extends Emittery<EventDataMap, EmptyEvents> {
 
 	private _tick: number;
 	private _timer: NodeJS.Timer | null;
@@ -47,7 +48,7 @@ class Clock extends Emittery<ClockEvents> {
 		this._startedAt = Date.now();
 		this._timer = setInterval(this.tick.bind(this), this._tick);
 
-		this.emit('started', null);
+		this.emit('started');
 	}
 
 	stop() {
@@ -58,7 +59,7 @@ class Clock extends Emittery<ClockEvents> {
 		this._timer = null;
 		this._startedAt = 0;
 
-		this.emit('stopped', null);
+		this.emit('stopped');
 	}
 
 }
