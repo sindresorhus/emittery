@@ -2,16 +2,16 @@
 import _Emittery = require('../');
 
 // Alias Emittery class to use mapped event types
-const Emittery = _Emittery as _Emittery.IMappedCtor;
+const Emittery = _Emittery as _Emittery.MappedCtor;
 
-interface ITickData {
+interface TickData {
 	now: number;
 	duration: number;
 }
 
 // Map Clock's events emitting data to the type of their data.
 type EventDataMap = {
-	tick: ITickData,
+	tick: TickData,
 	error: Error
 };
 
@@ -70,7 +70,7 @@ const offError = timer.on('error', onError);
 
 timer.start();
 
-function onTick({duration}: ITickData) {
+function onTick({duration}: TickData) {
 	console.log(Math.floor(duration/1000));
 
 	if (duration > 5999) {

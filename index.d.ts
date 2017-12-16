@@ -99,7 +99,7 @@ declare namespace Emittery {
 	/**
 	 * A map of event names to the data type they emit.
 	 */
-	interface IEvents {
+	interface Events {
 		[eventName: string]: any;
 	}
 
@@ -107,7 +107,7 @@ declare namespace Emittery {
 	 * Alternative interface for an Emittery object; must list supported events
 	 * the data type they emit.
 	 */
-	export interface IMapped<EventDataMap extends IEvents, EmptyEvents = never> {
+	interface Mapped<EventDataMap extends Events, EmptyEvents = never> {
 		on<Name extends keyof EventDataMap>(eventName: Name, listener: (eventData: EventDataMap[Name]) => any): () => void;
 		on<Name extends EmptyEvents>(eventName: Name, listener: () => any): () => void;
 
@@ -139,16 +139,17 @@ declare namespace Emittery {
 	 * import _Emittery = require('emittery');
 	 *
 	 * // Alias Emittery class with Events map generic
-	 * const Emittery = _Emittery as _Emittery.IMappedCtor;
-	 * const ee = new Emittery<{open: null, value: string, close: null}>();
+	 * const Emittery = _Emittery as _Emittery.MappedCtor;
+	 * const ee = new Emittery<{value: string}, 'open' | 'close'>();
 	 *
-	 * ee.emit('open', null);
+	 * ee.emit('open');
 	 * ee.emit('value', 'foo\n');
-	 * ee.emit('end', null); // TS emit error
+	 * ee.emit('value', 1); // TS emit error
+	 * ee.emit('end'); // TS emit error
 	 * ```
 	 */
-	interface IMappedCtor {
-		new <Events extends IEvents, OptionalData = never>(): IMapped<Events, OptionalData>
+	interface MappedCtor {
+		new <EventDataMap extends Events, OptionalData = never>(): Mapped<EventDataMap, OptionalData>
 	}
 
 }
