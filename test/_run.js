@@ -127,21 +127,36 @@ module.exports = Emittery => {
 		await t.throws(emitter.emit(42), TypeError);
 	});
 
-	test.cb('emit() - is async', t => {
-		t.plan(2);
-
+	test('emit() - is async', async t => {
 		const emitter = new Emittery();
+		const emitted = emitter.emit('🦄');
 		let unicorn = false;
 
 		emitter.on('🦄', () => {
 			unicorn = true;
-			t.pass();
-			t.end();
 		});
 
-		emitter.emit('🦄');
-
 		t.false(unicorn);
+		await emitted;
+		t.true(unicorn);
+	});
+
+	test('emit() - settles once all handlers settles', async t => {
+		const emitter = new Emittery();
+		let settled = false;
+
+		emitter.on('🦄', () => Promise.reject());
+		emitter.on('🦄', () => delay(10).then(() => {
+			settled = true;
+		}));
+
+		t.plan(1);
+
+		try {
+			await emitter.emit('🦄');
+		} catch (err) {
+			t.true(settled);
+		}
 	});
 
 	test('emit() - calls listeners subscribed when emit() was invoked', async t => {
