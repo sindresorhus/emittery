@@ -1,5 +1,6 @@
 #!/usr/bin/env npx ts-node
-import _Emittery = require('../');
+import {setInterval} from 'timers';
+import _Emittery = require('..');
 
 // Alias Emittery class to use mapped event types
 const Emittery = _Emittery as _Emittery.MappedCtor;
@@ -16,73 +17,68 @@ type EventDataMap = {
 };
 
 // List of event which do not required data
-type EmptyEvents = 'started' | 'stopped';
+type EmptyEvents = 'start' | 'stop';
 
 class Clock extends Emittery<EventDataMap, EmptyEvents> {
+	private startedAt = 0;
+	private timer: NodeJS.Timer | null = null;
 
-	private _tick: number;
-	private _timer: NodeJS.Timer | null;
-	private _startedAt = 0;
-
-	constructor(tick = 1000) {
+	public constructor() {
 		super();
-
-		this._tick = tick > 0 ? tick : 1000;
-		this._timer = null;
 	}
 
-	async tick(): Promise<void> {
-		if (this._timer == null) {
-			await this.emit('error', new Error('not started'));
-			this.stop();
+	private tick() {
+		if (!this.timer) {
+			this.emit('error', new Error('Clock has not been started'));
 			return;
 		}
 
 		const now = Date.now();
-		const duration = now - this._startedAt;
+		const duration = now - this.startedAt;
 
-		return this.emit('tick', {now, duration});
+		this.emit('tick', {duration, now});
 	}
 
-	start() {
-		this._startedAt = Date.now();
-		this._timer = setInterval(this.tick.bind(this), this._tick);
-
-		this.emit('started');
-	}
-
-	stop() {
-		if (this._timer != null) {
-			clearInterval(this._timer);
+	public start() {
+		if (this.timer) {
+			throw new Error('Clock has already been started');
 		}
 
-		this._timer = null;
-		this._startedAt = 0;
+		this.startedAt = Date.now();
+		this.timer = setInterval(this.tick.bind(this), 1000);
 
-		this.emit('stopped');
+		this.emit('start');
 	}
 
+	public stop() {
+		if (this.timer) {
+			clearInterval(this.timer);
+		}
+
+		this.startedAt = 0;
+		this.timer = null;
+
+		this.emit('stop');
+	}
 }
 
-const timer = new Clock();
-const offTick = timer.on('tick', onTick);
-const offError = timer.on('error', onError);
-
-timer.start();
-
 function onTick({duration}: TickData) {
-	console.log(Math.floor(duration/1000));
+	console.log(Math.floor(duration / 1000));
 
-	if (duration > 5999) {
+	if (duration >= 6000) {
 		stop();
 	}
 }
 
 function onError(err: Error) {
-	stop();
+	process.exitCode = 1;
 	console.error(err);
-	process.exit(1);
+	stop();
 }
+
+const timer = new Clock();
+const offTick = timer.on('tick', onTick);
+const offError = timer.on('error', onError);
 
 function stop() {
 	offTick();
@@ -90,6 +86,7 @@ function stop() {
 	timer.stop();
 }
 
+timer.start();
 // Prints:
 // 		1
 // 		2

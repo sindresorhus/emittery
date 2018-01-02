@@ -1,68 +1,67 @@
 #!/usr/bin/env node
-
 'use strict';
 
-const Emittery = require('../');
+const Emittery = require('..');
 
 class Clock extends Emittery {
-
-	constructor(tick = 1000) {
+	constructor() {
 		super();
-
-		this._startedAt = 0;
-		this._tick = tick > 0 ? tick : 1000;
-		this._timer = null;
+		this.startedAt = 0;
+		this.timer = null;
 	}
 
-	async tick() {
-		if (this._timer === null) {
-			await this.emit('error', new Error('not started'));
-			this.stop();
+	tick() {
+		if (!this.timer) {
+			this.emit('error', new Error('Clock has not been started'));
 			return;
 		}
 
 		const now = Date.now();
-		const duration = now - this._startedAt;
+		const duration = now - this.startedAt;
 
-		return this.emit('tick', {now, duration});
+		this.emit('tick', {duration, now});
 	}
 
 	start() {
-		this._startedAt = Date.now();
-		this._timer = setInterval(this.tick.bind(this), this._tick);
-		this.emit('started', null);
+		if (this.timer) {
+			throw new Error('Clock has already been started');
+		}
+
+		this.startedAt = Date.now();
+		this.timer = setInterval(this.tick.bind(this), 1000);
+
+		this.emit('start');
 	}
 
 	stop() {
-		if (this._timer !== null) {
-			clearInterval(this._timer);
+		if (this.timer) {
+			clearInterval(this.timer);
 		}
 
-		this._timer = null;
-		this._startedAt = 0;
-		this.emit('stopped', null);
+		this.startedAt = 0;
+		this.timer = null;
+
+		this.emit('stop');
 	}
 }
-
-const timer = new Clock();
-const offTick = timer.on('tick', onTick);
-const offError = timer.on('error', onError);
-
-timer.start();
 
 function onTick({duration}) {
 	console.log(Math.floor(duration / 1000));
 
-	if (duration > 5999) {
+	if (duration >= 6000) {
 		stop();
 	}
 }
 
 function onError(err) {
-	stop();
+	process.exitCode = 1;
 	console.error(err);
-	process.exit(1);
+	stop();
 }
+
+const timer = new Clock();
+const offTick = timer.on('tick', onTick);
+const offError = timer.on('error', onError);
 
 function stop() {
 	offTick();
@@ -70,6 +69,7 @@ function stop() {
 	timer.stop();
 }
 
+timer.start();
 // Prints:
 // 		1
 // 		2
