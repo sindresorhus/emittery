@@ -1,9 +1,6 @@
 #!/usr/bin/env npx ts-node
 import {setInterval} from 'timers';
-import _Emittery = require('..');
-
-// Alias Emittery class to use mapped event types
-const Emittery = _Emittery as _Emittery.MappedCtor;
+import Emittery = require('..');
 
 interface TickData {
 	now: number;
@@ -19,7 +16,7 @@ type EventDataMap = {
 // List of event which do not required data
 type EmptyEvents = 'start' | 'stop';
 
-class Clock extends Emittery<EventDataMap, EmptyEvents> {
+class Clock extends Emittery.Typed<EventDataMap, EmptyEvents> {
 	private startedAt = 0;
 	private timer: NodeJS.Timer | null = null;
 

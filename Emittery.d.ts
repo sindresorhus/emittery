@@ -104,10 +104,24 @@ declare namespace Emittery {
 	}
 
 	/**
-	 * Alternative interface for an Emittery object; must list supported events
-	 * the data type they emit.
+	 * Async event emitter.
+	 *
+	 * Must list supported events and the data type they emit, if any.
+	 *
+	 * For example:
+	 *
+	 * ```ts
+	 * import Emittery = require('emittery');
+	 *
+	 * const ee = new Emittery.Typed<{value: string}, 'open' | 'close'>();
+	 *
+	 * ee.emit('open');
+	 * ee.emit('value', 'foo\n');
+	 * ee.emit('value', 1); // TS emit error
+	 * ee.emit('end'); // TS emit error
+	 * ```
 	 */
-	interface Mapped<EventDataMap extends Events, EmptyEvents = never> {
+	class Typed<EventDataMap extends Events, EmptyEvents = never> extends Emittery {
 		on<Name extends keyof EventDataMap>(eventName: Name, listener: (eventData: EventDataMap[Name]) => any): () => void;
 		on<Name extends EmptyEvents>(eventName: Name, listener: () => any): () => void;
 
@@ -129,27 +143,4 @@ declare namespace Emittery {
 		emitSerial<Name extends keyof EventDataMap>(eventName: Name, eventData: EventDataMap[Name]): Promise<void>;
 		emitSerial<Name extends EmptyEvents>(eventName: Name): Promise<void>;
 	}
-
-	/**
-	 * Alternative signature for the Emittery class; must list supported events
-	 * the data type they emit.
-	 *
-	 * @example
-	 * ```ts
-	 * import _Emittery = require('emittery');
-	 *
-	 * // Alias Emittery class with Events map generic
-	 * const Emittery = _Emittery as _Emittery.MappedCtor;
-	 * const ee = new Emittery<{value: string}, 'open' | 'close'>();
-	 *
-	 * ee.emit('open');
-	 * ee.emit('value', 'foo\n');
-	 * ee.emit('value', 1); // TS emit error
-	 * ee.emit('end'); // TS emit error
-	 * ```
-	 */
-	interface MappedCtor {
-		new <EventDataMap extends Events, OptionalData = never>(): Mapped<EventDataMap, OptionalData>
-	}
-
 }
