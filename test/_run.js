@@ -4,8 +4,10 @@ import delay from 'delay';
 module.exports = Emittery => {
 	test('on()', t => {
 		const emitter = new Emittery();
-		const listener1 = () => {};
-		const listener2 = () => {};
+		const listener1 = () => {
+		};
+		const listener2 = () => {
+		};
 		emitter.on('🦄', listener1);
 		emitter.on('🦄', listener2);
 		t.deepEqual([...emitter._events.get('🦄')], [listener1, listener2]);
@@ -13,12 +15,14 @@ module.exports = Emittery => {
 
 	test('on() - eventName must be a string', t => {
 		const emitter = new Emittery();
-		t.throws(() => emitter.on(42, () => {}), TypeError);
+		t.throws(() => emitter.on(42, () => {
+		}), TypeError);
 	});
 
 	test('on() - returns a unsubcribe method', t => {
 		const emitter = new Emittery();
-		const listener = () => {};
+		const listener = () => {
+		};
 
 		const off = emitter.on('🦄', listener);
 		t.true(emitter._events.get('🦄').has(listener));
@@ -29,7 +33,8 @@ module.exports = Emittery => {
 
 	test('on() - dedupes identical listeners', t => {
 		const emitter = new Emittery();
-		const listener = () => {};
+		const listener = () => {
+		};
 
 		emitter.on('🦄', listener);
 		emitter.on('🦄', listener);
@@ -37,9 +42,41 @@ module.exports = Emittery => {
 		t.is(emitter._events.get('🦄').size, 1);
 	});
 
+	test.cb('on() - async iterator (queued)', async t => {
+		t.plan(3);
+		const fixture = '🌈';
+		const emitter = new Emittery();
+		emitter.emit('🦄', fixture);
+		emitter.emit('🦄', fixture);
+		emitter.emit('🦄', fixture);
+		let count = 0;
+		for await (let data of emitter.on('🦄')) {
+			count++;
+			if (count > 3) {
+				break;
+			}
+			t.deepEqual(data, fixture);
+		}
+		t.end();
+	});
+
+	test.cb('on() - async iterator (non queued)', async t => {
+		t.plan(1);
+		const fixture = '🌈';
+		const emitter = new Emittery();
+		setTimeout(function () {
+			emitter.emit('🦄', fixture)
+		}, 300);
+		for await (let data of emitter.on('🦄')) {
+			t.deepEqual(data, fixture);
+			t.end();
+		}
+	});
+
 	test('off()', t => {
 		const emitter = new Emittery();
-		const listener = () => {};
+		const listener = () => {
+		};
 
 		emitter.on('🦄', listener);
 		t.is(emitter._events.get('🦄').size, 1);
@@ -56,8 +93,10 @@ module.exports = Emittery => {
 	test('off() - all listeners', t => {
 		const emitter = new Emittery();
 
-		emitter.on('🦄', () => {});
-		emitter.on('🦄', () => {});
+		emitter.on('🦄', () => {
+		});
+		emitter.on('🦄', () => {
+		});
 		t.is(emitter._events.get('🦄').size, 2);
 
 		emitter.off('🦄');
@@ -199,7 +238,8 @@ module.exports = Emittery => {
 
 	test('offAny()', t => {
 		const emitter = new Emittery();
-		const listener = () => {};
+		const listener = () => {
+		};
 		emitter.onAny(listener);
 		t.is(emitter._anyEvents.size, 1);
 		emitter.offAny(listener);
@@ -208,9 +248,12 @@ module.exports = Emittery => {
 
 	test('offAny() - all listeners', t => {
 		const emitter = new Emittery();
-		emitter.onAny(() => {});
-		emitter.onAny(() => {});
-		emitter.onAny(() => {});
+		emitter.onAny(() => {
+		});
+		emitter.onAny(() => {
+		});
+		emitter.onAny(() => {
+		});
 		t.is(emitter._anyEvents.size, 3);
 		emitter.offAny();
 		t.is(emitter._anyEvents.size, 0);
@@ -218,11 +261,16 @@ module.exports = Emittery => {
 
 	test('clear()', t => {
 		const emitter = new Emittery();
-		emitter.on('🦄', () => {});
-		emitter.on('🌈', () => {});
-		emitter.on('🦄', () => {});
-		emitter.onAny(() => {});
-		emitter.onAny(() => {});
+		emitter.on('🦄', () => {
+		});
+		emitter.on('🌈', () => {
+		});
+		emitter.on('🦄', () => {
+		});
+		emitter.onAny(() => {
+		});
+		emitter.onAny(() => {
+		});
 		t.is(emitter._events.size, 2);
 		t.is(emitter._anyEvents.size, 2);
 		emitter.clear();
@@ -232,11 +280,16 @@ module.exports = Emittery => {
 
 	test('listenerCount()', t => {
 		const emitter = new Emittery();
-		emitter.on('🦄', () => {});
-		emitter.on('🌈', () => {});
-		emitter.on('🦄', () => {});
-		emitter.onAny(() => {});
-		emitter.onAny(() => {});
+		emitter.on('🦄', () => {
+		});
+		emitter.on('🌈', () => {
+		});
+		emitter.on('🦄', () => {
+		});
+		emitter.onAny(() => {
+		});
+		emitter.onAny(() => {
+		});
 		t.is(emitter.listenerCount('🦄'), 4);
 		t.is(emitter.listenerCount('🌈'), 3);
 		t.is(emitter.listenerCount(), 5);
@@ -244,7 +297,8 @@ module.exports = Emittery => {
 
 	test('listenerCount() - works with empty eventName strings', t => {
 		const emitter = new Emittery();
-		emitter.on('', () => {});
+		emitter.on('', () => {
+		});
 		t.is(emitter.listenerCount(''), 1);
 	});
 

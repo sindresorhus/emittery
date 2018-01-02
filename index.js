@@ -8,6 +8,26 @@ function assertEventName(eventName) {
 	}
 }
 
+async function* iterator(emitter, eventName) {
+	const queue = [];
+	const off = emitter.on(eventName, function (data) {
+		queue.push(data);
+	});
+
+	try {
+		while (true) {
+			if (queue.length) {
+				yield queue.shift();
+			} else {
+				yield await emitter.once(eventName);
+			}
+		}
+	} finally {
+		off();
+	}
+
+}
+
 module.exports = class Emittery {
 	constructor() {
 		this._events = new Map();
@@ -24,8 +44,13 @@ module.exports = class Emittery {
 
 	on(eventName, listener) {
 		assertEventName(eventName);
-		this._getListeners(eventName).add(listener);
-		return this.off.bind(this, eventName, listener);
+
+		if (typeof listener === 'function') {
+			this._getListeners(eventName).add(listener);
+			return this.off.bind(this, eventName, listener);
+		}
+
+		return iterator(this, eventName);
 	}
 
 	off(eventName, listener) {

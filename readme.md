@@ -47,6 +47,28 @@ Returns an unsubscribe method.
 
 Using the same listener multiple times for the same event will result in only one method call per emitted event.
 
+If you use the method with only the first argument, it will return an asynchronous iterator. Your listener will therefore be the loop body and you'll be able to
+unsubscribe to the event simply by breaking the loop.
+
+```Javascript
+  const emitter = new Emittery();
+  //subscribe
+  (async function () {
+    for await (let t of emitter.on('foo')) {
+     if(t >10){
+       break;//unsubscribe
+     }
+     console.log(t);
+    }
+  })();
+
+  let count = 0;
+  setInterval(function () {
+    count++;
+    emitter.emit('foo', count);
+  }, 1000);
+```
+
 ##### listener(data)
 
 #### off(eventName, [listener])

@@ -50,6 +50,7 @@
 		"ava": "*",
 		"babel-cli": "^6.26.0",
 		"babel-core": "^6.26.0",
+		"babel-plugin-transform-async-generator-functions": "^6.24.1",
 		"babel-plugin-transform-async-to-generator": "^6.24.1",
 		"babel-plugin-transform-es2015-spread": "^6.22.0",
 		"codecov": "^3.0.0",
@@ -60,8 +61,13 @@
 	"babel": {
 		"plugins": [
 			"transform-async-to-generator",
-			"transform-es2015-spread"
+			"transform-es2015-spread",
+			"transform-async-generator-functions"
 		]
+	},
+	"ava": {
+		"require": "babel-register",
+		"babel": "inherit"
 	},
 	"nyc": {
 		"reporter": [
