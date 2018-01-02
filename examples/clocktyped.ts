@@ -1,4 +1,4 @@
-#!/usr/bin/env ts-node
+#!/usr/bin/env npx ts-node
 import _Emittery = require('../');
 
 // Alias Emittery class to use mapped event types
