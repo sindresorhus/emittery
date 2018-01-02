@@ -2,11 +2,9 @@
 
 'use strict';
 
-const Emittery = require('../');
+const Emittery = require('..');
 
-class MyEmitter extends Emittery {}
-
-const myEmitter = new MyEmitter();
+const myEmitter = new Emittery();
 
 // Emit events in next tick
 myEmitter.emit('event', 1);

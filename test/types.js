@@ -1,12 +1,9 @@
-import {readdirSync, statSync} from 'fs';
-import {resolve as _resolve, join, extname, relative} from 'path';
-import pkgUp from 'pkg-dir';
+import path from 'path';
 
 import test from 'ava';
+import glob from 'glob';
 import * as ts from 'typescript';
 
-const resolve = _resolve.bind(null, __dirname);
-const validExtension = new Set(['.js', '.ts']);
 const compilerOptions = {
 	target: ts.ScriptTarget.ES2017,
 	module: ts.ModuleKind.CommonJS,
@@ -14,18 +11,18 @@ const compilerOptions = {
 	noEmit: true
 };
 
-test('TS can compile valid Emittery method calls [slow]', assertAllCompile, './fixtures/compiles');
-test('TS warns about invalid Emittery method calls [slow]', assertEachFail, './fixtures/fails');
+test('TS can compile valid Emittery method calls', assertAllCompile, 'test/fixtures/compiles');
+test('TS warns about invalid Emittery method calls', assertEachFail, 'test/fixtures/fails');
 
 function assertAllCompile(t, srcDir) {
-	const fileNames = listFiles(resolve(srcDir));
+	const fileNames = listFiles(srcDir);
 	const errors = compile(fileNames);
 
 	t.is(errors.length, 0, errorMessage(errors));
 }
 
 function assertEachFail(t, srcDir) {
-	const fileNames = listFiles(resolve(srcDir)).sort();
+	const fileNames = listFiles(srcDir).sort();
 	const errors = compile(fileNames);
 	const filesWithErrors = errors
 		.map(err => (err.file ? err.file.fileName : null))
@@ -36,10 +33,10 @@ function assertEachFail(t, srcDir) {
 }
 
 function listFiles(srcRoot) {
-	return readdirSync(srcRoot)
-		.filter(hasValidExtension)
-		.map(name => join(srcRoot, name))
-		.filter(isFile);
+	return glob.sync('{*.js,*.ts}', {
+		cwd: path.resolve(srcRoot),
+		absolute: true
+	});
 }
 
 function compile(fileNames, options = compilerOptions) {
@@ -50,8 +47,6 @@ function compile(fileNames, options = compilerOptions) {
 }
 
 function errorMessage(diagnosticList) {
-	const root = pkgUp.sync();
-
 	return diagnosticList.map(diagnostic => {
 		if (!diagnostic.file) {
 			return `${ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n')}`;
@@ -59,16 +54,8 @@ function errorMessage(diagnosticList) {
 
 		const {line, character} = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start);
 		const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n');
-		const fileName = relative(root, diagnostic.file.fileName);
+		const fileName = path.relative(process.cwd(), diagnostic.file.fileName);
 
 		return `${fileName} (${line + 1},${character + 1}): ${message}`;
 	}).join('\n');
-}
-
-function isFile(path) {
-	return statSync(path).isFile();
-}
-
-function hasValidExtension(path) {
-	return validExtension.has(extname(path));
 }

@@ -13,18 +13,18 @@
 		"node": ">=4"
 	},
 	"scripts": {
-		"build": "npm run build:legacy && cp index.d.ts legacy.d.ts",
-		"build:legacy": "babel --out-file=legacy.js index.js",
-		"build:watch": "npm run build:legacy -- --watch",
+		"build": "babel --out-file=legacy.js index.js",
+		"build:watch": "npm run build -- --watch",
 		"prepublish": "npm run build",
 		"test": "xo && tsc --noEmit && nyc ava"
 	},
 	"files": [
+		"Emittery.d.ts",
 		"index.js",
-		"index.d.ts",
 		"legacy.js",
 		"legacy.d.ts"
 	],
+	"typings": "./Emittery.d.ts",
 	"keywords": [
 		"event",
 		"emitter",
@@ -50,7 +50,7 @@
 		"promise"
 	],
 	"devDependencies": {
-		"@types/node": "^8.0.54",
+		"@types/node": "^8.5.2",
 		"ava": "*",
 		"babel-cli": "^6.26.0",
 		"babel-core": "^6.26.0",
@@ -58,8 +58,9 @@
 		"babel-plugin-transform-es2015-spread": "^6.22.0",
 		"codecov": "^3.0.0",
 		"delay": "^2.0.0",
+		"glob": "^7.1.2",
 		"nyc": "^11.3.0",
-		"pkg-dir": "^2.0.0",
+		"ts-node": "^4.1.0",
 		"typescript": "^2.6.2",
 		"xo": "*"
 	},

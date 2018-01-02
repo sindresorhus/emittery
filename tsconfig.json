@@ -1,13 +1,16 @@
 {
 	"compilerOptions": {
-		"target": "es2017",
+		"allowSyntheticDefaultImports": true,
+		"alwaysStrict": true,
 		"lib": ["es2017"],
 		"module": "commonjs",
-		"strict": true,
 		"moduleResolution": "node",
-		"allowSyntheticDefaultImports": true,
-		"allowJs": true
+		"noImplicitAny": true,
+		"noImplicitReturns": true,
+		"noImplicitThis": true,
+		"strictFunctionTypes": true,
+		"strictNullChecks": true,
+		"target": "es2017"
 	},
-	"include": ["**/*.ts"],
-	"exclude": ["test/fixtures/**/*"]
+	"exclude": ["test/fixtures"]
 }

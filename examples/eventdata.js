@@ -4,9 +4,7 @@
 
 const Emittery = require('../');
 
-class MyEmitter extends Emittery {}
-
-const myEmitter = new MyEmitter();
+const myEmitter = new Emittery();
 
 // Only accept one event data parameter
 myEmitter.emit('event', {a: true, b: true}, 'not', 'supported');
