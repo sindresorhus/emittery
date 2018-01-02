@@ -51,7 +51,7 @@ Using the same listener multiple times for the same event will result in only on
 
 #### off(eventName, [listener])
 
-Unsubscribe to an event.
+Remove an event subscription.
 
 If you don't pass in a `listener`, it will remove all listeners for that event.
 
@@ -94,9 +94,9 @@ Returns a method to unsubscribe.
 
 #### offAny([listener])
 
-Unsubscribe an `onAny` listener.
+Remove an `onAny` subscription.
 
-If you don't pass in a `listener`, it will remove all `onAny` listeners.
+If you don't pass in a `listener`, it will remove all `onAny` subscriptions.
 
 #### clear()
 
