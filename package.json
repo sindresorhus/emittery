@@ -50,7 +50,7 @@
 		"promise"
 	],
 	"devDependencies": {
-		"@types/node": "^8.0.54",
+		"@types/node": "^8.5.2",
 		"ava": "*",
 		"babel-cli": "^6.26.0",
 		"babel-core": "^6.26.0",
