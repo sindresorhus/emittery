@@ -1,9 +1,11 @@
 {
 	"compilerOptions": {
+		"alwaysStrict": true,
 		"target": "es2017",
 		"lib": ["es2017"],
 		"module": "commonjs",
 		"noImplicitAny": true,
+		"noImplicitReturns": true,
 		"noImplicitThis": true,
 		"strictFunctionTypes": true,
 		"strictNullChecks": true,
