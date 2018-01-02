@@ -13,18 +13,18 @@
 		"node": ">=4"
 	},
 	"scripts": {
-		"build": "npm run build:legacy && cp index.d.ts legacy.d.ts",
-		"build:legacy": "babel --out-file=legacy.js index.js",
-		"build:watch": "npm run build:legacy -- --watch",
+		"build": "babel --out-file=legacy.js index.js",
+		"build:watch": "npm run build -- --watch",
 		"prepublish": "npm run build",
 		"test": "xo && tsc --noEmit && nyc ava"
 	},
 	"files": [
+		"Emittery.d.ts",
 		"index.js",
-		"index.d.ts",
 		"legacy.js",
 		"legacy.d.ts"
 	],
+	"typings": "./Emittery.d.ts",
 	"keywords": [
 		"event",
 		"emitter",

@@ -3,4 +3,3 @@ yarn.lock
 .nyc_output
 coverage
 /legacy.js
-/legacy.d.ts
