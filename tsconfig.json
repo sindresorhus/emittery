@@ -3,7 +3,10 @@
 		"target": "es2017",
 		"lib": ["es2017"],
 		"module": "commonjs",
-		"strict": true,
+		"noImplicitAny": true,
+		"noImplicitThis": true,
+		"strictFunctionTypes": true,
+		"strictNullChecks": true,
 		"moduleResolution": "node",
 		"allowSyntheticDefaultImports": true,
 		"allowJs": true
