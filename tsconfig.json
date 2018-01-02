@@ -8,9 +8,7 @@
 		"strictFunctionTypes": true,
 		"strictNullChecks": true,
 		"moduleResolution": "node",
-		"allowSyntheticDefaultImports": true,
-		"allowJs": true
+		"allowSyntheticDefaultImports": true
 	},
-	"include": ["**/*.ts"],
-	"exclude": ["test/fixtures/**/*"]
+	"exclude": ["test/fixtures"]
 }
