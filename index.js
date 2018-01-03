@@ -8,24 +8,27 @@ function assertEventName(eventName) {
 	}
 }
 
-async function* iterator(emitter, eventName) {
+async function * iterator(emitter, eventName) {
 	const queue = [];
-	const off = emitter.on(eventName, function (data) {
+	const off = emitter.on(eventName, data => {
 		queue.push(data);
 	});
 
 	try {
+		/* eslint-disable no-constant-condition */
+		/* eslint-disable no-await-in-loop */
 		while (true) {
-			if (queue.length) {
+			if (queue.length > 0) {
 				yield queue.shift();
 			} else {
 				yield await emitter.once(eventName);
 			}
 		}
+		/* eslint-enable no-constant-condition */
+		/* eslint-enable no-await-in-loop */
 	} finally {
 		off();
 	}
-
 }
 
 module.exports = class Emittery {

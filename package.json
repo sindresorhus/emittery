@@ -16,7 +16,7 @@
 		"build": "babel --out-file=legacy.js index.js",
 		"build:watch": "npm run build -- --watch",
 		"prepublish": "npm run build",
-		"test": "xo && nyc ava"
+		"test": "nyc ava"
 	},
 	"files": [
 		"index.js",
@@ -50,6 +50,7 @@
 		"ava": "*",
 		"babel-cli": "^6.26.0",
 		"babel-core": "^6.26.0",
+		"babel-eslint": "^8.1.2",
 		"babel-plugin-transform-async-generator-functions": "^6.24.1",
 		"babel-plugin-transform-async-to-generator": "^6.24.1",
 		"babel-plugin-transform-es2015-spread": "^6.22.0",
@@ -58,11 +59,17 @@
 		"nyc": "^11.3.0",
 		"xo": "*"
 	},
+	"xo": {
+		"parser": "babel-eslint"
+	},
 	"babel": {
 		"plugins": [
 			"transform-async-to-generator",
 			"transform-es2015-spread",
 			"transform-async-generator-functions"
+		],
+		"presets":[
+			"@ava/stage-4"
 		]
 	},
 	"ava": {

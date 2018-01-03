@@ -37,36 +37,34 @@ module.exports = Emittery => {
 		t.is(emitter._events.get('🦄').size, 1);
 	});
 
-	test.cb('on() - async iterator (queued)', async t => {
-		t.plan(3);
+	/* eslint-disable ava/no-async-fn-without-await */
+	test('on() - async iterator', async t => {
 		const fixture = '🌈';
 		const emitter = new Emittery();
-		emitter.emit('🦄', fixture);
-		emitter.emit('🦄', fixture);
-		emitter.emit('🦄', fixture);
-		let count = 0;
-		for await (let data of emitter.on('🦄')) {
-			count++;
-			if (count > 3) {
-				break;
-			}
-			t.deepEqual(data, fixture);
-		}
-		t.end();
-	});
-
-	test.cb('on() - async iterator (non queued)', async t => {
-		t.plan(1);
-		const fixture = '🌈';
-		const emitter = new Emittery();
-		setTimeout(function () {
-			emitter.emit('🦄', fixture)
+		setTimeout(() => {
+			emitter.emit('🦄', fixture);
 		}, 300);
-		for await (let data of emitter.on('🦄')) {
-			t.deepEqual(data, fixture);
-			t.end();
-		}
+		const iterator = emitter.on('🦄');
+		const {value, done} = await iterator.next();
+		t.deepEqual(done, false);
+		t.deepEqual(value, fixture);
 	});
+	/* eslint-enable ava/no-async-fn-without-await */
+
+	/* eslint-disable ava/no-async-fn-without-await */
+	test.cb('on() - async iterator (queued)', t => {
+		const fixture = '🌈';
+		const emitter = new Emittery();
+		const iterator = emitter.on('🦄');
+		emitter.emit('🦄', fixture);
+		setTimeout(async () => {
+			const {value, done} = await iterator.next();
+			t.deepEqual(done, false);
+			t.deepEqual(value, fixture);
+			t.end();
+		}, 300);
+	});
+	/* eslint-enable ava/no-async-fn-without-await */
 
 	test('off()', t => {
 		const emitter = new Emittery();
