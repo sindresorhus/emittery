@@ -37,7 +37,6 @@ module.exports = Emittery => {
 		t.is(emitter._events.get('🦄').size, 1);
 	});
 
-	/* eslint-disable ava/no-async-fn-without-await */
 	test('on() - async iterator', async t => {
 		const fixture = '🌈';
 		const emitter = new Emittery();
@@ -49,9 +48,7 @@ module.exports = Emittery => {
 		t.deepEqual(done, false);
 		t.deepEqual(value, fixture);
 	});
-	/* eslint-enable ava/no-async-fn-without-await */
 
-	/* eslint-disable ava/no-async-fn-without-await */
 	test('on() - async iterator (queued)', async t => {
 		const fixture = '🌈';
 		const emitter = new Emittery();
@@ -61,7 +58,6 @@ module.exports = Emittery => {
 		t.deepEqual(done, false);
 		t.deepEqual(value, fixture);
 	});
-	/* eslint-enable ava/no-async-fn-without-await */
 
 	test('off()', t => {
 		const emitter = new Emittery();
