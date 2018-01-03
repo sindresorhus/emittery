@@ -37,28 +37,6 @@ module.exports = Emittery => {
 		t.is(emitter._events.get('🦄').size, 1);
 	});
 
-	test('on() - async iterator', async t => {
-		const fixture = '🌈';
-		const emitter = new Emittery();
-		setTimeout(() => {
-			emitter.emit('🦄', fixture);
-		}, 300);
-		const iterator = emitter.on('🦄');
-		const {value, done} = await iterator.next();
-		t.deepEqual(done, false);
-		t.deepEqual(value, fixture);
-	});
-
-	test('on() - async iterator (queued)', async t => {
-		const fixture = '🌈';
-		const emitter = new Emittery();
-		const iterator = emitter.on('🦄');
-		emitter.emit('🦄', fixture);
-		const {value, done} = await iterator.next();
-		t.deepEqual(done, false);
-		t.deepEqual(value, fixture);
-	});
-
 	test('off()', t => {
 		const emitter = new Emittery();
 		const listener = () => {};

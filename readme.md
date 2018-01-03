@@ -34,6 +34,10 @@ emitter.emit('🦄', '🌈');
 
 The above only works in Node.js 8 or newer. For older Node.js versions you can use `require('emittery/legacy')`.
 
+### Node.js 9+
+
+If you want the benefits of async iterators syntax your can use emittery from `require('emittery/iterator')`. Note you'll need to pass the relevant harmony flag to your nodejs process.
+[see API#on for more details](#oneventname-listener)
 
 ## API
 
@@ -46,6 +50,8 @@ Subscribe to an event.
 Returns an unsubscribe method.
 
 Using the same listener multiple times for the same event will result in only one method call per emitted event.
+
+##### Async iterator syntax
 
 If you use the method with only the first argument, it will return an asynchronous iterator. Your listener will therefore be the loop body and you'll be able to
 unsubscribe to the event simply by breaking the loop.
