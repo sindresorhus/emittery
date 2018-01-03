@@ -52,17 +52,14 @@ module.exports = Emittery => {
 	/* eslint-enable ava/no-async-fn-without-await */
 
 	/* eslint-disable ava/no-async-fn-without-await */
-	test.cb('on() - async iterator (queued)', t => {
+	test('on() - async iterator (queued)', async t => {
 		const fixture = '🌈';
 		const emitter = new Emittery();
 		const iterator = emitter.on('🦄');
 		emitter.emit('🦄', fixture);
-		setTimeout(async () => {
-			const {value, done} = await iterator.next();
-			t.deepEqual(done, false);
-			t.deepEqual(value, fixture);
-			t.end();
-		}, 300);
+		const {value, done} = await iterator.next();
+		t.deepEqual(done, false);
+		t.deepEqual(value, fixture);
 	});
 	/* eslint-enable ava/no-async-fn-without-await */
 
