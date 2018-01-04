@@ -51,7 +51,7 @@ Using the same listener multiple times for the same event will result in only on
 
 #### off(eventName, [listener])
 
-Unsubscribe to an event.
+Remove an event subscription.
 
 If you don't pass in a `listener`, it will remove all listeners for that event.
 
@@ -94,9 +94,9 @@ Returns a method to unsubscribe.
 
 #### offAny([listener])
 
-Unsubscribe an `onAny` listener.
+Remove an `onAny` subscription.
 
-If you don't pass in a `listener`, it will remove all `onAny` listeners.
+If you don't pass in a `listener`, it will remove all `onAny` subscriptions.
 
 #### clear()
 
@@ -105,6 +105,23 @@ Clear all event listeners on the instance.
 #### listenerCount([eventName])
 
 The number of listeners for the `eventName` or all events if not specified.
+
+## TypeScript
+
+Definition for `emittery` and `emittery/legacy` are included. Use `import Emittery = require('emittery')` or `import Emittery = require('emittery/legacy')` to load the desired implementation.
+
+The default `Emittery` class does not let you type allowed event names and their associated data. However you can use `Emittery.Typed` with generics:
+
+```ts
+import Emittery = require('emittery');
+
+const ee = new Emittery.Typed<{value: string}, 'open' | 'close'>();
+
+ee.emit('open');
+ee.emit('value', 'foo\n');
+ee.emit('value', 1); // TS compilation error
+ee.emit('end'); // TS compilation error
+```
 
 
 ## FAQ
