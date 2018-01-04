@@ -108,8 +108,8 @@ declare namespace Emittery {
 	 *
 	 * ee.emit('open');
 	 * ee.emit('value', 'foo\n');
-	 * ee.emit('value', 1); // TS emit error
-	 * ee.emit('end'); // TS emit error
+	 * ee.emit('value', 1); // TS compilation error
+	 * ee.emit('end'); // TS compilation error
 	 * ```
 	 */
 	class Typed<EventDataMap extends Events, EmptyEvents = never> extends Emittery {

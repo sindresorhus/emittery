@@ -106,6 +106,23 @@ Clear all event listeners on the instance.
 
 The number of listeners for the `eventName` or all events if not specified.
 
+## TypeScript
+
+Definition for `emittery` and `emittery/legacy` are included. Use `import Emittery = require('emittery')` or `import Emittery = require('emittery/legacy')` to load the desired implementation.
+
+The default `Emittery` class does not let you type allowed event names and their associated data. However you can use `Emittery.Typed` with generics:
+
+```ts
+import Emittery = require('emittery');
+
+const ee = new Emittery.Typed<{value: string}, 'open' | 'close'>();
+
+ee.emit('open');
+ee.emit('value', 'foo\n');
+ee.emit('value', 1); // TS compilation error
+ee.emit('end'); // TS compilation error
+```
+
 
 ## FAQ
 
