@@ -31,7 +31,7 @@ async function * iterator(emitter, eventName) {
 	}
 }
 
-module.exports = class Emittery {
+class Emittery {
 	constructor() {
 		this._events = new Map();
 		this._anyEvents = new Set();
@@ -133,4 +133,13 @@ module.exports = class Emittery {
 
 		return count;
 	}
-};
+}
+
+// Subclass used to encourage TS users to type their events.
+Emittery.Typed = class extends Emittery {};
+Object.defineProperty(Emittery.Typed, 'Typed', {
+	enumerable: false,
+	value: undefined
+});
+
+module.exports = Emittery;
