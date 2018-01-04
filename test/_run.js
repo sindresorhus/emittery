@@ -1,6 +1,24 @@
 import test from 'ava';
 import delay from 'delay';
 
+// babel-plugin-transform-async-generator-functions assumes
+// `Symbol.asyncIterator` exists, so stub it for iterator tests.
+function stubAsyncIteratorSymbol(next) {
+	return async (...args) => {
+		if (!Symbol.asyncIterator) {
+			Symbol.asyncIterator = Symbol.for('Emittery.asyncIterator');
+		}
+
+		try {
+			return await next(...args);
+		} finally {
+			if (Symbol.asyncIterator === Symbol.for('Emittery.asyncIterator')) {
+				delete Symbol.asyncIterator;
+			}
+		}
+	};
+}
+
 module.exports = Emittery => {
 	test('on()', t => {
 		const emitter = new Emittery();
@@ -37,27 +55,26 @@ module.exports = Emittery => {
 		t.is(emitter._events.get('🦄').size, 1);
 	});
 
-	test('on() - async iterator', async t => {
-		const fixture = '🌈';
+	test.serial('on() - async iterator', stubAsyncIteratorSymbol(async t => {
 		const emitter = new Emittery();
-		setTimeout(() => {
-			emitter.emit('🦄', fixture);
-		}, 300);
 		const iterator = emitter.on('🦄');
-		const {value, done} = await iterator.next();
-		t.deepEqual(done, false);
-		t.deepEqual(value, fixture);
-	});
 
-	test('on() - async iterator (queued)', async t => {
-		const fixture = '🌈';
-		const emitter = new Emittery();
-		const iterator = emitter.on('🦄');
-		emitter.emit('🦄', fixture);
-		const {value, done} = await iterator.next();
-		t.deepEqual(done, false);
-		t.deepEqual(value, fixture);
-	});
+		await emitter.emit('🦄', '🌈');
+		setTimeout(() => {
+			emitter.emit('🦄', '🌟');
+		}, 10);
+
+		t.plan(3);
+		const expected = ['🌈', '🌟'];
+		for await (const data of iterator) {
+			t.deepEqual(data, expected.shift());
+			if (expected.length === 0) {
+				break;
+			}
+		}
+
+		t.deepEqual(await iterator.next(), {done: true});
+	}));
 
 	test('off()', t => {
 		const emitter = new Emittery();

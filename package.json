@@ -66,22 +66,22 @@
 		"typescript": "^2.6.2",
 		"xo": "*"
 	},
-	"xo": {
-		"parser": "babel-eslint"
+	"ava": {
+		"babel": {
+			"plugins": [
+				"transform-async-generator-functions"
+			],
+			"presets": [
+				"@ava/stage-4",
+				"@ava/transform-test-files"
+			]
+		}
 	},
 	"babel": {
 		"plugins": [
 			"transform-async-to-generator",
-			"transform-es2015-spread",
-			"transform-async-generator-functions"
-		],
-		"presets":[
-			"@ava/stage-4"
+			"transform-es2015-spread"
 		]
-	},
-	"ava": {
-		"require": "babel-register",
-		"babel": "inherit"
 	},
 	"nyc": {
 		"reporter": [
@@ -89,5 +89,8 @@
 			"lcov",
 			"text"
 		]
+	},
+	"xo": {
+		"parser": "babel-eslint"
 	}
 }

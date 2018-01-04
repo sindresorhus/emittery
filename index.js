@@ -8,27 +8,43 @@ function assertEventName(eventName) {
 	}
 }
 
-async function * iterator(emitter, eventName) {
-	const queue = [];
+function iterator(emitter, eventName) {
+	let flush = null;
+	let queue = [];
 	const off = emitter.on(eventName, data => {
-		queue.push(data);
+		if (flush) {
+			flush(data);
+		} else {
+			queue.push(data);
+		}
 	});
 
-	try {
-		/* eslint-disable no-constant-condition */
-		/* eslint-disable no-await-in-loop */
-		while (true) {
-			if (queue.length > 0) {
-				yield queue.shift();
-			} else {
-				yield await emitter.once(eventName);
+	return {
+		async next() {
+			if (!queue) {
+				return {done: true};
 			}
+
+			if (queue.length > 0) {
+				return {done: false, value: queue.shift()};
+			}
+
+			const value = await new Promise(resolve => {
+				flush = data => {
+					resolve(data);
+					flush = null;
+				};
+			});
+			return {done: false, value};
+		},
+		return() {
+			off();
+			queue = null;
+		},
+		[Symbol.asyncIterator]() {
+			return this;
 		}
-		/* eslint-enable no-constant-condition */
-		/* eslint-enable no-await-in-loop */
-	} finally {
-		off();
-	}
+	};
 }
 
 class Emittery {
