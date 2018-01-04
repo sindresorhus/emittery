@@ -1,7 +1,35 @@
 'use strict';
-const assertEventName = require('./util');
 
 const resolvedPromise = Promise.resolve();
+
+function assertEventName(eventName) {
+	if (typeof eventName !== 'string') {
+		throw new TypeError('eventName must be a string');
+	}
+}
+
+async function * iterator(emitter, eventName) {
+	const queue = [];
+	const off = emitter.on(eventName, data => {
+		queue.push(data);
+	});
+
+	try {
+		/* eslint-disable no-constant-condition */
+		/* eslint-disable no-await-in-loop */
+		while (true) {
+			if (queue.length > 0) {
+				yield queue.shift();
+			} else {
+				yield await emitter.once(eventName);
+			}
+		}
+		/* eslint-enable no-constant-condition */
+		/* eslint-enable no-await-in-loop */
+	} finally {
+		off();
+	}
+}
 
 module.exports = class Emittery {
 	constructor() {
@@ -19,8 +47,13 @@ module.exports = class Emittery {
 
 	on(eventName, listener) {
 		assertEventName(eventName);
-		this._getListeners(eventName).add(listener);
-		return this.off.bind(this, eventName, listener);
+
+		if (typeof listener === 'function') {
+			this._getListeners(eventName).add(listener);
+			return this.off.bind(this, eventName, listener);
+		}
+
+		return iterator(this, eventName);
 	}
 
 	off(eventName, listener) {
