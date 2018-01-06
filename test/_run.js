@@ -63,18 +63,9 @@ module.exports = Emittery => {
 		t.throws(() => emitter.off(42), TypeError);
 	});
 
-	test('off() - all listeners', async t => {
+	test('off() - no listener', t => {
 		const emitter = new Emittery();
-		const calls = [];
-
-		emitter.on('🦄', () => calls.push(1));
-		emitter.on('🦄', () => calls.push(2));
-		await emitter.emit('🦄');
-		t.deepEqual(calls, [1, 2]);
-
-		emitter.off('🦄');
-		await emitter.emit('🦄');
-		t.deepEqual(calls, [1, 2]);
+		t.throws(() => emitter.off('🦄'), TypeError);
 	});
 
 	test('once()', async t => {
@@ -222,17 +213,9 @@ module.exports = Emittery => {
 		t.deepEqual(calls, [1]);
 	});
 
-	test('offAny() - all listeners', async t => {
+	test('offAny() - no listener', t => {
 		const emitter = new Emittery();
-		const calls = [];
-		emitter.onAny(() => calls.push(1));
-		emitter.onAny(() => calls.push(2));
-		emitter.onAny(() => calls.push(3));
-		await emitter.emit('🦄');
-		t.deepEqual(calls, [1, 2, 3]);
-		emitter.offAny();
-		await emitter.emit('🦄');
-		t.deepEqual(calls, [1, 2, 3]);
+		t.throws(() => emitter.offAny(), TypeError);
 	});
 
 	test('clear()', async t => {
