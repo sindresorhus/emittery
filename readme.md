@@ -103,7 +103,19 @@ Returns a method to unsubscribe.
 
 Remove an `onAny` subscription.
 
+<<<<<<< HEAD
 #### clearListeners()
+=======
+If you don't pass in a `listener`, it will remove all `onAny` subscriptions.
+
+#### anyEvent()
+
+Get an asynchronous iterator which buffers a tuple of an event name and data each time an event is emitted.
+
+Call `return()` on the iterator to remove the subscription.
+
+#### clear()
+>>>>>>> Implement .anyEvent()
 
 Clear all event listeners on the instance.
 

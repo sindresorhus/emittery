@@ -51,10 +51,29 @@ function iterator(emitter, eventName) {
 	let flush = () => {
 	};
 	let queue = [];
+<<<<<<< HEAD
 	const off = emitter.on(eventName, data => {
 		queue.push(data);
 		flush();
 	});
+=======
+	let off;
+	if (typeof eventName === 'string') {
+		off = emitter.on(eventName, data => {
+			if (queue) {
+				queue.push(data);
+			}
+			flush();
+		});
+	} else {
+		off = emitter.onAny((eventName, data) => {
+			if (queue) {
+				queue.push([eventName, data]);
+			}
+			flush();
+		});
+	}
+>>>>>>> Implement .anyEvent()
 
 	return {
 		async next() {
@@ -160,6 +179,7 @@ class Emittery {
 	}
 
 	events(eventName) {
+		assertEventName(eventName);
 		return iterator(this, eventName);
 	}
 
@@ -221,6 +241,7 @@ class Emittery {
 		anyMap.get(this).delete(listener);
 	}
 
+<<<<<<< HEAD
 	clearListeners(eventName) {
 		if (typeof eventName === 'string') {
 			getListeners(this, eventName).clear();
@@ -230,6 +251,15 @@ class Emittery {
 				listeners.clear();
 			}
 		}
+=======
+	anyEvent() {
+		return iterator(this);
+	}
+
+	clear() {
+		this._events.clear();
+		this._anyEvents.clear();
+>>>>>>> Implement .anyEvent()
 	}
 
 	listenerCount(eventName) {
