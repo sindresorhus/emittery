@@ -1,5 +1,7 @@
 'use strict';
 
+const anyMap = new WeakMap();
+const eventsMap = new WeakMap();
 const resolvedPromise = Promise.resolve();
 
 function assertEventName(eventName) {
@@ -8,32 +10,33 @@ function assertEventName(eventName) {
 	}
 }
 
-class Emittery {
-	constructor() {
-		this._events = new Map();
-		this._anyEvents = new Set();
+function getListeners(instance, eventName) {
+	const events = eventsMap.get(instance);
+	if (!events.has(eventName)) {
+		events.set(eventName, new Set());
 	}
 
-	_getListeners(eventName) {
-		if (!this._events.has(eventName)) {
-			this._events.set(eventName, new Set());
-		}
+	return events.get(eventName);
+}
 
-		return this._events.get(eventName);
+class Emittery {
+	constructor() {
+		anyMap.set(this, new Set());
+		eventsMap.set(this, new Map());
 	}
 
 	on(eventName, listener) {
 		assertEventName(eventName);
-		this._getListeners(eventName).add(listener);
+		getListeners(this, eventName).add(listener);
 		return this.off.bind(this, eventName, listener);
 	}
 
 	off(eventName, listener) {
 		assertEventName(eventName);
 		if (listener) {
-			this._getListeners(eventName).delete(listener);
+			getListeners(this, eventName).delete(listener);
 		} else {
-			this._getListeners(eventName).clear();
+			getListeners(this, eventName).clear();
 		}
 	}
 
@@ -50,8 +53,8 @@ class Emittery {
 	async emit(eventName, eventData) {
 		assertEventName(eventName);
 		await resolvedPromise;
-		const listeners = [...this._getListeners(eventName)].map(async listener => listener(eventData));
-		const anyListeners = [...this._anyEvents].map(async listener => listener(eventName, eventData));
+		const listeners = [...getListeners(this, eventName)].map(async listener => listener(eventData));
+		const anyListeners = [...anyMap.get(this)].map(async listener => listener(eventName, eventData));
 		return Promise.all([...listeners, ...anyListeners]);
 	}
 
@@ -60,46 +63,46 @@ class Emittery {
 		await resolvedPromise;
 
 		/* eslint-disable no-await-in-loop */
-		for (const listener of this._getListeners(eventName)) {
+		for (const listener of getListeners(this, eventName)) {
 			await listener(eventData);
 		}
 
-		for (const listener of this._anyEvents) {
+		for (const listener of anyMap.get(this)) {
 			await listener(eventName, eventData);
 		}
 		/* eslint-enable no-await-in-loop */
 	}
 
 	onAny(listener) {
-		this._anyEvents.add(listener);
+		anyMap.get(this).add(listener);
 		return this.offAny.bind(this, listener);
 	}
 
 	offAny(listener) {
 		if (listener) {
-			this._anyEvents.delete(listener);
+			anyMap.get(this).delete(listener);
 		} else {
-			this._anyEvents.clear();
+			anyMap.get(this).clear();
 		}
 	}
 
 	clear() {
-		this._events.clear();
-		this._anyEvents.clear();
+		anyMap.get(this).clear();
+		eventsMap.get(this).clear();
 	}
 
 	listenerCount(eventName) {
 		if (typeof eventName === 'string') {
-			return this._anyEvents.size + this._getListeners(eventName).size;
+			return anyMap.get(this).size + getListeners(this, eventName).size;
 		}
 
 		if (typeof eventName !== 'undefined') {
 			assertEventName(eventName);
 		}
 
-		let count = this._anyEvents.size;
+		let count = anyMap.get(this).size;
 
-		for (const value of this._events.values()) {
+		for (const value of eventsMap.get(this).values()) {
 			count += value.size;
 		}
 
