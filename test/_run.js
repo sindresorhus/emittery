@@ -2,13 +2,15 @@ import test from 'ava';
 import delay from 'delay';
 
 module.exports = Emittery => {
-	test('on()', t => {
+	test('on()', async t => {
 		const emitter = new Emittery();
-		const listener1 = () => {};
-		const listener2 = () => {};
+		const calls = [];
+		const listener1 = () => calls.push(1);
+		const listener2 = () => calls.push(2);
 		emitter.on('🦄', listener1);
 		emitter.on('🦄', listener2);
-		t.deepEqual([...emitter._events.get('🦄')], [listener1, listener2]);
+		await emitter.emit('🦄');
+		t.deepEqual(calls, [1, 2]);
 	});
 
 	test('on() - eventName must be a string', t => {
@@ -16,36 +18,44 @@ module.exports = Emittery => {
 		t.throws(() => emitter.on(42, () => {}), TypeError);
 	});
 
-	test('on() - returns a unsubcribe method', t => {
+	test('on() - returns a unsubcribe method', async t => {
 		const emitter = new Emittery();
-		const listener = () => {};
+		const calls = [];
+		const listener = () => calls.push(1);
 
 		const off = emitter.on('🦄', listener);
-		t.true(emitter._events.get('🦄').has(listener));
+		await emitter.emit('🦄');
+		t.deepEqual(calls, [1]);
 
 		off();
-		t.false(emitter._events.get('🦄').has(listener));
+		await emitter.emit('🦄');
+		t.deepEqual(calls, [1]);
 	});
 
-	test('on() - dedupes identical listeners', t => {
+	test('on() - dedupes identical listeners', async t => {
 		const emitter = new Emittery();
-		const listener = () => {};
+		const calls = [];
+		const listener = () => calls.push(1);
 
 		emitter.on('🦄', listener);
 		emitter.on('🦄', listener);
 		emitter.on('🦄', listener);
-		t.is(emitter._events.get('🦄').size, 1);
+		await emitter.emit('🦄');
+		t.deepEqual(calls, [1]);
 	});
 
-	test('off()', t => {
+	test('off()', async t => {
 		const emitter = new Emittery();
-		const listener = () => {};
+		const calls = [];
+		const listener = () => calls.push(1);
 
 		emitter.on('🦄', listener);
-		t.is(emitter._events.get('🦄').size, 1);
+		await emitter.emit('🦄');
+		t.deepEqual(calls, [1]);
 
 		emitter.off('🦄', listener);
-		t.is(emitter._events.get('🦄').size, 0);
+		await emitter.emit('🦄');
+		t.deepEqual(calls, [1]);
 	});
 
 	test('off() - eventName must be a string', t => {
@@ -53,15 +63,18 @@ module.exports = Emittery => {
 		t.throws(() => emitter.off(42), TypeError);
 	});
 
-	test('off() - all listeners', t => {
+	test('off() - all listeners', async t => {
 		const emitter = new Emittery();
+		const calls = [];
 
-		emitter.on('🦄', () => {});
-		emitter.on('🦄', () => {});
-		t.is(emitter._events.get('🦄').size, 2);
+		emitter.on('🦄', () => calls.push(1));
+		emitter.on('🦄', () => calls.push(2));
+		await emitter.emit('🦄');
+		t.deepEqual(calls, [1, 2]);
 
 		emitter.off('🦄');
-		t.is(emitter._events.get('🦄').size, 0);
+		await emitter.emit('🦄');
+		t.deepEqual(calls, [1, 2]);
 	});
 
 	test('once()', async t => {
@@ -197,37 +210,46 @@ module.exports = Emittery => {
 		await emitter.emitSerial('🦄', eventFixture);
 	});
 
-	test('offAny()', t => {
+	test('offAny()', async t => {
 		const emitter = new Emittery();
-		const listener = () => {};
+		const calls = [];
+		const listener = () => calls.push(1);
 		emitter.onAny(listener);
-		t.is(emitter._anyEvents.size, 1);
+		await emitter.emit('🦄');
+		t.deepEqual(calls, [1]);
 		emitter.offAny(listener);
-		t.is(emitter._anyEvents.size, 0);
+		await emitter.emit('🦄');
+		t.deepEqual(calls, [1]);
 	});
 
-	test('offAny() - all listeners', t => {
+	test('offAny() - all listeners', async t => {
 		const emitter = new Emittery();
-		emitter.onAny(() => {});
-		emitter.onAny(() => {});
-		emitter.onAny(() => {});
-		t.is(emitter._anyEvents.size, 3);
+		const calls = [];
+		emitter.onAny(() => calls.push(1));
+		emitter.onAny(() => calls.push(2));
+		emitter.onAny(() => calls.push(3));
+		await emitter.emit('🦄');
+		t.deepEqual(calls, [1, 2, 3]);
 		emitter.offAny();
-		t.is(emitter._anyEvents.size, 0);
+		await emitter.emit('🦄');
+		t.deepEqual(calls, [1, 2, 3]);
 	});
 
-	test('clear()', t => {
+	test('clear()', async t => {
 		const emitter = new Emittery();
-		emitter.on('🦄', () => {});
-		emitter.on('🌈', () => {});
-		emitter.on('🦄', () => {});
-		emitter.onAny(() => {});
-		emitter.onAny(() => {});
-		t.is(emitter._events.size, 2);
-		t.is(emitter._anyEvents.size, 2);
+		const calls = [];
+		emitter.on('🦄', () => calls.push('🦄1'));
+		emitter.on('🌈', () => calls.push('🌈'));
+		emitter.on('🦄', () => calls.push('🦄2'));
+		emitter.onAny(() => calls.push('any1'));
+		emitter.onAny(() => calls.push('any2'));
+		await emitter.emit('🦄');
+		await emitter.emit('🌈');
+		t.deepEqual(calls, ['🦄1', '🦄2', 'any1', 'any2', '🌈', 'any1', 'any2']);
 		emitter.clear();
-		t.is(emitter._events.size, 0);
-		t.is(emitter._anyEvents.size, 0);
+		await emitter.emit('🦄');
+		await emitter.emit('🌈');
+		t.deepEqual(calls, ['🦄1', '🦄2', 'any1', 'any2', '🌈', 'any1', 'any2']);
 	});
 
 	test('listenerCount()', t => {
