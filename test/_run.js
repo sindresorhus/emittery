@@ -76,6 +76,17 @@ module.exports = Emittery => {
 		t.deepEqual(await iterator.next(), {done: true});
 	}));
 
+	test('on() - async iterator - return() called during emit', async t => {
+		const emitter = new Emittery();
+		let iterator = null;
+		emitter.on('🦄', () => {
+			iterator.return();
+		});
+		iterator = emitter.on('🦄');
+		emitter.emit('🦄');
+		t.deepEqual(await iterator.next(), {done: true});
+	});
+
 	test('off()', t => {
 		const emitter = new Emittery();
 		const listener = () => {};

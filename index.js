@@ -12,7 +12,9 @@ function iterator(emitter, eventName) {
 	let flush = () => {};
 	let queue = [];
 	const off = emitter.on(eventName, data => {
-		queue.push(data);
+		if (queue) {
+			queue.push(data);
+		}
 		flush();
 	});
 
