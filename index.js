@@ -33,6 +33,7 @@ class Emittery {
 
 	on(eventName, listener) {
 		assertEventName(eventName);
+		assertListener(listener);
 		getListeners(this, eventName).add(listener);
 		return this.off.bind(this, eventName, listener);
 	}
@@ -77,6 +78,7 @@ class Emittery {
 	}
 
 	onAny(listener) {
+		assertListener(listener);
 		anyMap.get(this).add(listener);
 		return this.offAny.bind(this, listener);
 	}

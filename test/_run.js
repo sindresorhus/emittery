@@ -18,6 +18,11 @@ module.exports = Emittery => {
 		t.throws(() => emitter.on(42, () => {}), TypeError);
 	});
 
+	test('on() - must have a listener', t => {
+		const emitter = new Emittery();
+		t.throws(() => emitter.on('🦄'), TypeError);
+	});
+
 	test('on() - returns a unsubcribe method', async t => {
 		const emitter = new Emittery();
 		const calls = [];
@@ -199,6 +204,11 @@ module.exports = Emittery => {
 
 		await emitter.emit('🦄', eventFixture);
 		await emitter.emitSerial('🦄', eventFixture);
+	});
+
+	test('onAny() - must have a listener', t => {
+		const emitter = new Emittery();
+		t.throws(() => emitter.onAny(), TypeError);
 	});
 
 	test('offAny()', async t => {
