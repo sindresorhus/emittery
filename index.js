@@ -9,14 +9,11 @@ function assertEventName(eventName) {
 }
 
 function iterator(emitter, eventName) {
-	let flush = null;
+	let flush = () => {};
 	let queue = [];
 	const off = emitter.on(eventName, data => {
-		if (flush) {
-			flush(data);
-		} else {
-			queue.push(data);
-		}
+		queue.push(data);
+		flush();
 	});
 
 	return {
@@ -25,17 +22,14 @@ function iterator(emitter, eventName) {
 				return {done: true};
 			}
 
-			if (queue.length > 0) {
-				return {done: false, value: queue.shift()};
+			if (queue.length === 0) {
+				await new Promise(resolve => {
+					flush = resolve;
+				});
+				return this.next();
 			}
 
-			const value = await new Promise(resolve => {
-				flush = data => {
-					resolve(data);
-					flush = null;
-				};
-			});
-			return {done: false, value};
+			return {done: false, value: queue.shift()};
 		},
 		return() {
 			off();
