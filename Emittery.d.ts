@@ -67,7 +67,7 @@ declare class Emittery {
 		/**
 		 * Clear all event listeners on the instance.
 		 */
-		clear(): void;
+		clearListeners(): void;
 
 		/**
 		 * The number of listeners for the `eventName` or all events if not

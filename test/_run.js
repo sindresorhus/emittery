@@ -228,7 +228,7 @@ module.exports = Emittery => {
 		t.throws(() => emitter.offAny(), TypeError);
 	});
 
-	test('clear()', async t => {
+	test('clearListeners()', async t => {
 		const emitter = new Emittery();
 		const calls = [];
 		emitter.on('🦄', () => calls.push('🦄1'));
@@ -239,7 +239,7 @@ module.exports = Emittery => {
 		await emitter.emit('🦄');
 		await emitter.emit('🌈');
 		t.deepEqual(calls, ['🦄1', '🦄2', 'any1', 'any2', '🌈', 'any1', 'any2']);
-		emitter.clear();
+		emitter.clearListeners();
 		await emitter.emit('🦄');
 		await emitter.emit('🌈');
 		t.deepEqual(calls, ['🦄1', '🦄2', 'any1', 'any2', '🌈', 'any1', 'any2']);

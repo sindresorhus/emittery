@@ -94,7 +94,7 @@ Returns a method to unsubscribe.
 
 Remove an `onAny` subscription.
 
-#### clear()
+#### clearListeners()
 
 Clear all event listeners on the instance.
 
