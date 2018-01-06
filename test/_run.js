@@ -1,7 +1,7 @@
 import test from 'ava';
 import delay from 'delay';
 
-// babel-plugin-transform-async-generator-functions assumes
+// The babel-plugin-transform-async-generator-functions plugin assumes
 // `Symbol.asyncIterator` exists, so stub it for iterator tests.
 function stubAsyncIteratorSymbol(next) {
 	return async (...args) => {
