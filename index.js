@@ -71,9 +71,12 @@ function iterator(emitter, eventName) {
 
 			return {done: false, value: queue.shift()};
 		},
-		return() {
+		async return(value) {
 			off();
 			queue = null;
+			return arguments.length > 0 ?
+				{done: true, value: await value} :
+				{done: true};
 		},
 		[Symbol.asyncIterator]() {
 			return this;
