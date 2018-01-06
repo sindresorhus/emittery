@@ -62,13 +62,8 @@ class Emittery {
 
 	on(eventName, listener) {
 		assertEventName(eventName);
-
-		if (typeof listener === 'function') {
-			this._getListeners(eventName).add(listener);
-			return this.off.bind(this, eventName, listener);
-		}
-
-		return iterator(this, eventName);
+		this._getListeners(eventName).add(listener);
+		return this.off.bind(this, eventName, listener);
 	}
 
 	off(eventName, listener) {
@@ -88,6 +83,10 @@ class Emittery {
 				resolve(data);
 			});
 		});
+	}
+
+	events(eventName) {
+		return iterator(this, eventName);
 	}
 
 	async emit(eventName, eventData) {

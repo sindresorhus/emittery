@@ -28,6 +28,14 @@ declare class Emittery {
 		once(eventName: string): Promise<any>;
 
 		/**
+		 * Get an asynchronous iterator which buffers data each time an event is
+		 * emitted.
+		 *
+		 * Call `return()` on the iterator to remove the subscription.
+		 */
+		events(eventName: string): AsyncIterableIterator<any>;
+
+		/**
 		 * Trigger an event asynchronously, optionally with some data. Listeners
 		 * are called in the order they were added, but execute concurrently.
 		 *
@@ -121,6 +129,9 @@ declare namespace Emittery {
 
 		off<Name extends keyof EventDataMap>(eventName: Name, listener?: (eventData: EventDataMap[Name]) => any): void;
 		off<Name extends EmptyEvents>(eventName: Name, listener?: () => any): void;
+
+		events<Name extends keyof EventDataMap>(eventName: Name): AsyncIterableIterator<EventDataMap[Name]>;
+		events<Name extends EmptyEvents>(eventName: Name): AsyncIterableIterator<void>;
 
 		onAny<Name extends keyof EventDataMap>(listener: (eventName: Name, eventData: EventDataMap[Name]) => any): Emittery.UnsubscribeFn;
 		onAny<Name extends EmptyEvents>(listener: (eventName: Name) => any): Emittery.UnsubscribeFn;

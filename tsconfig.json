@@ -2,7 +2,10 @@
 	"compilerOptions": {
 		"allowSyntheticDefaultImports": true,
 		"alwaysStrict": true,
-		"lib": ["es2017"],
+		"lib": [
+			"es2017",
+			"esnext.asynciterable"
+		],
 		"module": "commonjs",
 		"moduleResolution": "node",
 		"noImplicitAny": true,

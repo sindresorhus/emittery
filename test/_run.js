@@ -55,9 +55,9 @@ module.exports = Emittery => {
 		t.is(emitter._events.get('🦄').size, 1);
 	});
 
-	test.serial('on() - async iterator', stubAsyncIteratorSymbol(async t => {
+	test.serial('events()', stubAsyncIteratorSymbol(async t => {
 		const emitter = new Emittery();
-		const iterator = emitter.on('🦄');
+		const iterator = emitter.events('🦄');
 
 		await emitter.emit('🦄', '🌈');
 		setTimeout(() => {
@@ -76,26 +76,26 @@ module.exports = Emittery => {
 		t.deepEqual(await iterator.next(), {done: true});
 	}));
 
-	test('on() - async iterator - return() called during emit', async t => {
+	test('events() - return() called during emit', async t => {
 		const emitter = new Emittery();
 		let iterator = null;
 		emitter.on('🦄', () => {
 			iterator.return();
 		});
-		iterator = emitter.on('🦄');
+		iterator = emitter.events('🦄');
 		emitter.emit('🦄');
 		t.deepEqual(await iterator.next(), {done: true});
 	});
 
-	test('on() - async iterator - return() awaits its argument', async t => {
+	test('events() - return() awaits its argument', async t => {
 		const emitter = new Emittery();
-		const iterator = emitter.on('🦄');
+		const iterator = emitter.events('🦄');
 		t.deepEqual(await iterator.return(Promise.resolve(1)), {done: true, value: 1});
 	});
 
-	test('on() - async iterator - return() without argument', async t => {
+	test('events() - return() without argument', async t => {
 		const emitter = new Emittery();
-		const iterator = emitter.on('🦄');
+		const iterator = emitter.events('🦄');
 		t.deepEqual(await iterator.return(), {done: true});
 	});
 
