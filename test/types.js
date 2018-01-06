@@ -2,7 +2,9 @@ import path from 'path';
 
 import test from 'ava';
 import glob from 'glob';
-import * as ts from 'typescript';
+
+// Import syntax trips up Atom with ide-typescript loaded.
+const ts = require('typescript');
 
 const compilerOptions = {
 	target: ts.ScriptTarget.ES2017,
