@@ -68,12 +68,12 @@
 	},
 	"ava": {
 		"babel": {
+			"babelrc": false,
 			"plugins": [
 				"transform-async-generator-functions"
 			],
 			"presets": [
-				"@ava/stage-4",
-				"@ava/transform-test-files"
+				"@ava/stage-4"
 			]
 		}
 	},
