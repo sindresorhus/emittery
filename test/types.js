@@ -7,7 +7,7 @@ import glob from 'glob';
 const ts = require('typescript');
 
 const compilerOptions = {
-	target: ts.ScriptTarget.ES2017,
+	target: ts.ScriptTarget.ESNext,
 	module: ts.ModuleKind.CommonJS,
 	strict: true,
 	noEmit: true

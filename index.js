@@ -134,8 +134,12 @@ class Emittery {
 
 	on(eventName, listener) {
 		assertEventName(eventName);
+<<<<<<< HEAD
 		assertListener(listener);
 		getListeners(this, eventName).add(listener);
+=======
+		this._getListeners(eventName).add(listener);
+>>>>>>> Return async iterator from .events(), not .on()
 		return this.off.bind(this, eventName, listener);
 	}
 
@@ -153,6 +157,10 @@ class Emittery {
 				resolve(data);
 			});
 		});
+	}
+
+	events(eventName) {
+		return iterator(this, eventName);
 	}
 
 	async emit(eventName, eventData) {
