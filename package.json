@@ -55,6 +55,7 @@
 		"babel-cli": "^6.26.0",
 		"babel-core": "^6.26.0",
 		"babel-eslint": "^8.1.2",
+		"babel-plugin-syntax-async-generators": "^6.13.0",
 		"babel-plugin-transform-async-generator-functions": "^6.24.1",
 		"babel-plugin-transform-async-to-generator": "^6.24.1",
 		"babel-plugin-transform-es2015-spread": "^6.22.0",
@@ -70,7 +71,7 @@
 		"babel": {
 			"babelrc": false,
 			"plugins": [
-				"transform-async-generator-functions"
+				"./test/_for-await.js"
 			],
 			"presets": [
 				"@ava/stage-4"
