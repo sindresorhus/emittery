@@ -278,6 +278,38 @@ module.exports = Emittery => {
 		t.is(emitter._anyEvents.size, 0);
 	});
 
+	test.serial('anyEvent()', stubAsyncIteratorSymbol(async t => {
+		const emitter = new Emittery();
+		const iterator = emitter.anyEvent();
+
+		await emitter.emit('🦄', '🌈');
+		setTimeout(() => {
+			emitter.emit('🦄', '🌟');
+		}, 10);
+
+		t.plan(3);
+		const expected = [['🦄', '🌈'], ['🦄', '🌟']];
+		for await (const data of iterator) {
+			t.deepEqual(data, expected.shift());
+			if (expected.length === 0) {
+				break;
+			}
+		}
+
+		t.deepEqual(await iterator.next(), {done: true});
+	}));
+
+	test('anyEvent() - return() called during emit', async t => {
+		const emitter = new Emittery();
+		let iterator = null;
+		emitter.onAny(() => {
+			iterator.return();
+		});
+		iterator = emitter.anyEvent();
+		emitter.emit('🦄');
+		t.deepEqual(await iterator.next(), {done: true});
+	});
+
 	test('clear()', t => {
 		const emitter = new Emittery();
 		emitter.on('🦄', () => {});

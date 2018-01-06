@@ -11,12 +11,22 @@ function assertEventName(eventName) {
 function iterator(emitter, eventName) {
 	let flush = () => {};
 	let queue = [];
-	const off = emitter.on(eventName, data => {
-		if (queue) {
-			queue.push(data);
-		}
-		flush();
-	});
+	let off;
+	if (typeof eventName === 'string') {
+		off = emitter.on(eventName, data => {
+			if (queue) {
+				queue.push(data);
+			}
+			flush();
+		});
+	} else {
+		off = emitter.onAny((eventName, data) => {
+			if (queue) {
+				queue.push([eventName, data]);
+			}
+			flush();
+		});
+	}
 
 	return {
 		async next() {
@@ -86,6 +96,7 @@ class Emittery {
 	}
 
 	events(eventName) {
+		assertEventName(eventName);
 		return iterator(this, eventName);
 	}
 
@@ -123,6 +134,10 @@ class Emittery {
 		} else {
 			this._anyEvents.clear();
 		}
+	}
+
+	anyEvent() {
+		return iterator(this);
 	}
 
 	clear() {

@@ -126,6 +126,12 @@ Remove an `onAny` subscription.
 
 If you don't pass in a `listener`, it will remove all `onAny` subscriptions.
 
+#### anyEvent()
+
+Get an asynchronous iterator which buffers a tuple of an event name and data each time an event is emitted.
+
+Call `return()` on the iterator to remove the subscription.
+
 #### clear()
 
 Clear all event listeners on the instance.

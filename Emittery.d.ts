@@ -78,6 +78,14 @@ declare class Emittery {
 		offAny(listener?: (eventName: string, eventData?: any) => any): void;
 
 		/**
+		 * Get an asynchronous iterator which buffers a tuple of an event name and
+		 * data each time an event is emitted.
+		 *
+		 * Call `return()` on the iterator to remove the subscription.
+		 */
+		anyEvent(): AsyncIterableIterator<[string, any]>;
+
+		/**
 		 * Clear all event listeners on the instance.
 		 */
 		clear(): void;
@@ -138,6 +146,9 @@ declare namespace Emittery {
 
 		offAny<Name extends keyof EventDataMap>(listener?: (eventName: Name, eventData: EventDataMap[Name]) => any): void;
 		offAny<Name extends EmptyEvents>(listener?: (eventName: Name) => any): void;
+
+		anyEvent<Name extends keyof EventDataMap>(): AsyncIterableIterator<[Name, EventDataMap[Name]]>;
+		anyEvent<Name extends EmptyEvents>(): AsyncIterableIterator<[Name, void]>;
 
 		emit<Name extends keyof EventDataMap>(eventName: Name, eventData: EventDataMap[Name]): Promise<void>;
 		emit<Name extends EmptyEvents>(eventName: Name): Promise<void>;
