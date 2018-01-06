@@ -47,6 +47,40 @@ function defaultMethodNamesOrAssert(methodNames) {
 	return methodNames;
 }
 
+function iterator(emitter, eventName) {
+	let flush = () => {
+	};
+	let queue = [];
+	const off = emitter.on(eventName, data => {
+		queue.push(data);
+		flush();
+	});
+
+	return {
+		async next() {
+			if (!queue) {
+				return {done: true};
+			}
+
+			if (queue.length === 0) {
+				await new Promise(resolve => {
+					flush = resolve;
+				});
+				return this.next();
+			}
+
+			return {done: false, value: queue.shift()};
+		},
+		return() {
+			off();
+			queue = null;
+		},
+		[Symbol.asyncIterator]() {
+			return this;
+		}
+	};
+}
+
 class Emittery {
 	static mixin(emitteryPropertyName, methodNames) {
 		methodNames = defaultMethodNamesOrAssert(methodNames);
@@ -93,6 +127,7 @@ class Emittery {
 		anyMap.set(this, new Set());
 		eventsMap.set(this, new Map());
 	}
+
 
 	on(eventName, listener) {
 		assertEventName(eventName);
@@ -227,7 +262,8 @@ class Emittery {
 const allEmitteryMethods = Object.getOwnPropertyNames(Emittery.prototype).filter(v => v !== 'constructor');
 
 // Subclass used to encourage TS users to type their events.
-Emittery.Typed = class extends Emittery {};
+Emittery.Typed = class extends Emittery {
+};
 Object.defineProperty(Emittery.Typed, 'Typed', {
 	enumerable: false,
 	value: undefined
