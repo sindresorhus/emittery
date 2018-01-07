@@ -245,6 +245,23 @@ module.exports = Emittery => {
 		t.deepEqual(calls, ['🦄1', '🦄2', 'any1', 'any2', '🌈', 'any1', 'any2']);
 	});
 
+	test('clearListeners() - with event name', async t => {
+		const emitter = new Emittery();
+		const calls = [];
+		emitter.on('🦄', () => calls.push('🦄1'));
+		emitter.on('🌈', () => calls.push('🌈'));
+		emitter.on('🦄', () => calls.push('🦄2'));
+		emitter.onAny(() => calls.push('any1'));
+		emitter.onAny(() => calls.push('any2'));
+		await emitter.emit('🦄');
+		await emitter.emit('🌈');
+		t.deepEqual(calls, ['🦄1', '🦄2', 'any1', 'any2', '🌈', 'any1', 'any2']);
+		emitter.clearListeners('🦄');
+		await emitter.emit('🦄');
+		await emitter.emit('🌈');
+		t.deepEqual(calls, ['🦄1', '🦄2', 'any1', 'any2', '🌈', 'any1', 'any2', 'any1', 'any2', '🌈', 'any1', 'any2']);
+	});
+
 	test('listenerCount()', t => {
 		const emitter = new Emittery();
 		emitter.on('🦄', () => {});

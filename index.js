@@ -88,9 +88,13 @@ class Emittery {
 		anyMap.get(this).delete(listener);
 	}
 
-	clearListeners() {
-		anyMap.get(this).clear();
-		eventsMap.get(this).clear();
+	clearListeners(eventName) {
+		if (typeof eventName === 'string') {
+			getListeners(this, eventName).clear();
+		} else {
+			anyMap.get(this).clear();
+			eventsMap.get(this).clear();
+		}
 	}
 
 	listenerCount(eventName) {
