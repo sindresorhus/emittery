@@ -51,12 +51,6 @@ function iterator(emitter, eventName) {
 	let flush = () => {
 	};
 	let queue = [];
-<<<<<<< HEAD
-	const off = emitter.on(eventName, data => {
-		queue.push(data);
-		flush();
-	});
-=======
 	let off;
 	if (typeof eventName === 'string') {
 		off = emitter.on(eventName, data => {
@@ -68,12 +62,11 @@ function iterator(emitter, eventName) {
 	} else {
 		off = emitter.onAny((eventName, data) => {
 			if (queue) {
-				queue.push([eventName, data]);
+				queue.push(Promise.all([eventName, data]));
 			}
 			flush();
 		});
 	}
->>>>>>> Implement .anyEvent()
 
 	return {
 		async next() {
@@ -88,7 +81,7 @@ function iterator(emitter, eventName) {
 				return this.next();
 			}
 
-			return {done: false, value: queue.shift()};
+			return {done: false, value: await queue.shift()};
 		},
 		async return(value) {
 			off();
