@@ -61,7 +61,7 @@ module.exports = Emittery => {
 
 		await emitter.emit('🦄', '🌈');
 		setTimeout(() => {
-			emitter.emit('🦄', '🌟');
+			emitter.emit('🦄', Promise.resolve('🌟'));
 		}, 10);
 
 		t.plan(3);
@@ -284,7 +284,7 @@ module.exports = Emittery => {
 
 		await emitter.emit('🦄', '🌈');
 		setTimeout(() => {
-			emitter.emit('🦄', '🌟');
+			emitter.emit('🦄', Promise.resolve('🌟'));
 		}, 10);
 
 		t.plan(3);

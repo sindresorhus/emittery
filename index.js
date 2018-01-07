@@ -22,7 +22,7 @@ function iterator(emitter, eventName) {
 	} else {
 		off = emitter.onAny((eventName, data) => {
 			if (queue) {
-				queue.push([eventName, data]);
+				queue.push(Promise.all([eventName, data]));
 			}
 			flush();
 		});
@@ -41,7 +41,7 @@ function iterator(emitter, eventName) {
 				return this.next();
 			}
 
-			return {done: false, value: queue.shift()};
+			return {done: false, value: await queue.shift()};
 		},
 		async return(value) {
 			off();
