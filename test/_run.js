@@ -148,6 +148,45 @@ module.exports = Emittery => {
 		t.false(unicorn);
 	});
 
+	test('emit() - calls listeners subscribed when emit() was invoked', async t => {
+		const emitter = new Emittery();
+		const calls = [];
+		const off1 = emitter.on('🦄', () => calls.push(1));
+		const p = emitter.emit('🦄');
+		emitter.on('🦄', () => calls.push(2));
+		await p;
+		t.deepEqual(calls, [1]);
+
+		const off3 = emitter.on('🦄', () => {
+			calls.push(3);
+			off1();
+			emitter.on('🦄', () => calls.push(4));
+		});
+		await emitter.emit('🦄');
+		t.deepEqual(calls, [1, 1, 2, 3]);
+		off3();
+
+		const off5 = emitter.on('🦄', () => {
+			calls.push(5);
+			emitter.onAny(() => calls.push(6));
+		});
+		await emitter.emit('🦄');
+		t.deepEqual(calls, [1, 1, 2, 3, 2, 4, 5]);
+		off5();
+
+		let off8 = null;
+		emitter.onAny(() => {
+			calls.push(7);
+			off8();
+		});
+		off8 = emitter.onAny(() => calls.push(8));
+		await emitter.emit('🦄');
+		t.deepEqual(calls, [1, 1, 2, 3, 2, 4, 5, 2, 4, 6, 7, 8]);
+
+		await emitter.emit('🦄');
+		t.deepEqual(calls, [1, 1, 2, 3, 2, 4, 5, 2, 4, 6, 7, 8, 2, 4, 6, 7]);
+	});
+
 	test.cb('emitSerial()', t => {
 		t.plan(1);
 
@@ -193,6 +232,45 @@ module.exports = Emittery => {
 		emitter.emitSerial('🦄');
 
 		t.false(unicorn);
+	});
+
+	test('emitSerial() - calls listeners subscribed when emitSerial() was invoked', async t => {
+		const emitter = new Emittery();
+		const calls = [];
+		const off1 = emitter.on('🦄', () => calls.push(1));
+		const p = emitter.emitSerial('🦄');
+		emitter.on('🦄', () => calls.push(2));
+		await p;
+		t.deepEqual(calls, [1]);
+
+		const off3 = emitter.on('🦄', () => {
+			calls.push(3);
+			off1();
+			emitter.on('🦄', () => calls.push(4));
+		});
+		await emitter.emitSerial('🦄');
+		t.deepEqual(calls, [1, 1, 2, 3]);
+		off3();
+
+		const off5 = emitter.on('🦄', () => {
+			calls.push(5);
+			emitter.onAny(() => calls.push(6));
+		});
+		await emitter.emitSerial('🦄');
+		t.deepEqual(calls, [1, 1, 2, 3, 2, 4, 5]);
+		off5();
+
+		let off8 = null;
+		emitter.onAny(() => {
+			calls.push(7);
+			off8();
+		});
+		off8 = emitter.onAny(() => calls.push(8));
+		await emitter.emitSerial('🦄');
+		t.deepEqual(calls, [1, 1, 2, 3, 2, 4, 5, 2, 4, 6, 7, 8]);
+
+		await emitter.emitSerial('🦄');
+		t.deepEqual(calls, [1, 1, 2, 3, 2, 4, 5, 2, 4, 6, 7, 8, 2, 4, 6, 7]);
 	});
 
 	test('onAny()', async t => {
