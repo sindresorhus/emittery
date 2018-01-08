@@ -119,8 +119,7 @@ declare namespace Emittery {
 		off<Name extends keyof EventDataMap>(eventName: Name, listener?: (eventData: EventDataMap[Name]) => any): void;
 		off<Name extends EmptyEvents>(eventName: Name, listener?: () => any): void;
 
-		onAny<Name extends keyof EventDataMap>(listener: (eventName: Name, eventData: EventDataMap[Name]) => any): Emittery.UnsubscribeFn;
-		onAny<Name extends EmptyEvents>(listener: (eventName: Name) => any): Emittery.UnsubscribeFn;
+		onAny(listener: (eventName: keyof EventDataMap | EmptyEvents, eventData?: EventDataMap[keyof EventDataMap]) => any): Emittery.UnsubscribeFn;
 
 		offAny<Name extends keyof EventDataMap>(listener?: (eventName: Name, eventData: EventDataMap[Name]) => any): void;
 		offAny<Name extends EmptyEvents>(listener?: (eventName: Name) => any): void;
