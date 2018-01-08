@@ -171,16 +171,25 @@ module.exports = Emittery => {
 		off5();
 
 		let off8 = null;
-		emitter.onAny(() => {
+		emitter.on('🦄', () => {
 			calls.push(7);
 			off8();
 		});
-		off8 = emitter.onAny(() => calls.push(8));
+		off8 = emitter.on('🦄', () => calls.push(8));
 		await emitter.emit('🦄');
-		t.deepEqual(calls, [1, 1, 2, 3, 2, 4, 5, 2, 4, 6, 7, 8]);
+		t.deepEqual(calls, [1, 1, 2, 3, 2, 4, 5, 2, 4, 7, 6]);
+
+		let off10 = null;
+		emitter.onAny(() => {
+			calls.push(9);
+			off10();
+		});
+		off10 = emitter.onAny(() => calls.push(10));
+		await emitter.emit('🦄');
+		t.deepEqual(calls, [1, 1, 2, 3, 2, 4, 5, 2, 4, 7, 6, 2, 4, 7, 6, 9]);
 
 		await emitter.emit('🦄');
-		t.deepEqual(calls, [1, 1, 2, 3, 2, 4, 5, 2, 4, 6, 7, 8, 2, 4, 6, 7]);
+		t.deepEqual(calls, [1, 1, 2, 3, 2, 4, 5, 2, 4, 7, 6, 2, 4, 7, 6, 9, 2, 4, 7, 6, 9]);
 	});
 
 	test.cb('emitSerial()', t => {
@@ -257,16 +266,25 @@ module.exports = Emittery => {
 		off5();
 
 		let off8 = null;
-		emitter.onAny(() => {
+		emitter.on('🦄', () => {
 			calls.push(7);
 			off8();
 		});
-		off8 = emitter.onAny(() => calls.push(8));
+		off8 = emitter.on('🦄', () => calls.push(8));
 		await emitter.emitSerial('🦄');
-		t.deepEqual(calls, [1, 1, 2, 3, 2, 4, 5, 2, 4, 6, 7, 8]);
+		t.deepEqual(calls, [1, 1, 2, 3, 2, 4, 5, 2, 4, 7, 6]);
+
+		let off10 = null;
+		emitter.onAny(() => {
+			calls.push(9);
+			off10();
+		});
+		off10 = emitter.onAny(() => calls.push(10));
+		await emitter.emitSerial('🦄');
+		t.deepEqual(calls, [1, 1, 2, 3, 2, 4, 5, 2, 4, 7, 6, 2, 4, 7, 6, 9]);
 
 		await emitter.emitSerial('🦄');
-		t.deepEqual(calls, [1, 1, 2, 3, 2, 4, 5, 2, 4, 6, 7, 8, 2, 4, 6, 7]);
+		t.deepEqual(calls, [1, 1, 2, 3, 2, 4, 5, 2, 4, 7, 6, 2, 4, 7, 6, 9, 2, 4, 7, 6, 9]);
 	});
 
 	test('onAny()', async t => {

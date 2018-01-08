@@ -56,29 +56,47 @@ class Emittery {
 
 	async emit(eventName, eventData) {
 		assertEventName(eventName);
-		const listeners = [...getListeners(this, eventName)];
-		const anyListeners = [...anyMap.get(this)];
+
+		const listeners = getListeners(this, eventName);
+		const anyListeners = anyMap.get(this);
+		const staticListeners = [...listeners];
+		const staticAnyListeners = [...anyListeners];
 
 		await resolvedPromise;
 		return Promise.all([
-			...listeners.map(async listener => listener(eventData)),
-			...anyListeners.map(async listener => listener(eventName, eventData))
+			...staticListeners.map(async listener => {
+				if (listeners.has(listener)) {
+					listener(eventData);
+				}
+			}),
+			...staticAnyListeners.map(async listener => {
+				if (anyListeners.has(listener)) {
+					listener(eventName, eventData);
+				}
+			})
 		]);
 	}
 
 	async emitSerial(eventName, eventData) {
 		assertEventName(eventName);
-		const listeners = [...getListeners(this, eventName)];
-		const anyListeners = [...anyMap.get(this)];
+
+		const listeners = getListeners(this, eventName);
+		const anyListeners = anyMap.get(this);
+		const staticListeners = [...listeners];
+		const staticAnyListeners = [...anyListeners];
 
 		await resolvedPromise;
 		/* eslint-disable no-await-in-loop */
-		for (const listener of listeners) {
-			await listener(eventData);
+		for (const listener of staticListeners) {
+			if (listeners.has(listener)) {
+				await listener(eventData);
+			}
 		}
 
-		for (const listener of anyListeners) {
-			await listener(eventName, eventData);
+		for (const listener of staticAnyListeners) {
+			if (anyListeners.has(listener)) {
+				await listener(eventName, eventData);
+			}
 		}
 		/* eslint-enable no-await-in-loop */
 	}
