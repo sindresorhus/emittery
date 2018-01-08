@@ -62,19 +62,32 @@ class Emittery {
 		const staticListeners = [...listeners];
 		const staticAnyListeners = [...anyListeners];
 
+		let rejectionReason;
+		let sawRejection = false;
+		const handleRejection = reason => {
+			if (!sawRejection) {
+				sawRejection = true;
+				rejectionReason = reason;
+			}
+		};
+
 		await resolvedPromise;
-		return Promise.all([
-			...staticListeners.map(async listener => {
-				if (listeners.has(listener)) {
-					return listener(eventData);
-				}
+		await Promise.all([
+			...staticListeners.map(listener => {
+				return listeners.has(listener) && new Promise(resolve => {
+					resolve(listener(eventData));
+				}).catch(handleRejection);
 			}),
-			...staticAnyListeners.map(async listener => {
-				if (anyListeners.has(listener)) {
-					return listener(eventName, eventData);
-				}
+			...staticAnyListeners.map(listener => {
+				return anyListeners.has(listener) && new Promise(resolve => {
+					resolve(listener(eventName, eventData));
+				}).catch(handleRejection);
 			})
 		]);
+
+		if (sawRejection) {
+			throw rejectionReason;
+		}
 	}
 
 	async emitSerial(eventName, eventData) {

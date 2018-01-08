@@ -129,34 +129,37 @@ module.exports = Emittery => {
 
 	test('emit() - is async', async t => {
 		const emitter = new Emittery();
-		const emitted = emitter.emit('🦄');
 		let unicorn = false;
-
 		emitter.on('🦄', () => {
 			unicorn = true;
 		});
+		const emitted = emitter.emit('🦄');
 
 		t.false(unicorn);
-		await emitted;
+		t.is(await emitted, undefined);
 		t.true(unicorn);
 	});
 
-	test('emit() - settles once all handlers settles', async t => {
+	test('emit() - settles once all handlers settle', async t => {
 		const emitter = new Emittery();
 		let settled = false;
-
-		emitter.on('🦄', () => Promise.reject());
+		emitter.on('🦄', () => Promise.reject(new Error()));
 		emitter.on('🦄', () => delay(10).then(() => {
 			settled = true;
 		}));
 
-		t.plan(1);
+		await t.throws(emitter.emit('🦄'));
+		t.true(settled);
+	});
 
-		try {
-			await emitter.emit('🦄');
-		} catch (err) {
-			t.true(settled);
-		}
+	test('emit() - rejects with the first rejection reason', async t => {
+		const emitter = new Emittery();
+		const first = new Error('first rejection');
+		emitter.on('🦄', () => Promise.reject(first));
+		emitter.on('🦄', () => Promise.reject(new Error('second rejection')));
+
+		const err = await t.throws(emitter.emit('🦄'));
+		t.is(err, first);
 	});
 
 	test('emit() - calls listeners subscribed when emit() was invoked', async t => {
