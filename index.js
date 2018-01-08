@@ -52,22 +52,28 @@ class Emittery {
 
 	async emit(eventName, eventData) {
 		assertEventName(eventName);
+		const listeners = [...getListeners(this, eventName)];
+		const anyListeners = [...anyMap.get(this)];
+
 		await resolvedPromise;
-		const listeners = [...getListeners(this, eventName)].map(async listener => listener(eventData));
-		const anyListeners = [...anyMap.get(this)].map(async listener => listener(eventName, eventData));
-		return Promise.all([...listeners, ...anyListeners]);
+		return Promise.all([
+			...listeners.map(async listener => listener(eventData)),
+			...anyListeners.map(async listener => listener(eventName, eventData))
+		]);
 	}
 
 	async emitSerial(eventName, eventData) {
 		assertEventName(eventName);
-		await resolvedPromise;
+		const listeners = [...getListeners(this, eventName)];
+		const anyListeners = [...anyMap.get(this)];
 
+		await resolvedPromise;
 		/* eslint-disable no-await-in-loop */
-		for (const listener of getListeners(this, eventName)) {
+		for (const listener of listeners) {
 			await listener(eventData);
 		}
 
-		for (const listener of anyMap.get(this)) {
+		for (const listener of anyListeners) {
 			await listener(eventName, eventData);
 		}
 		/* eslint-enable no-await-in-loop */
