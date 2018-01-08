@@ -109,7 +109,7 @@ declare namespace Emittery {
 	 * ee.emit('end'); // TS compilation error
 	 * ```
 	 */
-	class Typed<EventDataMap extends Events, EmptyEvents = never> extends Emittery {
+	class Typed<EventDataMap extends Events, EmptyEvents extends string = never> extends Emittery {
 		on<Name extends keyof EventDataMap>(eventName: Name, listener: (eventData: EventDataMap[Name]) => any): Emittery.UnsubscribeFn;
 		on<Name extends EmptyEvents>(eventName: Name, listener: () => any): Emittery.UnsubscribeFn;
 
