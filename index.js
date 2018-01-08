@@ -10,6 +10,12 @@ function assertEventName(eventName) {
 	}
 }
 
+function assertListener(listener) {
+	if (typeof listener !== 'function') {
+		throw new TypeError('listener must be a function');
+	}
+}
+
 function getListeners(instance, eventName) {
 	const events = eventsMap.get(instance);
 	if (!events.has(eventName)) {
@@ -27,17 +33,15 @@ class Emittery {
 
 	on(eventName, listener) {
 		assertEventName(eventName);
+		assertListener(listener);
 		getListeners(this, eventName).add(listener);
 		return this.off.bind(this, eventName, listener);
 	}
 
 	off(eventName, listener) {
 		assertEventName(eventName);
-		if (listener) {
-			getListeners(this, eventName).delete(listener);
-		} else {
-			getListeners(this, eventName).clear();
-		}
+		assertListener(listener);
+		getListeners(this, eventName).delete(listener);
 	}
 
 	once(eventName) {
@@ -80,21 +84,23 @@ class Emittery {
 	}
 
 	onAny(listener) {
+		assertListener(listener);
 		anyMap.get(this).add(listener);
 		return this.offAny.bind(this, listener);
 	}
 
 	offAny(listener) {
-		if (listener) {
-			anyMap.get(this).delete(listener);
-		} else {
-			anyMap.get(this).clear();
-		}
+		assertListener(listener);
+		anyMap.get(this).delete(listener);
 	}
 
-	clear() {
-		anyMap.get(this).clear();
-		eventsMap.get(this).clear();
+	clearListeners(eventName) {
+		if (typeof eventName === 'string') {
+			getListeners(this, eventName).clear();
+		} else {
+			anyMap.get(this).clear();
+			eventsMap.get(this).clear();
+		}
 	}
 
 	listenerCount(eventName) {

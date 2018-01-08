@@ -12,12 +12,9 @@ declare class Emittery {
 		on(eventName: string, listener: (eventData?: any) => any): Emittery.UnsubscribeFn;
 
 		/**
-		* Remove an event subscription.
-		*
-		* If you don't pass in a `listener`, it will remove all listeners for that
-		* event.
-		*/
-		off(eventName: string, listener?: (eventData?: any) => any): void;
+		 * Remove an event subscription.
+		 */
+		off(eventName: string, listener: (eventData?: any) => any): void;
 
 		/**
 		 * Subscribe to an event only once. It will be unsubscribed after the first
@@ -63,16 +60,16 @@ declare class Emittery {
 		onAny(listener: (eventName: string, eventData?: any) => any): Emittery.UnsubscribeFn;
 
 		/**
-		Remove an `onAny` subscription.
-
-		If you don't pass in a `listener`, it will remove all `onAny` subscriptions.
+		 * Remove an `onAny` subscription.
 		 */
-		offAny(listener?: (eventName: string, eventData?: any) => any): void;
+		offAny(listener: (eventName: string, eventData?: any) => any): void;
 
 		/**
 		 * Clear all event listeners on the instance.
+		 *
+		 * If `eventName` is given, only the listeners for that event are cleared.
 		 */
-		clear(): void;
+		clearListeners(eventName?: string): void;
 
 		/**
 		 * The number of listeners for the `eventName` or all events if not

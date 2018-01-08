@@ -49,11 +49,9 @@ Using the same listener multiple times for the same event will result in only on
 
 ##### listener(data)
 
-#### off(eventName, [listener])
+#### off(eventName, listener)
 
 Remove an event subscription.
-
-If you don't pass in a `listener`, it will remove all listeners for that event.
 
 ##### listener(data)
 
@@ -92,15 +90,15 @@ Returns a method to unsubscribe.
 
 ##### listener(eventName, data)
 
-#### offAny([listener])
+#### offAny(listener)
 
 Remove an `onAny` subscription.
 
-If you don't pass in a `listener`, it will remove all `onAny` subscriptions.
-
-#### clear()
+#### clearListeners()
 
 Clear all event listeners on the instance.
+
+If `eventName` is given, only the listeners for that event are cleared.
 
 #### listenerCount([eventName])
 
