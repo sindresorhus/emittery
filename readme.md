@@ -122,6 +122,13 @@ ee.emit('end'); // TS compilation error
 ```
 
 
+## Scheduling details
+
+Listeners are not invoked for events emitted *before* the listener was added. Removing a listener will prevent that listener from being invoked, even if events are in the process of being (asynchronously!) emitted. This also applies to `.clearListeners()`, which removes all listeners. Listeners will be called in the order they were added. So-called *any* listeners are called *after* event-specific listeners.
+
+Note that when using `.emitSerial()`, a slow listener will delay invocation of subsequent listeners. It's possible for newer events to overtake older ones.
+
+
 ## FAQ
 
 ### How is this different than the built-in `EventEmitter` in Node.js?
