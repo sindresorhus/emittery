@@ -66,12 +66,12 @@ class Emittery {
 		return Promise.all([
 			...staticListeners.map(async listener => {
 				if (listeners.has(listener)) {
-					listener(eventData);
+					return listener(eventData);
 				}
 			}),
 			...staticAnyListeners.map(async listener => {
 				if (anyListeners.has(listener)) {
-					listener(eventName, eventData);
+					return listener(eventName, eventData);
 				}
 			})
 		]);
