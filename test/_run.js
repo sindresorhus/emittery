@@ -190,6 +190,11 @@ module.exports = Emittery => {
 
 		await emitter.emit('🦄');
 		t.deepEqual(calls, [1, 1, 2, 3, 2, 4, 5, 2, 4, 7, 6, 2, 4, 7, 6, 9, 2, 4, 7, 6, 9]);
+
+		const p2 = emitter.emit('🦄');
+		emitter.clearListeners();
+		await p2;
+		t.deepEqual(calls, [1, 1, 2, 3, 2, 4, 5, 2, 4, 7, 6, 2, 4, 7, 6, 9, 2, 4, 7, 6, 9]);
 	});
 
 	test.cb('emitSerial()', t => {
@@ -284,6 +289,11 @@ module.exports = Emittery => {
 		t.deepEqual(calls, [1, 1, 2, 3, 2, 4, 5, 2, 4, 7, 6, 2, 4, 7, 6, 9]);
 
 		await emitter.emitSerial('🦄');
+		t.deepEqual(calls, [1, 1, 2, 3, 2, 4, 5, 2, 4, 7, 6, 2, 4, 7, 6, 9, 2, 4, 7, 6, 9]);
+
+		const p2 = emitter.emitSerial('🦄');
+		emitter.clearListeners();
+		await p2;
 		t.deepEqual(calls, [1, 1, 2, 3, 2, 4, 5, 2, 4, 7, 6, 2, 4, 7, 6, 9, 2, 4, 7, 6, 9]);
 	});
 

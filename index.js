@@ -117,7 +117,9 @@ class Emittery {
 			getListeners(this, eventName).clear();
 		} else {
 			anyMap.get(this).clear();
-			eventsMap.get(this).clear();
+			for (const listeners of eventsMap.get(this).values()) {
+				listeners.clear();
+			}
 		}
 	}
 
