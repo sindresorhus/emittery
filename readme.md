@@ -108,13 +108,13 @@ Call `return()` on the iterator to remove the subscription.
 
 #### clearListeners()
 
-Clear all event listeners on the instance.
+Clear all iterators and event listeners on the instance.
 
-If `eventName` is given, only the listeners for that event are cleared.
+If `eventName` is given, only the iterators and listeners for that event are cleared.
 
 #### listenerCount([eventName])
 
-The number of listeners for the `eventName` or all events if not specified.
+The number of iterators and listeners for the `eventName` or all events if not specified.
 
 ## TypeScript
 
@@ -138,8 +138,9 @@ ee.emit('end'); // TS compilation error
 
 Listeners are not invoked for events emitted *before* the listener was added. Removing a listener will prevent that listener from being invoked, even if events are in the process of being (asynchronously!) emitted. This also applies to `.clearListeners()`, which removes all listeners. Listeners will be called in the order they were added. So-called *any* listeners are called *after* event-specific listeners.
 
-Note that when using `.emitSerial()`, a slow listener will delay invocation of subsequent listeners. It's possible for newer events to overtake older ones.
+Asynchronous iterators are fed events *before* listeners are invoked. They will not receive events emitted *before* the iterator was created. Iterators buffer events. Calling `.return()` on the iterator will clear the buffer. `.clearListeners()` causes iterators to complete after their event buffer is exhausted but does *not* clear the buffer. Iterators are fed events in the order they were created. So called *any* iterators are fed events *after* event-specific iterators.
 
+Note that when using `.emitSerial()`, a slow listener will delay invocation of subsequent listeners. It's possible for newer events to overtake older ones. Slow listeners do impact asynchronous iterators.
 
 ## FAQ
 

@@ -95,7 +95,8 @@ module.exports = Emittery => {
 			iterator.return();
 		});
 		iterator = emitter.events('🦄');
-		emitter.emit('🦄');
+		emitter.emit('🦄', '🌈');
+		t.deepEqual(await iterator.next(), {done: false, value: '🌈'});
 		t.deepEqual(await iterator.next(), {done: true});
 	});
 
@@ -424,7 +425,8 @@ module.exports = Emittery => {
 			iterator.return();
 		});
 		iterator = emitter.anyEvent();
-		emitter.emit('🦄');
+		emitter.emit('🦄', '🌈');
+		t.deepEqual(await iterator.next(), {done: false, value: ['🦄', '🌈']});
 		t.deepEqual(await iterator.next(), {done: true});
 	});
 
@@ -445,6 +447,24 @@ module.exports = Emittery => {
 		t.deepEqual(calls, ['🦄1', '🦄2', 'any1', 'any2', '🌈', 'any1', 'any2']);
 	});
 
+	test('clearListeners() - also clears iterators', async t => {
+		const emitter = new Emittery();
+		const iterator = emitter.events('🦄');
+		const anyIterator = emitter.anyEvent();
+		await emitter.emit('🦄', '🌟');
+		await emitter.emit('🌈', '🌟');
+		t.deepEqual(await iterator.next(), {done: false, value: '🌟'});
+		t.deepEqual(await anyIterator.next(), {done: false, value: ['🦄', '🌟']});
+		t.deepEqual(await anyIterator.next(), {done: false, value: ['🌈', '🌟']});
+		await emitter.emit('🦄', '💫');
+		emitter.clearListeners();
+		await emitter.emit('🌈', '💫');
+		t.deepEqual(await iterator.next(), {done: false, value: '💫'});
+		t.deepEqual(await iterator.next(), {done: true});
+		t.deepEqual(await anyIterator.next(), {done: false, value: ['🦄', '💫']});
+		t.deepEqual(await anyIterator.next(), {done: true});
+	});
+
 	test('clearListeners() - with event name', async t => {
 		const emitter = new Emittery();
 		const calls = [];
@@ -462,16 +482,36 @@ module.exports = Emittery => {
 		t.deepEqual(calls, ['🦄1', '🦄2', 'any1', 'any2', '🌈', 'any1', 'any2', 'any1', 'any2', '🌈', 'any1', 'any2']);
 	});
 
+	test('clearListeners() - with event name - clears iterators for that event', async t => {
+		const emitter = new Emittery();
+		const iterator = emitter.events('🦄');
+		const anyIterator = emitter.anyEvent();
+		await emitter.emit('🦄', '🌟');
+		await emitter.emit('🌈', '🌟');
+		t.deepEqual(await iterator.next(), {done: false, value: '🌟'});
+		t.deepEqual(await anyIterator.next(), {done: false, value: ['🦄', '🌟']});
+		t.deepEqual(await anyIterator.next(), {done: false, value: ['🌈', '🌟']});
+		await emitter.emit('🦄', '💫');
+		emitter.clearListeners('🦄');
+		await emitter.emit('🌈', '💫');
+		t.deepEqual(await iterator.next(), {done: false, value: '💫'});
+		t.deepEqual(await iterator.next(), {done: true});
+		t.deepEqual(await anyIterator.next(), {done: false, value: ['🦄', '💫']});
+		t.deepEqual(await anyIterator.next(), {done: false, value: ['🌈', '💫']});
+	});
+
 	test('listenerCount()', t => {
 		const emitter = new Emittery();
 		emitter.on('🦄', () => {});
 		emitter.on('🌈', () => {});
 		emitter.on('🦄', () => {});
+		emitter.events('🌈');
 		emitter.onAny(() => {});
 		emitter.onAny(() => {});
-		t.is(emitter.listenerCount('🦄'), 4);
-		t.is(emitter.listenerCount('🌈'), 3);
-		t.is(emitter.listenerCount(), 5);
+		emitter.anyEvent();
+		t.is(emitter.listenerCount('🦄'), 5);
+		t.is(emitter.listenerCount('🌈'), 5);
+		t.is(emitter.listenerCount(), 7);
 	});
 
 	test('listenerCount() - works with empty eventName strings', t => {

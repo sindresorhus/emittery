@@ -81,15 +81,16 @@ declare class Emittery {
 		anyEvent(): AsyncIterableIterator<[string, any]>;
 
 		/**
-		 * Clear all event listeners on the instance.
+		 * Clear all iterators and event listeners on the instance.
 		 *
-		 * If `eventName` is given, only the listeners for that event are cleared.
+		 * If `eventName` is given, only the iterators and listeners for that event
+		 * are cleared.
 		 */
 		clearListeners(eventName?: string): void;
 
 		/**
-		 * The number of listeners for the `eventName` or all events if not
-		 * specified.
+		 * The number of iterators and listeners for the `eventName` or all events
+		 * if not specified.
 		 */
 		listenerCount(eventName?: string): number;
 }
