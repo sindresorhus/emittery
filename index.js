@@ -54,16 +54,12 @@ function iterator(emitter, eventName) {
 	let off;
 	if (typeof eventName === 'string') {
 		off = emitter.on(eventName, data => {
-			if (queue) {
-				queue.push(data);
-			}
+			queue.push(data);
 			flush();
 		});
 	} else {
 		off = emitter.onAny((eventName, data) => {
-			if (queue) {
-				queue.push(Promise.all([eventName, data]));
-			}
+			queue.push(Promise.all([eventName, data]));
 			flush();
 		});
 	}
@@ -84,8 +80,9 @@ function iterator(emitter, eventName) {
 			return {done: false, value: await queue.shift()};
 		},
 		async return(value) {
-			off();
 			queue = null;
+			off();
+			flush();
 			return arguments.length > 0 ?
 				{done: true, value: await value} :
 				{done: true};
