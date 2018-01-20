@@ -1,5 +1,7 @@
 'use strict';
 
+const anyMap = new WeakMap();
+const eventsMap = new WeakMap();
 const resolvedPromise = Promise.resolve();
 
 function assertEventName(eventName) {
@@ -56,33 +58,38 @@ function iterator(emitter, eventName) {
 	};
 }
 
-class Emittery {
-	constructor() {
-		this._events = new Map();
-		this._anyEvents = new Set();
+function assertListener(listener) {
+	if (typeof listener !== 'function') {
+		throw new TypeError('listener must be a function');
+	}
+}
+
+function getListeners(instance, eventName) {
+	const events = eventsMap.get(instance);
+	if (!events.has(eventName)) {
+		events.set(eventName, new Set());
 	}
 
-	_getListeners(eventName) {
-		if (!this._events.has(eventName)) {
-			this._events.set(eventName, new Set());
-		}
+	return events.get(eventName);
+}
 
-		return this._events.get(eventName);
+class Emittery {
+	constructor() {
+		anyMap.set(this, new Set());
+		eventsMap.set(this, new Map());
 	}
 
 	on(eventName, listener) {
 		assertEventName(eventName);
-		this._getListeners(eventName).add(listener);
+		assertListener(listener);
+		getListeners(this, eventName).add(listener);
 		return this.off.bind(this, eventName, listener);
 	}
 
 	off(eventName, listener) {
 		assertEventName(eventName);
-		if (listener) {
-			this._getListeners(eventName).delete(listener);
-		} else {
-			this._getListeners(eventName).clear();
-		}
+		assertListener(listener);
+		getListeners(this, eventName).delete(listener);
 	}
 
 	once(eventName) {
@@ -102,61 +109,89 @@ class Emittery {
 
 	async emit(eventName, eventData) {
 		assertEventName(eventName);
+
+		const listeners = getListeners(this, eventName);
+		const anyListeners = anyMap.get(this);
+		const staticListeners = [...listeners];
+		const staticAnyListeners = [...anyListeners];
+
 		await resolvedPromise;
-		const listeners = [...this._getListeners(eventName)].map(async listener => listener(eventData));
-		const anyListeners = [...this._anyEvents].map(async listener => listener(eventName, eventData));
-		return Promise.all([...listeners, ...anyListeners]);
+		return Promise.all([
+			...staticListeners.map(async listener => {
+				if (listeners.has(listener)) {
+					return listener(eventData);
+				}
+			}),
+			...staticAnyListeners.map(async listener => {
+				if (anyListeners.has(listener)) {
+					return listener(eventName, eventData);
+				}
+			})
+		]);
 	}
 
 	async emitSerial(eventName, eventData) {
 		assertEventName(eventName);
-		await resolvedPromise;
 
+		const listeners = getListeners(this, eventName);
+		const anyListeners = anyMap.get(this);
+		const staticListeners = [...listeners];
+		const staticAnyListeners = [...anyListeners];
+
+		await resolvedPromise;
 		/* eslint-disable no-await-in-loop */
-		for (const listener of this._getListeners(eventName)) {
-			await listener(eventData);
+		for (const listener of staticListeners) {
+			if (listeners.has(listener)) {
+				await listener(eventData);
+			}
 		}
 
-		for (const listener of this._anyEvents) {
-			await listener(eventName, eventData);
+		for (const listener of staticAnyListeners) {
+			if (anyListeners.has(listener)) {
+				await listener(eventName, eventData);
+			}
 		}
 		/* eslint-enable no-await-in-loop */
 	}
 
 	onAny(listener) {
-		this._anyEvents.add(listener);
+		assertListener(listener);
+		anyMap.get(this).add(listener);
 		return this.offAny.bind(this, listener);
 	}
 
 	offAny(listener) {
-		if (listener) {
-			this._anyEvents.delete(listener);
-		} else {
-			this._anyEvents.clear();
-		}
+		assertListener(listener);
+		anyMap.get(this).delete(listener);
 	}
 
 	anyEvent() {
 		return iterator(this);
 	}
 
-	clear() {
-		this._events.clear();
-		this._anyEvents.clear();
+	clearListeners(eventName) {
+		if (typeof eventName === 'string') {
+			getListeners(this, eventName).clear();
+		} else {
+			anyMap.get(this).clear();
+			for (const listeners of eventsMap.get(this).values()) {
+				listeners.clear();
+			}
+		}
 	}
 
 	listenerCount(eventName) {
 		if (typeof eventName === 'string') {
-			return this._anyEvents.size + this._getListeners(eventName).size;
+			return anyMap.get(this).size + getListeners(this, eventName).size;
 		}
 
 		if (typeof eventName !== 'undefined') {
 			assertEventName(eventName);
 		}
 
-		let count = this._anyEvents.size;
+		let count = anyMap.get(this).size;
 
-		for (const value of this._events.values()) {
+		for (const value of eventsMap.get(this).values()) {
 			count += value.size;
 		}
 

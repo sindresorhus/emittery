@@ -12,12 +12,9 @@ declare class Emittery {
 		on(eventName: string, listener: (eventData?: any) => any): Emittery.UnsubscribeFn;
 
 		/**
-		* Remove an event subscription.
-		*
-		* If you don't pass in a `listener`, it will remove all listeners for that
-		* event.
-		*/
-		off(eventName: string, listener?: (eventData?: any) => any): void;
+		 * Remove an event subscription.
+		 */
+		off(eventName: string, listener: (eventData?: any) => any): void;
 
 		/**
 		 * Subscribe to an event only once. It will be unsubscribed after the first
@@ -71,11 +68,9 @@ declare class Emittery {
 		onAny(listener: (eventName: string, eventData?: any) => any): Emittery.UnsubscribeFn;
 
 		/**
-		Remove an `onAny` subscription.
-
-		If you don't pass in a `listener`, it will remove all `onAny` subscriptions.
+		 * Remove an `onAny` subscription.
 		 */
-		offAny(listener?: (eventName: string, eventData?: any) => any): void;
+		offAny(listener: (eventName: string, eventData?: any) => any): void;
 
 		/**
 		 * Get an asynchronous iterator which buffers a tuple of an event name and
@@ -87,8 +82,10 @@ declare class Emittery {
 
 		/**
 		 * Clear all event listeners on the instance.
+		 *
+		 * If `eventName` is given, only the listeners for that event are cleared.
 		 */
-		clear(): void;
+		clearListeners(eventName?: string): void;
 
 		/**
 		 * The number of listeners for the `eventName` or all events if not
@@ -128,7 +125,7 @@ declare namespace Emittery {
 	 * ee.emit('end'); // TS compilation error
 	 * ```
 	 */
-	class Typed<EventDataMap extends Events, EmptyEvents = never> extends Emittery {
+	class Typed<EventDataMap extends Events, EmptyEvents extends string = never> extends Emittery {
 		on<Name extends keyof EventDataMap>(eventName: Name, listener: (eventData: EventDataMap[Name]) => any): Emittery.UnsubscribeFn;
 		on<Name extends EmptyEvents>(eventName: Name, listener: () => any): Emittery.UnsubscribeFn;
 
@@ -141,14 +138,12 @@ declare namespace Emittery {
 		events<Name extends keyof EventDataMap>(eventName: Name): AsyncIterableIterator<EventDataMap[Name]>;
 		events<Name extends EmptyEvents>(eventName: Name): AsyncIterableIterator<void>;
 
-		onAny<Name extends keyof EventDataMap>(listener: (eventName: Name, eventData: EventDataMap[Name]) => any): Emittery.UnsubscribeFn;
-		onAny<Name extends EmptyEvents>(listener: (eventName: Name) => any): Emittery.UnsubscribeFn;
+		onAny(listener: (eventName: keyof EventDataMap | EmptyEvents, eventData?: EventDataMap[keyof EventDataMap]) => any): Emittery.UnsubscribeFn;
 
 		offAny<Name extends keyof EventDataMap>(listener?: (eventName: Name, eventData: EventDataMap[Name]) => any): void;
 		offAny<Name extends EmptyEvents>(listener?: (eventName: Name) => any): void;
 
-		anyEvent<Name extends keyof EventDataMap>(): AsyncIterableIterator<[Name, EventDataMap[Name]]>;
-		anyEvent<Name extends EmptyEvents>(): AsyncIterableIterator<[Name, void]>;
+		anyEvent(): AsyncIterableIterator<[keyof EventDataMap | EmptyEvents, EventDataMap[keyof EventDataMap] | void]>;
 
 		emit<Name extends keyof EventDataMap>(eventName: Name, eventData: EventDataMap[Name]): Promise<void>;
 		emit<Name extends EmptyEvents>(eventName: Name): Promise<void>;

@@ -71,11 +71,9 @@ unsubscribe to the event simply by breaking the loop.
 
 ##### listener(data)
 
-#### off(eventName, [listener])
+#### off(eventName, listener)
 
 Remove an event subscription.
-
-If you don't pass in a `listener`, it will remove all listeners for that event.
 
 ##### listener(data)
 
@@ -120,11 +118,9 @@ Returns a method to unsubscribe.
 
 ##### listener(eventName, data)
 
-#### offAny([listener])
+#### offAny(listener)
 
 Remove an `onAny` subscription.
-
-If you don't pass in a `listener`, it will remove all `onAny` subscriptions.
 
 #### anyEvent()
 
@@ -132,9 +128,11 @@ Get an asynchronous iterator which buffers a tuple of an event name and data eac
 
 Call `return()` on the iterator to remove the subscription.
 
-#### clear()
+#### clearListeners()
 
 Clear all event listeners on the instance.
+
+If `eventName` is given, only the listeners for that event are cleared.
 
 #### listenerCount([eventName])
 
@@ -156,6 +154,13 @@ ee.emit('value', 'foo\n');
 ee.emit('value', 1); // TS compilation error
 ee.emit('end'); // TS compilation error
 ```
+
+
+## Scheduling details
+
+Listeners are not invoked for events emitted *before* the listener was added. Removing a listener will prevent that listener from being invoked, even if events are in the process of being (asynchronously!) emitted. This also applies to `.clearListeners()`, which removes all listeners. Listeners will be called in the order they were added. So-called *any* listeners are called *after* event-specific listeners.
+
+Note that when using `.emitSerial()`, a slow listener will delay invocation of subsequent listeners. It's possible for newer events to overtake older ones.
 
 
 ## FAQ
