@@ -2,7 +2,7 @@
 
 'use strict';
 
-const Emittery = require('../');
+const Emittery = require('..');
 
 const myEmitter = new Emittery();
 

@@ -1,6 +1,7 @@
 {
 	"compilerOptions": {
 		"allowSyntheticDefaultImports": true,
+		"esModuleInterop": true,
 		"alwaysStrict": true,
 		"lib": ["es2017"],
 		"module": "commonjs",
@@ -10,6 +11,7 @@
 		"noImplicitThis": true,
 		"strictFunctionTypes": true,
 		"strictNullChecks": true,
+		"strictPropertyInitialization": true,
 		"target": "es2017"
 	},
 	"exclude": ["test/fixtures"]
