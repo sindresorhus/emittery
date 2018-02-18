@@ -2,6 +2,58 @@ import test from 'ava';
 import delay from 'delay';
 
 module.exports = Emittery => {
+	let rejectionCollector;
+	let onUnhandledRejection;
+
+	test.before(() => {
+		onUnhandledRejection = function (err, promise) {
+			if (rejectionCollector) {
+				rejectionCollector.next(err);
+				promise.catch(() => {});
+			}
+		};
+
+		process.on('unhandledRejection', onUnhandledRejection);
+	});
+
+	test.after(() => {
+		process.removeListener('unhandledRejection', onUnhandledRejection);
+		onUnhandledRejection = undefined;
+	});
+
+	test.afterEach.always(() => {
+		if (rejectionCollector) {
+			rejectionCollector.throw();
+		}
+	});
+
+	async function catchUnhandledRejection(limit = 1) {
+		if (rejectionCollector) {
+			throw new Error('Already collecting unhandled rejections');
+		}
+
+		return new Promise((resolve, reject) => {
+			rejectionCollector = wait();
+			rejectionCollector.next();
+
+			function * wait() {
+				try {
+					const reasons = [];
+
+					while (reasons.length < limit) {
+						reasons.push(yield);
+					}
+
+					resolve(reasons);
+				} catch (err) {
+					reject(err);
+				} finally {
+					rejectionCollector = undefined;
+				}
+			}
+		});
+	}
+
 	test('on()', async t => {
 		const emitter = new Emittery();
 		const calls = [];
@@ -140,7 +192,8 @@ module.exports = Emittery => {
 		t.true(unicorn);
 	});
 
-	test('emit() - settles once all handlers settle', async t => {
+	test.serial('emit() - settles once all handlers settle', async t => {
+		const rejectionsPromise = catchUnhandledRejection(1);
 		const emitter = new Emittery();
 		let settled = false;
 		emitter.on('🦄', () => Promise.reject(new Error()));
@@ -148,18 +201,30 @@ module.exports = Emittery => {
 			settled = true;
 		}));
 
-		await t.throws(emitter.emit('🦄'));
+		await emitter.emit('🦄');
 		t.true(settled);
+
+		await rejectionsPromise;
 	});
 
-	test('emit() - rejects with the first rejection reason', async t => {
+	test.serial('emit() - let host handle listeners rejections', async t => {
+		const rejectionsPromise = catchUnhandledRejection(3);
 		const emitter = new Emittery();
 		const first = new Error('first rejection');
-		emitter.on('🦄', () => Promise.reject(first));
-		emitter.on('🦄', () => Promise.reject(new Error('second rejection')));
+		const second = new Error('second rejection');
+		const third = new Error('third rejection');
 
-		const err = await t.throws(emitter.emit('🦄'));
-		t.is(err, first);
+		emitter.on('🦄', () => Promise.reject(first));
+		emitter.on('🦄', () => Promise.reject(second));
+		emitter.onAny(() => Promise.reject(third));
+
+		emitter.emit('🦄');
+
+		const errors = new Set(await rejectionsPromise);
+
+		t.true(errors.has(first));
+		t.true(errors.has(second));
+		t.true(errors.has(third));
 	});
 
 	test('emit() - calls listeners subscribed when emit() was invoked', async t => {

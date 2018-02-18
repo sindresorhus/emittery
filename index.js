@@ -25,6 +25,10 @@ function getListeners(instance, eventName) {
 	return events.get(eventName);
 }
 
+function hostReportError(err) {
+	Promise.reject(err);
+}
+
 class Emittery {
 	constructor() {
 		anyMap.set(this, new Set());
@@ -62,32 +66,20 @@ class Emittery {
 		const staticListeners = [...listeners];
 		const staticAnyListeners = [...anyListeners];
 
-		let rejectionReason;
-		let sawRejection = false;
-		const handleRejection = reason => {
-			if (!sawRejection) {
-				sawRejection = true;
-				rejectionReason = reason;
-			}
-		};
-
 		await resolvedPromise;
+
 		await Promise.all([
 			...staticListeners.map(listener => {
 				return listeners.has(listener) && new Promise(resolve => {
 					resolve(listener(eventData));
-				}).catch(handleRejection);
+				}).catch(hostReportError);
 			}),
 			...staticAnyListeners.map(listener => {
 				return anyListeners.has(listener) && new Promise(resolve => {
 					resolve(listener(eventName, eventData));
-				}).catch(handleRejection);
+				}).catch(hostReportError);
 			})
 		]);
-
-		if (sawRejection) {
-			throw rejectionReason;
-		}
 	}
 
 	async emitSerial(eventName, eventData) {
