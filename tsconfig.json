@@ -1,18 +1,27 @@
 {
 	"compilerOptions": {
-		"allowSyntheticDefaultImports": true,
-		"esModuleInterop": true,
-		"alwaysStrict": true,
-		"lib": ["es2017"],
+		"target": "es2017",
+		"lib": [
+			"es2017"
+		],
 		"module": "commonjs",
 		"moduleResolution": "node",
-		"noImplicitAny": true,
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true,
+		"sourceMap": true,
+		"declaration": true,
+		"pretty": true,
+		"newLine": "lf",
+		"stripInternal": true,
+		"strict": true,
 		"noImplicitReturns": true,
-		"noImplicitThis": true,
-		"strictFunctionTypes": true,
-		"strictNullChecks": true,
-		"strictPropertyInitialization": true,
-		"target": "es2017"
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"noFallthroughCasesInSwitch": true,
+		"noEmitOnError": true,
+		"forceConsistentCasingInFileNames": true
 	},
-	"exclude": ["test/fixtures"]
+	"exclude": [
+		"test/fixtures"
+	]
 }

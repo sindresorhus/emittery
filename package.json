@@ -50,7 +50,7 @@
 		"promise"
 	],
 	"devDependencies": {
-		"@types/node": "^8.5.2",
+		"@types/node": "^10.1.2",
 		"ava": "*",
 		"babel-cli": "^6.26.0",
 		"babel-core": "^6.26.0",
@@ -60,7 +60,7 @@
 		"delay": "^2.0.0",
 		"glob": "^7.1.2",
 		"nyc": "^11.3.0",
-		"ts-node": "^4.1.0",
+		"ts-node": "^6.0.3",
 		"typescript": "^2.7.0",
 		"xo": "*"
 	},
