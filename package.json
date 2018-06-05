@@ -61,7 +61,7 @@
 		"glob": "^7.1.2",
 		"nyc": "^11.3.0",
 		"ts-node": "^6.0.3",
-		"typescript": "^2.7.0",
+		"typescript": "^2.9.0",
 		"xo": "*"
 	},
 	"babel": {
