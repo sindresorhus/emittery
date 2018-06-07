@@ -10,7 +10,7 @@
 		"url": "sindresorhus.com"
 	},
 	"engines": {
-		"node": ">=4"
+		"node": ">=6"
 	},
 	"scripts": {
 		"build": "babel --out-file=legacy.js index.js",
@@ -55,19 +55,17 @@
 		"babel-cli": "^6.26.0",
 		"babel-core": "^6.26.0",
 		"babel-plugin-transform-async-to-generator": "^6.24.1",
-		"babel-plugin-transform-es2015-spread": "^6.22.0",
 		"codecov": "^3.0.0",
-		"delay": "^2.0.0",
+		"delay": "^3.0.0",
 		"glob": "^7.1.2",
-		"nyc": "^11.3.0",
+		"nyc": "^12.0.2",
 		"ts-node": "^6.0.3",
 		"typescript": "^2.9.0",
 		"xo": "*"
 	},
 	"babel": {
 		"plugins": [
-			"transform-async-to-generator",
-			"transform-es2015-spread"
+			"transform-async-to-generator"
 		]
 	},
 	"nyc": {
