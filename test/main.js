@@ -3,9 +3,9 @@ import test from 'ava';
 let Emittery;
 try {
 	Emittery = require('..');
-} catch (err) {
+} catch (error) {
 	test('does not work due to syntax errors', t => {
-		t.is(err.name, 'SyntaxError');
+		t.is(error.name, 'SyntaxError');
 	});
 }
 

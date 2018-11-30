@@ -1,25 +1,10 @@
 {
+	"extends": "@sindresorhus/tsconfig",
 	"compilerOptions": {
 		"target": "es2017",
 		"lib": [
 			"es2017"
-		],
-		"module": "commonjs",
-		"moduleResolution": "node",
-		"esModuleInterop": true,
-		"allowSyntheticDefaultImports": true,
-		"sourceMap": true,
-		"declaration": true,
-		"pretty": true,
-		"newLine": "lf",
-		"stripInternal": true,
-		"strict": true,
-		"noImplicitReturns": true,
-		"noUnusedLocals": true,
-		"noUnusedParameters": true,
-		"noFallthroughCasesInSwitch": true,
-		"noEmitOnError": true,
-		"forceConsistentCasingInFileNames": true
+		]
 	},
 	"exclude": [
 		"test/fixtures"
