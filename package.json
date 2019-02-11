@@ -24,7 +24,6 @@
 		"legacy.js",
 		"legacy.d.ts"
 	],
-	"typings": "./Emittery.d.ts",
 	"keywords": [
 		"event",
 		"emitter",
@@ -64,6 +63,7 @@
 		"typescript": "^3.2.1",
 		"xo": "^0.23.0"
 	},
+	"types": "Emittery.d.ts",
 	"nyc": {
 		"reporter": [
 			"html",
