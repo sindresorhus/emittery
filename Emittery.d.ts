@@ -9,12 +9,12 @@ declare class Emittery {
 	 * Using the same listener multiple times for the same event will result
 	 * in only one method call per emitted event.
 	 */
-	on(eventName: string, listener: (eventData?: any) => any): Emittery.UnsubscribeFn;
+	on(eventName: string|string[], listener: (eventData?: any) => any): Emittery.UnsubscribeFn;
 
 	/**
 	 * Remove an event subscription.
 	 */
-	off(eventName: string, listener: (eventData?: any) => any): void;
+	off(eventName: string|string[], listener: (eventData?: any) => any): void;
 
 	/**
 	 * Subscribe to an event only once. It will be unsubscribed after the first
@@ -22,7 +22,7 @@ declare class Emittery {
 	 *
 	 * Returns a promise for the event data when `eventName` is emitted.
 	 */
-	once(eventName: string): Promise<any>;
+	once(eventName: string|string[]): Promise<any>;
 
 	/**
 	 * Trigger an event asynchronously, optionally with some data. Listeners

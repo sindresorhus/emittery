@@ -36,40 +36,70 @@ emitter.emit('🦄', '🌈');
 
 The above only works in Node.js 8 or newer. For older Node.js versions you can use `require('emittery/legacy')`.
 
-
 ## API
 
 ### emitter = new Emittery()
 
-#### on(eventName, listener)
+#### on([eventName], listener)
 
-Subscribe to an event.
+Subscribe to an event or multiple ones.
 
 Returns an unsubscribe method.
 
 Using the same listener multiple times for the same event will result in only one method call per emitted event.
 
+```js
+emitter.on('🦄').then(data => {
+	console.log(data);
+});
+
+emitter.on(['🦄', '🐶']).then(data => {
+	console.log(data);
+});
+
+emitter.emit('🦄', '🌈'); // log => '🌈'
+emitter.emit('🐶', '🍖'); // log => '🍖'
+```
+
 ##### listener(data)
 
-#### off(eventName, listener)
+#### off([eventName], listener)
 
-Remove an event subscription.
+Remove an event or multiple ones subscriptions.
+
+```js
+emitter.on(['🦄', '🐶']).then(data => {
+	console.log(data);
+});
+
+emitter.emit('🦄', '🌈');
+emitter.emit('🐶', '🍖');
+
+emitter.off('🦄');
+
+emitter.emit('🦄', '🌈'); // Nothing happens
+emitter.emit('🐶', '🍖'); // log => '🍖'
+```
 
 ##### listener(data)
 
-#### once(eventName)
+#### once([eventName])
 
-Subscribe to an event only once. It will be unsubscribed after the first event.
+Subscribe to an event or multiple ones only once. It will be unsubscribed after the first event.
 
 Returns a promise for the event data when `eventName` is emitted.
 
 ```js
 emitter.once('🦄').then(data => {
 	console.log(data);
-	//=> '🌈'
 });
 
-emitter.emit('🦄', '🌈');
+emitter.once(['🦄', '🐶']).then(data => {
+	console.log(data);
+});
+
+emitter.emit('🦄', '🌈'); // log => '🌈'
+emitter.emit('🐶', '🍖');	// log => '🍖'
 ```
 
 #### emit(eventName, [data])

@@ -49,6 +49,17 @@ module.exports = Emittery => {
 		t.deepEqual(calls, [1]);
 	});
 
+	test('on() - multiple event names', async t => {
+		const emitter = new Emittery();
+		let count = 0;
+		const listener = () => ++count;
+
+		emitter.on(['🦄', '🐶'], listener);
+		await emitter.emit('🦄');
+		await emitter.emit('🐶');
+		t.is(count, 2);
+	});
+
 	test('off()', async t => {
 		const emitter = new Emittery();
 		const calls = [];
@@ -73,6 +84,24 @@ module.exports = Emittery => {
 		t.throws(() => emitter.off('🦄'), TypeError);
 	});
 
+	test('off() - multiple event names', async t => {
+		const emitter = new Emittery();
+		const calls = [];
+		const listener = () => calls.push(1);
+
+		emitter.on(['🦄', '🐶', '🦊'], listener);
+		await emitter.emit('🦄');
+		t.deepEqual(calls, [1]);
+
+		emitter.off(['🦄', '🐶'], listener);
+		await emitter.emit('🦄');
+		await emitter.emit('🐶');
+		t.deepEqual(calls, [1]);
+
+		await emitter.emit('🦊');
+		t.deepEqual(calls, [1, 1]);
+	});
+
 	test('once()', async t => {
 		const fixture = '🌈';
 		const emitter = new Emittery();
@@ -83,7 +112,17 @@ module.exports = Emittery => {
 
 	test('once() - eventName must be a string', async t => {
 		const emitter = new Emittery();
-		await t.throws(emitter.once(42), TypeError);
+		await t.throws(() => {
+			emitter.once(42);
+		}, TypeError);
+	});
+
+	test('once() - multiple event names', async t => {
+		const fixture = '🌈';
+		const emitter = new Emittery();
+		const promise = emitter.once(['🦄', '🐶']);
+		emitter.emit('🐶', fixture);
+		t.is(await promise, fixture);
 	});
 
 	test.cb('emit() - one event', t => {

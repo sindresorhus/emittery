@@ -31,23 +31,34 @@ class Emittery {
 		eventsMap.set(this, new Map());
 	}
 
-	on(eventName, listener) {
-		assertEventName(eventName);
+	on(eventNames, listener) {
 		assertListener(listener);
-		getListeners(this, eventName).add(listener);
-		return this.off.bind(this, eventName, listener);
-	}
 
-	off(eventName, listener) {
-		assertEventName(eventName);
-		assertListener(listener);
-		getListeners(this, eventName).delete(listener);
-	}
-
-	once(eventName) {
-		return new Promise(resolve => {
+		const events = Array.isArray(eventNames) ? eventNames : [eventNames];
+		events.forEach(eventName => {
 			assertEventName(eventName);
-			const off = this.on(eventName, data => {
+			getListeners(this, eventName).add(listener);
+		});
+
+		return this.off.bind(this, events, listener);
+	}
+
+	off(eventNames, listener) {
+		assertListener(listener);
+
+		const events = Array.isArray(eventNames) ? eventNames : [eventNames];
+		events.forEach(eventName => {
+			assertEventName(eventName);
+			getListeners(this, eventName).delete(listener);
+		});
+	}
+
+	once(eventNames) {
+		const events = Array.isArray(eventNames) ? eventNames : [eventNames];
+		events.forEach(eventName => assertEventName(eventName));
+
+		return new Promise(resolve => {
+			const off = this.on(events, data => {
 				off();
 				resolve(data);
 			});
