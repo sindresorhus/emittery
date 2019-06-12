@@ -10,19 +10,14 @@
 		"url": "sindresorhus.com"
 	},
 	"engines": {
-		"node": ">=6"
+		"node": ">=8"
 	},
 	"scripts": {
-		"build": "babel --out-file=legacy.js index.js",
-		"build:watch": "npm run build -- --watch",
-		"prepare": "npm run build",
-		"test": "xo && tsc --noEmit && nyc ava"
+		"test": "xo && nyc ava && tsd"
 	},
 	"files": [
-		"Emittery.d.ts",
 		"index.js",
-		"legacy.js",
-		"legacy.d.ts"
+		"index.d.ts"
 	],
 	"keywords": [
 		"event",
@@ -46,24 +41,20 @@
 		"observer",
 		"trigger",
 		"await",
-		"promise"
+		"promise",
+		"typescript",
+		"ts",
+		"typed"
 	],
 	"devDependencies": {
-		"@sindresorhus/tsconfig": "^0.1.0",
-		"@types/node": "^10.12.10",
-		"ava": "^0.25.0",
-		"babel-cli": "^6.26.0",
-		"babel-core": "^6.26.3",
-		"babel-plugin-transform-async-to-generator": "^6.24.1",
+		"@types/node": "^12.0.8",
+		"ava": "^2.1.0",
 		"codecov": "^3.1.0",
 		"delay": "^4.1.0",
-		"glob": "^7.1.3",
-		"nyc": "^13.1.0",
-		"ts-node": "^7.0.1",
-		"typescript": "^3.2.1",
-		"xo": "^0.23.0"
+		"nyc": "^14.1.1",
+		"tsd": "^0.7.3",
+		"xo": "^0.24.0"
 	},
-	"types": "Emittery.d.ts",
 	"nyc": {
 		"reporter": [
 			"html",

@@ -1,5 +1,3 @@
-export = Emittery;
-
 declare class Emittery {
 	/**
 	 * Subscribe to an event.
@@ -129,3 +127,5 @@ declare namespace Emittery {
 		emitSerial<Name extends EmptyEvents>(eventName: Name): Promise<void>;
 	}
 }
+
+export = Emittery;

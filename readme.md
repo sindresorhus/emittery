@@ -22,6 +22,7 @@ $ npm install emittery
 
 ```js
 const Emittery = require('emittery');
+
 const emitter = new Emittery();
 
 emitter.on('🦄', data => {
@@ -31,10 +32,6 @@ emitter.on('🦄', data => {
 
 emitter.emit('🦄', '🌈');
 ```
-
-### Node.js 6
-
-The above only works in Node.js 8 or newer. For older Node.js versions you can use `require('emittery/legacy')`.
 
 
 ## API
@@ -72,13 +69,13 @@ emitter.once('🦄').then(data => {
 emitter.emit('🦄', '🌈');
 ```
 
-#### emit(eventName, [data])
+#### emit(eventName, data?)
 
 Trigger an event asynchronously, optionally with some data. Listeners are called in the order they were added, but execute concurrently.
 
 Returns a promise for when all the event listeners are done. *Done* meaning executed if synchronous or resolved when an async/promise-returning function. You usually wouldn't want to wait for this, but you could for example catch possible errors. If any of the listeners throw/reject, the returned promise will be rejected with the error, but the other listeners will not be affected.
 
-#### emitSerial(eventName, [data])
+#### emitSerial(eventName, data?)
 
 Same as above, but it waits for each listener to resolve before triggering the next one. This can be useful if your events depend on each other. Although ideally they should not. Prefer `emit()` whenever possible.
 
@@ -102,15 +99,14 @@ Clear all event listeners on the instance.
 
 If `eventName` is given, only the listeners for that event are cleared.
 
-#### listenerCount([eventName])
+#### listenerCount(eventName?)
 
 The number of listeners for the `eventName` or all events if not specified.
 
+
 ## TypeScript
 
-Definition for `emittery` and `emittery/legacy` are included. Use `import Emittery = require('emittery')` or `import Emittery = require('emittery/legacy')` to load the desired implementation.
-
-The default `Emittery` class does not let you type allowed event names and their associated data. However you can use `Emittery.Typed` with generics:
+The default `Emittery` class does not let you type allowed event names and their associated data. However, you can use `Emittery.Typed` with generics:
 
 ```ts
 import Emittery = require('emittery');
@@ -174,8 +170,3 @@ emitter.emit('🦄', [foo, bar]);
 ## Related
 
 - [p-event](https://github.com/sindresorhus/p-event) - Promisify an event by waiting for it to be emitted
-
-
-## License
-
-MIT © [Sindre Sorhus](https://sindresorhus.com)
