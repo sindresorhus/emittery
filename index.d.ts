@@ -1,5 +1,21 @@
 declare class Emittery {
 	/**
+	 * In TypeScript, returns a decorator which mixins `Emittery` as property `emitteryPropertyName` and `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the target class.
+	 * @example
+	 * ```ts
+	 * import Emittery = require('emittery');
+	 *
+	 * @Emittery.mixin('emittery')
+	 * class MyClass {}
+	 *
+	 * let instance = new MyClass();
+	 *
+	 * instance.emit('event');
+	 * ```
+	 */
+	static mixin(emitteryPropertyName: string, methodNames?: string[]): Function;
+
+	/**
 	 * Subscribe to an event.
 	 *
 	 * Returns an unsubscribe method.
@@ -74,6 +90,21 @@ declare class Emittery {
 	 * specified.
 	 */
 	listenerCount(eventName?: string): number;
+
+	/**
+	 * Bind the given `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the `target` object.
+	 * @example
+	 * ```js
+	 * import Emittery = require('emittery');
+	 *
+	 * let object = {};
+	 *
+	 * new Emittery().bindMethods(object);
+	 *
+	 * object.emit('event');
+	 * ```
+	 */
+	bindMethods(target: object, methodNames?: string[]): void;
 }
 
 declare namespace Emittery {

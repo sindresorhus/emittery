@@ -411,3 +411,143 @@ test('listenerCount() - eventName must be undefined if not a string', t => {
 		emitter.listenerCount(42);
 	}, TypeError);
 });
+
+test('bindMethods()', t => {
+	const methodsToBind = ['on', 'off', 'emit', 'listenerCount'];
+
+	const emitter = new Emittery();
+	const target = {};
+
+	const oldPropertyNames = Object.getOwnPropertyNames(target);
+	emitter.bindMethods(target, methodsToBind);
+
+	t.deepEqual(Object.getOwnPropertyNames(target).sort(), oldPropertyNames.concat(methodsToBind).sort());
+
+	for (const method of methodsToBind) {
+		t.is(typeof target[method], 'function');
+	}
+
+	t.is(target.listenerCount(), 0);
+});
+
+test('bindMethods() - methodNames must be array of strings or undefined', t => {
+	t.throws(() => {
+		new Emittery().bindMethods({}, null);
+	});
+
+	t.throws(() => {
+		new Emittery().bindMethods({}, 'string');
+	});
+
+	t.throws(() => {
+		new Emittery().bindMethods({}, {});
+	});
+
+	t.throws(() => {
+		new Emittery().bindMethods({}, [null]);
+	});
+
+	t.throws(() => {
+		new Emittery().bindMethods({}, [1]);
+	});
+
+	t.throws(() => {
+		new Emittery().bindMethods({}, [{}]);
+	});
+});
+
+test('bindMethods() - must bind all methods if no array supplied', t => {
+	const methodsExpected = ['on', 'off', 'once', 'emit', 'emitSerial', 'onAny', 'offAny', 'clearListeners', 'listenerCount', 'bindMethods'];
+
+	const emitter = new Emittery();
+	const target = {};
+
+	const oldPropertyNames = Object.getOwnPropertyNames(target);
+	emitter.bindMethods(target);
+
+	t.deepEqual(Object.getOwnPropertyNames(target).sort(), oldPropertyNames.concat(methodsExpected).sort());
+
+	for (const method of methodsExpected) {
+		t.is(typeof target[method], 'function');
+	}
+
+	t.is(target.listenerCount(), 0);
+});
+
+test('bindMethods() - methodNames must only include Emittery methods', t => {
+	const emitter = new Emittery();
+	const target = {};
+	t.throws(() => emitter.bindMethods(target, ['noexistent']));
+});
+
+test('bindMethods() - must not set already existing fields', t => {
+	const emitter = new Emittery();
+	const target = {
+		on: true
+	};
+	t.throws(() => emitter.bindMethods(target, ['on']));
+});
+
+test('bindMethods() - target must be an object', t => {
+	const emitter = new Emittery();
+	t.throws(() => emitter.bindMethods('string', []));
+	t.throws(() => emitter.bindMethods(null, []));
+	t.throws(() => emitter.bindMethods(undefined, []));
+});
+
+test('mixin()', t => {
+	class TestClass {
+		constructor(v) {
+			this.v = v;
+		}
+	}
+	const TestClassWithMixin = Emittery.mixin('emitter', ['on', 'off', 'once', 'emit', 'emitSerial', 'onAny', 'offAny', 'clearListeners', 'listenerCount', 'bindMethods'])(TestClass);
+	const symbol = Symbol('test symbol');
+	const instance = new TestClassWithMixin(symbol);
+	t.true(instance.emitter instanceof Emittery);
+	t.true(instance instanceof TestClass);
+	t.is(instance.emitter, instance.emitter);
+	t.is(instance.v, symbol);
+	t.is(instance.listenerCount(), 0);
+});
+
+test('mixin() - methodNames must be array of strings or undefined', t => {
+	class TestClass {
+	}
+	t.throws(() => Emittery.mixin('emitter', null)(TestClass));
+	t.throws(() => Emittery.mixin('emitter', 'string')(TestClass));
+	t.throws(() => Emittery.mixin('emitter', {})(TestClass));
+	t.throws(() => Emittery.mixin('emitter', [null])(TestClass));
+	t.throws(() => Emittery.mixin('emitter', [1])(TestClass));
+	t.throws(() => Emittery.mixin('emitter', [{}])(TestClass));
+});
+
+test('mixin() - must mixin all methods if no array supplied', t => {
+	const methodsExpected = ['on', 'off', 'once', 'emit', 'emitSerial', 'onAny', 'offAny', 'clearListeners', 'listenerCount', 'bindMethods'];
+
+	class TestClass {}
+	const TestClassWithMixin = Emittery.mixin('emitter')(TestClass);
+
+	t.deepEqual(Object.getOwnPropertyNames(TestClassWithMixin.prototype).sort(), methodsExpected.concat(['constructor', 'emitter']).sort());
+});
+
+test('mixin() - methodNames must only include Emittery methods', t => {
+	class TestClass {}
+	t.throws(() => Emittery.mixin('emitter', ['nonexistent'])(TestClass));
+});
+
+test('mixin() - must not set already existing methods', t => {
+	class TestClass {
+		on() {
+			return true;
+		}
+	}
+	t.throws(() => Emittery.mixin('emitter', ['on'])(TestClass));
+});
+
+test('mixin() - target must be function', t => {
+	t.throws(() => Emittery.mixin('emitter')('string'));
+	t.throws(() => Emittery.mixin('emitter')(null));
+	t.throws(() => Emittery.mixin('emitter')(undefined));
+	t.throws(() => Emittery.mixin('emitter')({}));
+});

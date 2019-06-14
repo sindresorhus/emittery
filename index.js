@@ -25,7 +25,64 @@ function getListeners(instance, eventName) {
 	return events.get(eventName);
 }
 
+function defaultMethodNamesOrAssert(methodNames) {
+	if (methodNames === undefined) {
+		return allEmitteryMethods;
+	}
+	if (!Array.isArray(methodNames)) {
+		throw new TypeError('methodNames must be an array of strings');
+	}
+	methodNames.forEach(name => {
+		if (!allEmitteryMethods.includes(name)) {
+			if (typeof name !== 'string') {
+				throw new TypeError('methodName must be a string');
+			}
+			throw new Error(`${name} is not Emittery method`);
+		}
+	});
+	return methodNames;
+}
+
+
 class Emittery {
+	static mixin(emitteryPropertyName, methodNames) {
+		methodNames = defaultMethodNamesOrAssert(methodNames);
+		return target => {
+			if (typeof target !== 'function') {
+				throw new TypeError('target must be function');
+			}
+			methodNames.forEach(methodName => {
+				if (target.prototype[methodName] !== undefined) {
+					throw new Error(`field ${methodName} already exists on targer`);
+				}
+			});
+
+			function getEmitteryProperty() {
+				Object.defineProperty(this, emitteryPropertyName, {
+					enumerable: false,
+					value: new Emittery()
+				});
+				return this[emitteryPropertyName];
+			}
+
+			Object.defineProperty(target.prototype, emitteryPropertyName, {
+				enumerable: false,
+				get: getEmitteryProperty
+			});
+
+			methodNames.forEach(methodName => {
+				function emitteryMixin(...args) {
+					return this[emitteryPropertyName][methodName](...args);
+				}
+				Object.defineProperty(target.prototype, methodName, {
+					enumerable: false,
+					value: emitteryMixin
+				});
+			});
+			return target;
+		};
+	}
+
 	constructor() {
 		anyMap.set(this, new Set());
 		eventsMap.set(this, new Map());
@@ -140,7 +197,25 @@ class Emittery {
 
 		return count;
 	}
+
+	bindMethods(target, methodNames) {
+		if (typeof target !== 'object' || target === null) {
+			throw new TypeError('target must be an object');
+		}
+		methodNames = defaultMethodNamesOrAssert(methodNames);
+		for (const methodName of methodNames) {
+			if (target[methodName] !== undefined) {
+				throw new Error(`The property \`${methodName}\` already exists on \`target\``);
+			}
+			Object.defineProperty(target, methodName, {
+				enumerable: false,
+				value: this[methodName].bind(this)
+			});
+		}
+	}
 }
+
+const allEmitteryMethods = Object.getOwnPropertyNames(Emittery.prototype).filter(v => v !== 'constructor');
 
 // Subclass used to encourage TS users to type their events.
 Emittery.Typed = class extends Emittery {};
