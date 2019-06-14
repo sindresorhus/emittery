@@ -34,15 +34,16 @@ function defaultMethodNamesOrAssert(methodNames) {
 		throw new TypeError('methodNames must be an array of strings');
 	}
 
-	methodNames.forEach(name => {
-		if (!allEmitteryMethods.includes(name)) {
-			if (typeof name !== 'string') {
+	for (const methodName of methodNames) {
+		if (!allEmitteryMethods.includes(methodName)) {
+			if (typeof methodName !== 'string') {
 				throw new TypeError('methodName must be a string');
 			}
 
-			throw new Error(`${name} is not Emittery method`);
+			throw new Error(`${methodName} is not Emittery method`);
 		}
-	});
+	}
+
 	return methodNames;
 }
 
@@ -54,11 +55,11 @@ class Emittery {
 				throw new TypeError('target must be function');
 			}
 
-			methodNames.forEach(methodName => {
+			for (const methodName of methodNames) {
 				if (target.prototype[methodName] !== undefined) {
 					throw new Error(`field ${methodName} already exists on targer`);
 				}
-			});
+			}
 
 			function getEmitteryProperty() {
 				Object.defineProperty(this, emitteryPropertyName, {
@@ -73,16 +74,17 @@ class Emittery {
 				get: getEmitteryProperty
 			});
 
-			methodNames.forEach(methodName => {
-				function emitteryMixin(...args) {
-					return this[emitteryPropertyName][methodName](...args);
-				}
+			const emitteryMethodCaller = methodName => function (...args) {
+				return this[emitteryPropertyName][methodName](...args);
+			};
 
+			for (const methodName of methodNames) {
 				Object.defineProperty(target.prototype, methodName, {
 					enumerable: false,
-					value: emitteryMixin
+					value: emitteryMethodCaller(methodName)
 				});
-			});
+			}
+
 			return target;
 		};
 	}
