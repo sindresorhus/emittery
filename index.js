@@ -29,20 +29,22 @@ function defaultMethodNamesOrAssert(methodNames) {
 	if (methodNames === undefined) {
 		return allEmitteryMethods;
 	}
+
 	if (!Array.isArray(methodNames)) {
 		throw new TypeError('methodNames must be an array of strings');
 	}
+
 	methodNames.forEach(name => {
 		if (!allEmitteryMethods.includes(name)) {
 			if (typeof name !== 'string') {
 				throw new TypeError('methodName must be a string');
 			}
+
 			throw new Error(`${name} is not Emittery method`);
 		}
 	});
 	return methodNames;
 }
-
 
 class Emittery {
 	static mixin(emitteryPropertyName, methodNames) {
@@ -51,6 +53,7 @@ class Emittery {
 			if (typeof target !== 'function') {
 				throw new TypeError('target must be function');
 			}
+
 			methodNames.forEach(methodName => {
 				if (target.prototype[methodName] !== undefined) {
 					throw new Error(`field ${methodName} already exists on targer`);
@@ -74,6 +77,7 @@ class Emittery {
 				function emitteryMixin(...args) {
 					return this[emitteryPropertyName][methodName](...args);
 				}
+
 				Object.defineProperty(target.prototype, methodName, {
 					enumerable: false,
 					value: emitteryMixin
@@ -202,11 +206,14 @@ class Emittery {
 		if (typeof target !== 'object' || target === null) {
 			throw new TypeError('target must be an object');
 		}
+
 		methodNames = defaultMethodNamesOrAssert(methodNames);
+
 		for (const methodName of methodNames) {
 			if (target[methodName] !== undefined) {
 				throw new Error(`The property \`${methodName}\` already exists on \`target\``);
 			}
+
 			Object.defineProperty(target, methodName, {
 				enumerable: false,
 				value: this[methodName].bind(this)
