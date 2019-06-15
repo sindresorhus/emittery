@@ -52,7 +52,7 @@ class Emittery {
 		methodNames = defaultMethodNamesOrAssert(methodNames);
 		return target => {
 			if (typeof target !== 'function') {
-				throw new TypeError('\`target\` must be function');
+				throw new TypeError('`target` must be function');
 			}
 
 			for (const methodName of methodNames) {

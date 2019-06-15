@@ -13,7 +13,7 @@ declare class Emittery {
 	 * instance.emit('event');
 	 * ```
 	 */
-	static mixin(emitteryPropertyName: string, methodNames?: string[]): Function;
+	static mixin(emitteryPropertyName: string, methodNames?: readonly string[]): Function;
 
 	/**
 	 * Subscribe to an event.
@@ -104,7 +104,7 @@ declare class Emittery {
 	 * object.emit('event');
 	 * ```
 	 */
-	bindMethods(target: object, methodNames?: string[]): void;
+	bindMethods(target: object, methodNames?: readonly string[]): void;
 }
 
 declare namespace Emittery {
