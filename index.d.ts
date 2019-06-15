@@ -94,8 +94,9 @@ declare class Emittery {
 
 	/**
 	 * Bind the given `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the `target` object.
+	 *
 	 * @example
-	 * ```js
+	 * ```
 	 * import Emittery = require('emittery');
 	 *
 	 * let object = {};
