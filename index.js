@@ -31,13 +31,13 @@ function defaultMethodNamesOrAssert(methodNames) {
 	}
 
 	if (!Array.isArray(methodNames)) {
-		throw new TypeError('methodNames must be an array of strings');
+		throw new TypeError('`methodNames` must be an array of strings');
 	}
 
 	for (const methodName of methodNames) {
 		if (!allEmitteryMethods.includes(methodName)) {
 			if (typeof methodName !== 'string') {
-				throw new TypeError('methodName must be a string');
+				throw new TypeError('`methodNames` element must be a string');
 			}
 
 			throw new Error(`${methodName} is not Emittery method`);
@@ -52,12 +52,12 @@ class Emittery {
 		methodNames = defaultMethodNamesOrAssert(methodNames);
 		return target => {
 			if (typeof target !== 'function') {
-				throw new TypeError('target must be function');
+				throw new TypeError('\`target\` must be function');
 			}
 
 			for (const methodName of methodNames) {
 				if (target.prototype[methodName] !== undefined) {
-					throw new Error(`field ${methodName} already exists on targer`);
+					throw new Error(`The propertty \`${methodName}\` already exists on \`target\``);
 				}
 			}
 
@@ -206,7 +206,7 @@ class Emittery {
 
 	bindMethods(target, methodNames) {
 		if (typeof target !== 'object' || target === null) {
-			throw new TypeError('target must be an object');
+			throw new TypeError('`target` must be an object');
 		}
 
 		methodNames = defaultMethodNamesOrAssert(methodNames);
