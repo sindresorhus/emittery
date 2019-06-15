@@ -103,6 +103,20 @@ If `eventName` is given, only the listeners for that event are cleared.
 
 The number of listeners for the `eventName` or all events if not specified.
 
+#### bindMethods(target, methodNames?)
+
+Bind the given `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the `target` object.
+
+```js
+import Emittery = require('emittery');
+
+let object = {};
+
+new Emittery().bindMethods(object);
+
+object.emit('event');
+```
+
 
 ## TypeScript
 
@@ -117,6 +131,21 @@ ee.emit('open');
 ee.emit('value', 'foo\n');
 ee.emit('value', 1); // TS compilation error
 ee.emit('end'); // TS compilation error
+```
+
+### Emittery.mixin(emitteryPropertyName, methodNames?)
+
+A decorator which mixins `Emittery` as property `emitteryPropertyName` and `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the target class.
+
+```ts
+import Emittery = require('emittery');
+
+@Emittery.mixin('emittery')
+class MyClass {}
+
+let instance = new MyClass();
+
+instance.emit('event');
 ```
 
 
