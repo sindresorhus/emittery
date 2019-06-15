@@ -57,7 +57,7 @@ class Emittery {
 
 			for (const methodName of methodNames) {
 				if (target.prototype[methodName] !== undefined) {
-					throw new Error(`The propertty \`${methodName}\` already exists on \`target\``);
+					throw new Error(`The property \`${methodName}\` already exists on \`target\``);
 				}
 			}
 
