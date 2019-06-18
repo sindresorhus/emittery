@@ -2,6 +2,8 @@
 
 const anyMap = new WeakMap();
 const eventsMap = new WeakMap();
+const producersMap = new WeakMap();
+const anyProducer = Symbol('anyProducer');
 const resolvedPromise = Promise.resolve();
 
 function assertEventName(eventName) {
@@ -25,6 +27,81 @@ function getListeners(instance, eventName) {
 	return events.get(eventName);
 }
 
+function getEventProducers(instance, eventName) {
+	const key = typeof eventName === 'string' ? eventName : anyProducer;
+	const producers = producersMap.get(instance);
+	if (!producers.has(key)) {
+		producers.set(key, new Set());
+	}
+	return producers.get(key);
+}
+
+function enqueueProducers(instance, eventName, eventData) {
+	const producers = producersMap.get(instance);
+	if (producers.has(eventName)) {
+		for (const producer of producers.get(eventName)) {
+			producer.enqueue(eventData);
+		}
+	}
+	if (producers.has(anyProducer)) {
+		const item = Promise.all([eventName, eventData]);
+		for (const producer of producers.get(anyProducer)) {
+			producer.enqueue(item);
+		}
+	}
+}
+
+function iterator(instance, eventName) {
+	let finished = false;
+	let flush = () => {
+	};
+	let queue = [];
+	const producer = {
+		enqueue(item) {
+			queue.push(item);
+			flush();
+		},
+		finish() {
+			finished = true;
+			flush();
+		}
+	};
+
+	getEventProducers(instance, eventName).add(producer);
+	return {
+		async next() {
+			if (!queue) {
+				return {done: true};
+			}
+
+			if (queue.length === 0) {
+				if (finished) {
+					queue = null;
+					return this.next();
+				}
+
+				await new Promise(resolve => {
+					flush = resolve;
+				});
+				return this.next();
+			}
+
+			return {done: false, value: await queue.shift()};
+		},
+		async return(value) {
+			queue = null;
+			getEventProducers(instance, eventName).delete(producer);
+			flush();
+			return arguments.length > 0 ?
+				{done: true, value: await value} :
+				{done: true};
+		},
+		[Symbol.asyncIterator]() {
+			return this;
+		}
+	};
+}
+
 function defaultMethodNamesOrAssert(methodNames) {
 	if (methodNames === undefined) {
 		return allEmitteryMethods;
@@ -45,52 +122,6 @@ function defaultMethodNamesOrAssert(methodNames) {
 	}
 
 	return methodNames;
-}
-
-function iterator(emitter, eventName) {
-	let flush = () => {
-	};
-	let queue = [];
-	let off;
-	if (typeof eventName === 'string') {
-		off = emitter.on(eventName, data => {
-			queue.push(data);
-			flush();
-		});
-	} else {
-		off = emitter.onAny((eventName, data) => {
-			queue.push(Promise.all([eventName, data]));
-			flush();
-		});
-	}
-
-	return {
-		async next() {
-			if (!queue) {
-				return {done: true};
-			}
-
-			if (queue.length === 0) {
-				await new Promise(resolve => {
-					flush = resolve;
-				});
-				return this.next();
-			}
-
-			return {done: false, value: await queue.shift()};
-		},
-		async return(value) {
-			queue = null;
-			off();
-			flush();
-			return arguments.length > 0 ?
-				{done: true, value: await value} :
-				{done: true};
-		},
-		[Symbol.asyncIterator]() {
-			return this;
-		}
-	};
 }
 
 class Emittery {
@@ -143,12 +174,8 @@ class Emittery {
 
 	on(eventName, listener) {
 		assertEventName(eventName);
-<<<<<<< HEAD
 		assertListener(listener);
 		getListeners(this, eventName).add(listener);
-=======
-		this._getListeners(eventName).add(listener);
->>>>>>> Return async iterator from .events(), not .on()
 		return this.off.bind(this, eventName, listener);
 	}
 
@@ -176,6 +203,8 @@ class Emittery {
 	async emit(eventName, eventData) {
 		assertEventName(eventName);
 
+		enqueueProducers(this, eventName, eventData);
+
 		const listeners = getListeners(this, eventName);
 		const anyListeners = anyMap.get(this);
 		const staticListeners = [...listeners];
@@ -194,6 +223,10 @@ class Emittery {
 				}
 			})
 		]);
+	}
+
+	anyEvent() {
+		return iterator(this);
 	}
 
 	async emitSerial(eventName, eventData) {
@@ -231,30 +264,32 @@ class Emittery {
 		anyMap.get(this).delete(listener);
 	}
 
-<<<<<<< HEAD
 	clearListeners(eventName) {
 		if (typeof eventName === 'string') {
 			getListeners(this, eventName).clear();
+			const producers = getEventProducers(this, eventName);
+			for (const producer of producers) {
+				producer.finish();
+			}
+			producers.clear();
 		} else {
 			anyMap.get(this).clear();
 			for (const listeners of eventsMap.get(this).values()) {
 				listeners.clear();
 			}
+			for (const producers of producersMap.get(this).values()) {
+				for (const producer of producers) {
+					producer.finish();
+				}
+				producers.clear();
+			}
 		}
-=======
-	anyEvent() {
-		return iterator(this);
-	}
-
-	clear() {
-		this._events.clear();
-		this._anyEvents.clear();
->>>>>>> Implement .anyEvent()
 	}
 
 	listenerCount(eventName) {
 		if (typeof eventName === 'string') {
-			return anyMap.get(this).size + getListeners(this, eventName).size;
+			return anyMap.get(this).size + getListeners(this, eventName).size +
+				getEventProducers(this, eventName).size + getEventProducers(this).size;
 		}
 
 		if (typeof eventName !== 'undefined') {
@@ -264,6 +299,9 @@ class Emittery {
 		let count = anyMap.get(this).size;
 
 		for (const value of eventsMap.get(this).values()) {
+			count += value.size;
+		}
+		for (const value of producersMap.get(this).values()) {
 			count += value.size;
 		}
 
