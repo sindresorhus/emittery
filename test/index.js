@@ -2,6 +2,10 @@ import test from 'ava';
 import delay from 'delay';
 import Emittery from '..';
 
+const versionRegexp= /^v8/;
+
+const shouldSkip = versionRegexp.test(process.version);
+
 test('on()', async t => {
 	const emitter = new Emittery();
 	const calls = [];
@@ -55,26 +59,28 @@ test('on() - dedupes identical listeners', async t => {
 	t.deepEqual(calls, [1]);
 });
 
-test.serial('events()', async t => {
-	const emitter = new Emittery();
-	const iterator = emitter.events('🦄');
+if(!shouldSkip) {
+	test.serial('events()', async t => {
+		const emitter = new Emittery();
+		const iterator = emitter.events('🦄');
 
-	await emitter.emit('🦄', '🌈');
-	setTimeout(() => {
-		emitter.emit('🦄', Promise.resolve('🌟'));
-	}, 10);
+		await emitter.emit('🦄', '🌈');
+		setTimeout(() => {
+			emitter.emit('🦄', Promise.resolve('🌟'));
+		}, 10);
 
-	t.plan(3);
-	const expected = ['🌈', '🌟'];
-	for await (const data of iterator) {
-		t.deepEqual(data, expected.shift());
-		if (expected.length === 0) {
-			break;
+		t.plan(3);
+		const expected = ['🌈', '🌟'];
+		for await (const data of iterator) {
+			t.deepEqual(data, expected.shift());
+			if (expected.length === 0) {
+				break;
+			}
 		}
-	}
 
-	t.deepEqual(await iterator.next(), {done: true});
-});
+		t.deepEqual(await iterator.next(), {done: true});
+	});
+}
 
 test('events() - return() called during emit', async t => {
 	const emitter = new Emittery();
@@ -396,26 +402,28 @@ test('onAny() - must have a listener', t => {
 	}, TypeError);
 });
 
-test.serial('anyEvent()', async t => {
-	const emitter = new Emittery();
-	const iterator = emitter.anyEvent();
+if(!shouldSkip) {
+	test.serial('anyEvent()', async t => {
+		const emitter = new Emittery();
+		const iterator = emitter.anyEvent();
 
-	await emitter.emit('🦄', '🌈');
-	setTimeout(() => {
-		emitter.emit('🦄', Promise.resolve('🌟'));
-	}, 10);
+		await emitter.emit('🦄', '🌈');
+		setTimeout(() => {
+			emitter.emit('🦄', Promise.resolve('🌟'));
+		}, 10);
 
-	t.plan(3);
-	const expected = [['🦄', '🌈'], ['🦄', '🌟']];
-	for await (const data of iterator) {
-		t.deepEqual(data, expected.shift());
-		if (expected.length === 0) {
-			break;
+		t.plan(3);
+		const expected = [['🦄', '🌈'], ['🦄', '🌟']];
+		for await (const data of iterator) {
+			t.deepEqual(data, expected.shift());
+			if (expected.length === 0) {
+				break;
+			}
 		}
-	}
 
-	t.deepEqual(await iterator.next(), {done: true});
-});
+		t.deepEqual(await iterator.next(), {done: true});
+	});
+}
 
 test('anyEvent() - return() called during emit', async t => {
 	const emitter = new Emittery();
