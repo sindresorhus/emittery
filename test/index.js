@@ -2,7 +2,7 @@ import test from 'ava';
 import delay from 'delay';
 import Emittery from '..';
 
-const versionRegexp= /^v8/;
+const versionRegexp = /^v8/;
 
 const shouldSkip = versionRegexp.test(process.version);
 
@@ -59,7 +59,7 @@ test('on() - dedupes identical listeners', async t => {
 	t.deepEqual(calls, [1]);
 });
 
-if(!shouldSkip) {
+if (!shouldSkip) {
 	test.serial('events()', async t => {
 		const emitter = new Emittery();
 		const iterator = emitter.events('🦄');
@@ -402,7 +402,7 @@ test('onAny() - must have a listener', t => {
 	}, TypeError);
 });
 
-if(!shouldSkip) {
+if (!shouldSkip) {
 	test.serial('anyEvent()', async t => {
 		const emitter = new Emittery();
 		const iterator = emitter.anyEvent();
