@@ -33,6 +33,7 @@ function getEventProducers(instance, eventName) {
 	if (!producers.has(key)) {
 		producers.set(key, new Set());
 	}
+
 	return producers.get(key);
 }
 
@@ -43,6 +44,7 @@ function enqueueProducers(instance, eventName, eventData) {
 			producer.enqueue(eventData);
 		}
 	}
+
 	if (producers.has(anyProducer)) {
 		const item = Promise.all([eventName, eventData]);
 		for (const producer of producers.get(anyProducer)) {
@@ -53,8 +55,7 @@ function enqueueProducers(instance, eventName, eventData) {
 
 function iterator(instance, eventName) {
 	let finished = false;
-	let flush = () => {
-	};
+	let flush = () => {};
 	let queue = [];
 	const producer = {
 		enqueue(item) {
@@ -169,8 +170,8 @@ class Emittery {
 	constructor() {
 		anyMap.set(this, new Set());
 		eventsMap.set(this, new Map());
+		producersMap.set(this, new Map());
 	}
-
 
 	on(eventName, listener) {
 		assertEventName(eventName);
@@ -225,10 +226,6 @@ class Emittery {
 		]);
 	}
 
-	anyEvent() {
-		return iterator(this);
-	}
-
 	async emitSerial(eventName, eventData) {
 		assertEventName(eventName);
 
@@ -259,6 +256,10 @@ class Emittery {
 		return this.offAny.bind(this, listener);
 	}
 
+	anyEvent() {
+		return iterator(this);
+	}
+
 	offAny(listener) {
 		assertListener(listener);
 		anyMap.get(this).delete(listener);
@@ -268,19 +269,24 @@ class Emittery {
 		if (typeof eventName === 'string') {
 			getListeners(this, eventName).clear();
 			const producers = getEventProducers(this, eventName);
+
 			for (const producer of producers) {
 				producer.finish();
 			}
+
 			producers.clear();
 		} else {
 			anyMap.get(this).clear();
+
 			for (const listeners of eventsMap.get(this).values()) {
 				listeners.clear();
 			}
+
 			for (const producers of producersMap.get(this).values()) {
 				for (const producer of producers) {
 					producer.finish();
 				}
+
 				producers.clear();
 			}
 		}
@@ -301,6 +307,7 @@ class Emittery {
 		for (const value of eventsMap.get(this).values()) {
 			count += value.size;
 		}
+
 		for (const value of producersMap.get(this).values()) {
 			count += value.size;
 		}
