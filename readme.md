@@ -68,10 +68,6 @@ emitter.once('🦄').then(data => {
 
 emitter.emit('🦄', '🌈');
 ```
-
-<<<<<<< HEAD
-#### emit(eventName, data?)
-=======
 #### events(eventName)
 
 Get an asynchronous iterator which buffers data each time an event is emitted.
@@ -79,7 +75,6 @@ Get an asynchronous iterator which buffers data each time an event is emitted.
 Call `return()` on the iterator to remove the subscription.
 
 #### emit(eventName, [data])
->>>>>>> Return async iterator from .events(), not .on()
 
 Trigger an event asynchronously, optionally with some data. Listeners are called in the order they were added, but execute concurrently.
 
@@ -103,19 +98,13 @@ Returns a method to unsubscribe.
 
 Remove an `onAny` subscription.
 
-<<<<<<< HEAD
-#### clearListeners()
-=======
-If you don't pass in a `listener`, it will remove all `onAny` subscriptions.
-
 #### anyEvent()
 
 Get an asynchronous iterator which buffers a tuple of an event name and data each time an event is emitted.
 
 Call `return()` on the iterator to remove the subscription.
 
-#### clear()
->>>>>>> Implement .anyEvent()
+#### clearListeners()
 
 Clear all event listeners on the instance.
 
