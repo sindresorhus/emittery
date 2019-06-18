@@ -17,8 +17,7 @@ test('on() - eventName must be a string', t => {
 	const emitter = new Emittery();
 
 	t.throws(() => {
-		emitter.on(42, () => {
-		});
+		emitter.on(42, () => {});
 	}, TypeError);
 });
 
@@ -541,16 +540,11 @@ test('clearListeners() - with event name - clears iterators for that event', asy
 
 test('listenerCount()', t => {
 	const emitter = new Emittery();
-	emitter.on('🦄', () => {
-	});
-	emitter.on('🌈', () => {
-	});
-	emitter.on('🦄', () => {
-	});
-	emitter.onAny(() => {
-	});
-	emitter.onAny(() => {
-	});
+	emitter.on('🦄', () => {});
+	emitter.on('🌈', () => {});
+	emitter.on('🦄', () => {});
+	emitter.onAny(() => {});
+	emitter.onAny(() => {});
 	t.is(emitter.listenerCount('🦄'), 4);
 	t.is(emitter.listenerCount('🌈'), 3);
 	t.is(emitter.listenerCount(), 5);
@@ -558,8 +552,7 @@ test('listenerCount()', t => {
 
 test('listenerCount() - works with empty eventName strings', t => {
 	const emitter = new Emittery();
-	emitter.on('', () => {
-	});
+	emitter.on('', () => {});
 	t.is(emitter.listenerCount(''), 1);
 });
 
@@ -672,8 +665,7 @@ test('mixin()', t => {
 });
 
 test('mixin() - methodNames must be array of strings or undefined', t => {
-	class TestClass {
-	}
+	class TestClass {}
 
 	t.throws(() => Emittery.mixin('emitter', null)(TestClass));
 	t.throws(() => Emittery.mixin('emitter', 'string')(TestClass));
@@ -695,8 +687,7 @@ test('mixin() - must mixin all methods if no array supplied', t => {
 });
 
 test('mixin() - methodNames must only include Emittery methods', t => {
-	class TestClass {
-	}
+	class TestClass {}
 
 	t.throws(() => Emittery.mixin('emitter', ['nonexistent'])(TestClass));
 });
@@ -707,7 +698,6 @@ test('mixin() - must not set already existing methods', t => {
 			return true;
 		}
 	}
-
 	t.throws(() => Emittery.mixin('emitter', ['on'])(TestClass));
 });
 
