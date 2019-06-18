@@ -13,10 +13,7 @@
 	"node": ">=8"
   },
   "scripts": {
-	"test": "xo && nyc ava && tsd",
-	"build": "babel --out-file=legacy.js index.js",
-	"build:watch": "npm run build -- --watch",
-	"prepublish": "npm run build"
+	"test": "xo && nyc ava && tsd"
   },
   "files": [
 	"index.js",
