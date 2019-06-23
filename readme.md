@@ -70,7 +70,7 @@ emitter.emit('🦄', '🌈');
 ```
 #### events(eventName)
 
-Get an asynchronous iterator which buffers data each time an event is emitted.
+Get an async iterator which buffers data each time an event is emitted.
 
 Call `return()` on the iterator to remove the subscription.
 
@@ -100,7 +100,7 @@ Remove an `onAny` subscription.
 
 #### anyEvent()
 
-Get an asynchronous iterator which buffers a tuple of an event name and data each time an event is emitted.
+Get an async iterator which buffers a tuple of an event name and data each time an event is emitted.
 
 Call `return()` on the iterator to remove the subscription.
 
