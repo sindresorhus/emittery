@@ -2,9 +2,7 @@ import test from 'ava';
 import delay from 'delay';
 import Emittery from '..';
 
-const versionRegexp = /^v8/;
-
-const shouldSkip = versionRegexp.test(process.version);
+const shouldSkip = process.version.startsWith('v8.');
 
 test('on()', async t => {
 	const emitter = new Emittery();
@@ -686,8 +684,7 @@ test('mixin() - methodNames must be array of strings or undefined', t => {
 test('mixin() - must mixin all methods if no array supplied', t => {
 	const methodsExpected = ['on', 'off', 'once', 'events', 'emit', 'emitSerial', 'onAny', 'anyEvent', 'offAny', 'clearListeners', 'listenerCount', 'bindMethods'];
 
-	class TestClass {
-	}
+	class TestClass {}
 
 	const TestClassWithMixin = Emittery.mixin('emitter')(TestClass);
 
