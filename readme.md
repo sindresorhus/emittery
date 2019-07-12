@@ -81,7 +81,8 @@ const iterator = emitter.events('🦄');
 emitter.emit('🦄', '🌈1'); // buffered
 emitter.emit('🦄', '🌈2'); // buffered
 
-iterator.next()
+iterator
+	.next()
 	.then( ({value, done}) => {
 	// done is false
 	// value === '🌈1'
@@ -89,10 +90,9 @@ iterator.next()
 	})
 	.then( ({value, done}) => {
 		// done is false
-        // value === '🌈2'
-        
-        // revoke subscription
-        return iterator.return();
+		// value === '🌈2'
+		// revoke subscription
+		return iterator.return();
 	})
 	.then(({done}) => {
 		// done is true
@@ -160,10 +160,9 @@ iterator.next()
 	})
 	.then( ({value, done}) => {
 		// done is false
-        // value is ['🌟', '🌈2']
-        
-        // revoke subscription
-        return iterator.return();
+		// value is ['🌟', '🌈2']
+		// revoke subscription
+		return iterator.return();
 	})
 	.then(({done}) => {
 		// done is true
