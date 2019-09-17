@@ -69,7 +69,54 @@ emitter.once('🦄').then(data => {
 emitter.emit('🦄', '🌈');
 ```
 
-#### emit(eventName, data?)
+#### events(eventName)
+
+Get an async iterator which buffers data each time an event is emitted.
+
+Call `return()` on the iterator to remove the subscription.
+
+```js
+const iterator = emitter.events('🦄');
+
+emitter.emit('🦄', '🌈1'); // buffered
+emitter.emit('🦄', '🌈2'); // buffered
+
+iterator
+	.next()
+	.then( ({value, done}) => {
+	// done is false
+	// value === '🌈1'
+		return iterator.next();
+	})
+	.then( ({value, done}) => {
+		// done is false
+		// value === '🌈2'
+		// revoke subscription
+		return iterator.return();
+	})
+	.then(({done}) => {
+		// done is true
+	});
+```
+
+In practice you would usually consume the events using the [for await](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for-await...of) statement.
+In that case, to revoke the subscription simply break the loop 
+
+```js
+// in an async context 
+const iterator = emitter.events('🦄');
+
+emitter.emit('🦄', '🌈1'); // buffered
+emitter.emit('🦄', '🌈2'); // buffered
+
+for await (const data of iterator){
+	if(data === '🌈2')
+		break; // revoke the subscription when we see the value '🌈2'
+}
+
+```
+
+#### emit(eventName, [data])
 
 Trigger an event asynchronously, optionally with some data. Listeners are called in the order they were added, but execute concurrently.
 
@@ -92,6 +139,37 @@ Returns a method to unsubscribe.
 #### offAny(listener)
 
 Remove an `onAny` subscription.
+
+#### anyEvent()
+
+Get an async iterator which buffers a tuple of an event name and data each time an event is emitted.
+
+Call `return()` on the iterator to remove the subscription.
+
+```js
+const iterator = emitter.anyEvent();
+
+emitter.emit('🦄', '🌈1'); // buffered
+emitter.emit('🌟', '🌈2'); // buffered
+
+iterator.next()
+	.then( ({value, done}) => {
+		// done is false
+		// value is ['🦄', '🌈1']
+		return iterator.next();
+	})
+	.then( ({value, done}) => {
+		// done is false
+		// value is ['🌟', '🌈2']
+		// revoke subscription
+		return iterator.return();
+	})
+	.then(({done}) => {
+		// done is true
+	});
+```
+
+In the same way as for ``events`` you can subscribe by using the ``for await`` statement
 
 #### clearListeners()
 

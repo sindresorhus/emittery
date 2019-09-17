@@ -2,6 +2,8 @@ import test from 'ava';
 import delay from 'delay';
 import Emittery from '..';
 
+const shouldSkip = process.version.startsWith('v8.');
+
 test('on()', async t => {
 	const emitter = new Emittery();
 	const calls = [];
@@ -53,6 +55,72 @@ test('on() - dedupes identical listeners', async t => {
 	emitter.on('🦄', listener);
 	await emitter.emit('🦄');
 	t.deepEqual(calls, [1]);
+});
+
+if (!shouldSkip) {
+	test.serial('events()', async t => {
+		const emitter = new Emittery();
+		const iterator = emitter.events('🦄');
+
+		await emitter.emit('🦄', '🌈');
+		setTimeout(() => {
+			emitter.emit('🦄', Promise.resolve('🌟'));
+		}, 10);
+
+		t.plan(3);
+		const expected = ['🌈', '🌟'];
+		for await (const data of iterator) {
+			t.deepEqual(data, expected.shift());
+			if (expected.length === 0) {
+				break;
+			}
+		}
+
+		t.deepEqual(await iterator.next(), {done: true});
+	});
+}
+
+test('events() - return() called during emit', async t => {
+	const emitter = new Emittery();
+	let iterator = null;
+	emitter.on('🦄', () => {
+		iterator.return();
+	});
+	iterator = emitter.events('🦄');
+	emitter.emit('🦄', '🌈');
+	t.deepEqual(await iterator.next(), {done: false, value: '🌈'});
+	t.deepEqual(await iterator.next(), {done: true});
+});
+
+test('events() - return() awaits its argument', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.events('🦄');
+	t.deepEqual(await iterator.return(Promise.resolve(1)), {done: true, value: 1});
+});
+
+test('events() - return() without argument', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.events('🦄');
+	t.deepEqual(await iterator.return(), {done: true});
+});
+
+test('events() - discarded iterators should stop receiving events', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.events('🦄');
+
+	await emitter.emit('🦄', '🌈');
+	t.deepEqual(await iterator.next(), {value: '🌈', done: false});
+	await iterator.return();
+	await emitter.emit('🦄', '🌈');
+	t.deepEqual(await iterator.next(), {done: true});
+
+	setTimeout(() => {
+		emitter.emit('🦄', '🌟');
+	}, 10);
+
+	await new Promise(resolve => setTimeout(resolve, 20));
+
+	t.deepEqual(await iterator.next(), {done: true});
 });
 
 test('off()', async t => {
@@ -332,6 +400,60 @@ test('onAny() - must have a listener', t => {
 	}, TypeError);
 });
 
+if (!shouldSkip) {
+	test.serial('anyEvent()', async t => {
+		const emitter = new Emittery();
+		const iterator = emitter.anyEvent();
+
+		await emitter.emit('🦄', '🌈');
+		setTimeout(() => {
+			emitter.emit('🦄', Promise.resolve('🌟'));
+		}, 10);
+
+		t.plan(3);
+		const expected = [['🦄', '🌈'], ['🦄', '🌟']];
+		for await (const data of iterator) {
+			t.deepEqual(data, expected.shift());
+			if (expected.length === 0) {
+				break;
+			}
+		}
+
+		t.deepEqual(await iterator.next(), {done: true});
+	});
+}
+
+test('anyEvent() - return() called during emit', async t => {
+	const emitter = new Emittery();
+	let iterator = null;
+	emitter.onAny(() => {
+		iterator.return();
+	});
+	iterator = emitter.anyEvent();
+	emitter.emit('🦄', '🌈');
+	t.deepEqual(await iterator.next(), {done: false, value: ['🦄', '🌈']});
+	t.deepEqual(await iterator.next(), {done: true});
+});
+
+test('anyEvents() - discarded iterators should stop receiving events', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.anyEvent();
+
+	await emitter.emit('🦄', '🌈');
+	t.deepEqual(await iterator.next(), {value: ['🦄', '🌈'], done: false});
+	await iterator.return();
+	await emitter.emit('🦄', '🌈');
+	t.deepEqual(await iterator.next(), {done: true});
+
+	setTimeout(() => {
+		emitter.emit('🦄', '🌟');
+	}, 10);
+
+	await new Promise(resolve => setTimeout(resolve, 20));
+
+	t.deepEqual(await iterator.next(), {done: true});
+});
+
 test('offAny()', async t => {
 	const emitter = new Emittery();
 	const calls = [];
@@ -369,6 +491,24 @@ test('clearListeners()', async t => {
 	t.deepEqual(calls, ['🦄1', '🦄2', 'any1', 'any2', '🌈', 'any1', 'any2']);
 });
 
+test('clearListeners() - also clears iterators', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.events('🦄');
+	const anyIterator = emitter.anyEvent();
+	await emitter.emit('🦄', '🌟');
+	await emitter.emit('🌈', '🌟');
+	t.deepEqual(await iterator.next(), {done: false, value: '🌟'});
+	t.deepEqual(await anyIterator.next(), {done: false, value: ['🦄', '🌟']});
+	t.deepEqual(await anyIterator.next(), {done: false, value: ['🌈', '🌟']});
+	await emitter.emit('🦄', '💫');
+	emitter.clearListeners();
+	await emitter.emit('🌈', '💫');
+	t.deepEqual(await iterator.next(), {done: false, value: '💫'});
+	t.deepEqual(await iterator.next(), {done: true});
+	t.deepEqual(await anyIterator.next(), {done: false, value: ['🦄', '💫']});
+	t.deepEqual(await anyIterator.next(), {done: true});
+});
+
 test('clearListeners() - with event name', async t => {
 	const emitter = new Emittery();
 	const calls = [];
@@ -384,6 +524,24 @@ test('clearListeners() - with event name', async t => {
 	await emitter.emit('🦄');
 	await emitter.emit('🌈');
 	t.deepEqual(calls, ['🦄1', '🦄2', 'any1', 'any2', '🌈', 'any1', 'any2', 'any1', 'any2', '🌈', 'any1', 'any2']);
+});
+
+test('clearListeners() - with event name - clears iterators for that event', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.events('🦄');
+	const anyIterator = emitter.anyEvent();
+	await emitter.emit('🦄', '🌟');
+	await emitter.emit('🌈', '🌟');
+	t.deepEqual(await iterator.next(), {done: false, value: '🌟'});
+	t.deepEqual(await anyIterator.next(), {done: false, value: ['🦄', '🌟']});
+	t.deepEqual(await anyIterator.next(), {done: false, value: ['🌈', '🌟']});
+	await emitter.emit('🦄', '💫');
+	emitter.clearListeners('🦄');
+	await emitter.emit('🌈', '💫');
+	t.deepEqual(await iterator.next(), {done: false, value: '💫'});
+	t.deepEqual(await iterator.next(), {done: true});
+	t.deepEqual(await anyIterator.next(), {done: false, value: ['🦄', '💫']});
+	t.deepEqual(await anyIterator.next(), {done: false, value: ['🌈', '💫']});
 });
 
 test('listenerCount()', t => {
@@ -457,7 +615,7 @@ test('bindMethods() - methodNames must be array of strings or undefined', t => {
 });
 
 test('bindMethods() - must bind all methods if no array supplied', t => {
-	const methodsExpected = ['on', 'off', 'once', 'emit', 'emitSerial', 'onAny', 'offAny', 'clearListeners', 'listenerCount', 'bindMethods'];
+	const methodsExpected = ['on', 'off', 'once', 'events', 'emit', 'emitSerial', 'onAny', 'anyEvent', 'offAny', 'clearListeners', 'listenerCount', 'bindMethods'];
 
 	const emitter = new Emittery();
 	const target = {};
@@ -501,6 +659,7 @@ test('mixin()', t => {
 			this.v = v;
 		}
 	}
+
 	const TestClassWithMixin = Emittery.mixin('emitter', ['on', 'off', 'once', 'emit', 'emitSerial', 'onAny', 'offAny', 'clearListeners', 'listenerCount', 'bindMethods'])(TestClass);
 	const symbol = Symbol('test symbol');
 	const instance = new TestClassWithMixin(symbol);
@@ -512,8 +671,8 @@ test('mixin()', t => {
 });
 
 test('mixin() - methodNames must be array of strings or undefined', t => {
-	class TestClass {
-	}
+	class TestClass {}
+
 	t.throws(() => Emittery.mixin('emitter', null)(TestClass));
 	t.throws(() => Emittery.mixin('emitter', 'string')(TestClass));
 	t.throws(() => Emittery.mixin('emitter', {})(TestClass));
@@ -523,9 +682,10 @@ test('mixin() - methodNames must be array of strings or undefined', t => {
 });
 
 test('mixin() - must mixin all methods if no array supplied', t => {
-	const methodsExpected = ['on', 'off', 'once', 'emit', 'emitSerial', 'onAny', 'offAny', 'clearListeners', 'listenerCount', 'bindMethods'];
+	const methodsExpected = ['on', 'off', 'once', 'events', 'emit', 'emitSerial', 'onAny', 'anyEvent', 'offAny', 'clearListeners', 'listenerCount', 'bindMethods'];
 
 	class TestClass {}
+
 	const TestClassWithMixin = Emittery.mixin('emitter')(TestClass);
 
 	t.deepEqual(Object.getOwnPropertyNames(TestClassWithMixin.prototype).sort(), methodsExpected.concat(['constructor', 'emitter']).sort());
@@ -533,6 +693,7 @@ test('mixin() - must mixin all methods if no array supplied', t => {
 
 test('mixin() - methodNames must only include Emittery methods', t => {
 	class TestClass {}
+
 	t.throws(() => Emittery.mixin('emitter', ['nonexistent'])(TestClass));
 });
 

@@ -27,6 +27,55 @@ declare class Emittery {
 	on(eventName: string, listener: (eventData?: any) => any): Emittery.UnsubscribeFn;
 
 	/**
+	 * Get an async iterator which buffers data each time an event is emitted.
+	 *
+	 * Call `return()` on the iterator to remove the subscription.
+	 *
+	 * @example
+	 * ```
+	 * const iterator = emitter.events('🦄');
+	 *
+	 * emitter.emit('🦄', '🌈1'); // buffered
+	 * emitter.emit('🦄', '🌈2'); // buffered
+	 *
+	 * iterator
+	 *	.next()
+	 * 	.then( ({value, done}) => {
+	 *		// done is false
+	 *		// value === '🌈1'
+	 *		return iterator.next();
+	 *	})
+	 *	.then( ({value, done}) => {
+	 *		// done is false
+	 *		// value === '🌈2'
+	 *		// revoke subscription
+	 *		return iterator.return();
+	 *	})
+	 *	.then(({done}) => {
+	 *		// done is true
+	 *	});
+	 * ```
+	 *
+	 * In practice you would usually consume the events using the [for await](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for-await...of) statement.
+	 * In that case, to revoke the subscription simply break the loop
+	 *
+	 * @example
+	 * ```
+	 * // in an async context
+	 * const iterator = emitter.events('🦄');
+	 *
+	 * emitter.emit('🦄', '🌈1'); // buffered
+	 * emitter.emit('🦄', '🌈2'); // buffered
+	 *
+	 * for await (const data of iterator){
+	 * if(data === '🌈2')
+	 *	break; // revoke the subscription when we see the value '🌈2'
+	 * }
+	 * ```
+	 */
+	events(eventName:string): AsyncIterableIterator<any>
+
+	/**
 	 * Remove an event subscription.
 	 */
 	off(eventName: string, listener: (eventData?: any) => any): void;
@@ -73,6 +122,39 @@ declare class Emittery {
 	 * Returns a method to unsubscribe.
 	 */
 	onAny(listener: (eventName: string, eventData?: any) => any): Emittery.UnsubscribeFn;
+
+	/*
+	 * Get an async iterator which buffers a tuple of an event name and data each time an event is emitted.
+	 *
+	 * Call `return()` on the iterator to remove the subscription.
+	 *
+	 * @example
+	 * ```
+	 * const iterator = emitter.anyEvent();
+	 *
+	 * emitter.emit('🦄', '🌈1'); // buffered
+	 * emitter.emit('🌟', '🌈2'); // buffered
+	 *
+	 * iterator.next()
+	 * .then( ({value, done}) => {
+	 * 		// done is false
+	 * 		// value is ['🦄', '🌈1']
+	 * 		return iterator.next();
+	 * })
+	 * .then( ({value, done}) => {
+	 * 		// done is false
+	 * 		// value is ['🌟', '🌈2']
+	 * 		// revoke subscription
+	 * 		return iterator.return();
+	 * 	})
+	 * 	.then(({done}) => {
+	 * 		// done is true
+	 * 	});
+	 * 	```
+	 *
+	 * 	In the same way as for ``events`` you can subscribe by using the ``for await`` statement
+	 */
+	anyEvent(): AsyncIterableIterator<any>
 
 	/**
 	 * Remove an `onAny` subscription.
@@ -144,6 +226,8 @@ declare namespace Emittery {
 		on<Name extends Extract<keyof EventDataMap, string>>(eventName: Name, listener: (eventData: EventDataMap[Name]) => any): Emittery.UnsubscribeFn;
 		on<Name extends EmptyEvents>(eventName: Name, listener: () => any): Emittery.UnsubscribeFn;
 
+		events<Name extends Extract<keyof EventDataMap, string>>(eventName: Name): AsyncIterableIterator<EventDataMap[Name]>;
+
 		once<Name extends Extract<keyof EventDataMap, string>>(eventName: Name): Promise<EventDataMap[Name]>;
 		once<Name extends EmptyEvents>(eventName: Name): Promise<void>;
 
@@ -151,6 +235,8 @@ declare namespace Emittery {
 		off<Name extends EmptyEvents>(eventName: Name, listener: () => any): void;
 
 		onAny(listener: (eventName: Extract<keyof EventDataMap, string> | EmptyEvents, eventData?: EventDataMap[Extract<keyof EventDataMap, string>]) => any): Emittery.UnsubscribeFn;
+		anyEvent(): AsyncIterableIterator<[Extract<keyof EventDataMap, string>, EventDataMap[Extract<keyof EventDataMap, string>]]>;
+
 		offAny(listener: (eventName: Extract<keyof EventDataMap, string> | EmptyEvents, eventData?: EventDataMap[Extract<keyof EventDataMap, string>]) => any): void;
 
 		emit<Name extends Extract<keyof EventDataMap, string>>(eventName: Name, eventData: EventDataMap[Name]): Promise<void>;
