@@ -54,21 +54,23 @@ function enqueueProducers(instance, eventName, eventData) {
 }
 
 function iterator(instance, eventName) {
-	let finished = false;
+	let isFinished = false;
 	let flush = () => {};
 	let queue = [];
+
 	const producer = {
 		enqueue(item) {
 			queue.push(item);
 			flush();
 		},
 		finish() {
-			finished = true;
+			isFinished = true;
 			flush();
 		}
 	};
 
 	getEventProducers(instance, eventName).add(producer);
+
 	return {
 		async next() {
 			if (!queue) {
@@ -76,27 +78,34 @@ function iterator(instance, eventName) {
 			}
 
 			if (queue.length === 0) {
-				if (finished) {
-					queue = null;
+				if (isFinished) {
+					queue = undefined;
 					return this.next();
 				}
 
 				await new Promise(resolve => {
 					flush = resolve;
 				});
+
 				return this.next();
 			}
 
-			return {done: false, value: await queue.shift()};
+			return {
+				done: false,
+				value: await queue.shift()
+			};
 		},
+
 		async return(value) {
-			queue = null;
+			queue = undefined;
 			getEventProducers(instance, eventName).delete(producer);
 			flush();
+
 			return arguments.length > 0 ?
 				{done: true, value: await value} :
 				{done: true};
 		},
+
 		[Symbol.asyncIterator]() {
 			return this;
 		}
@@ -268,6 +277,7 @@ class Emittery {
 	clearListeners(eventName) {
 		if (typeof eventName === 'string') {
 			getListeners(this, eventName).clear();
+
 			const producers = getEventProducers(this, eventName);
 
 			for (const producer of producers) {

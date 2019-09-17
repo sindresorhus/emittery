@@ -61,6 +61,10 @@ Subscribe to an event only once. It will be unsubscribed after the first event.
 Returns a promise for the event data when `eventName` is emitted.
 
 ```js
+const Emittery = require('emittery');
+
+const emitter = new Emittery();
+
 emitter.once('🦄').then(data => {
 	console.log(data);
 	//=> '🌈'
@@ -76,51 +80,56 @@ Get an async iterator which buffers data each time an event is emitted.
 Call `return()` on the iterator to remove the subscription.
 
 ```js
+const Emittery = require('emittery');
+
+const emitter = new Emittery();
 const iterator = emitter.events('🦄');
 
-emitter.emit('🦄', '🌈1'); // buffered
-emitter.emit('🦄', '🌈2'); // buffered
+emitter.emit('🦄', '🌈1'); // Buffered
+emitter.emit('🦄', '🌈2'); // Buffered
 
 iterator
 	.next()
-	.then( ({value, done}) => {
-	// done is false
-	// value === '🌈1'
+	.then(({value, done}) => {
+		// done === false
+		// value === '🌈1'
 		return iterator.next();
 	})
-	.then( ({value, done}) => {
-		// done is false
+	.then(({value, done}) => {
+		// done === false
 		// value === '🌈2'
-		// revoke subscription
+		// Revoke subscription
 		return iterator.return();
 	})
 	.then(({done}) => {
-		// done is true
+		// done === true
 	});
 ```
 
-In practice you would usually consume the events using the [for await](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for-await...of) statement.
-In that case, to revoke the subscription simply break the loop 
+In practice, you would usually consume the events using the [for await](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for-await...of) statement. In that case, to revoke the subscription simply break the loop.
 
 ```js
-// in an async context 
+const Emittery = require('emittery');
+
+const emitter = new Emittery();
 const iterator = emitter.events('🦄');
 
-emitter.emit('🦄', '🌈1'); // buffered
-emitter.emit('🦄', '🌈2'); // buffered
+emitter.emit('🦄', '🌈1'); // Buffered
+emitter.emit('🦄', '🌈2'); // Buffered
 
-for await (const data of iterator){
-	if(data === '🌈2')
-		break; // revoke the subscription when we see the value '🌈2'
+// In an async context.
+for await (const data of iterator) {
+	if (data === '🌈2') {
+		break; // Revoke the subscription when we see the value '🌈2'.
+	}
 }
-
 ```
 
-#### emit(eventName, [data])
+#### emit(eventName, data?)
 
-Trigger an event asynchronously, optionally with some data. Listeners are called in the order they were added, but execute concurrently.
+Trigger an event asynchronously, optionally with some data. Listeners are called in the order they were added, but executed concurrently.
 
-Returns a promise for when all the event listeners are done. *Done* meaning executed if synchronous or resolved when an async/promise-returning function. You usually wouldn't want to wait for this, but you could for example catch possible errors. If any of the listeners throw/reject, the returned promise will be rejected with the error, but the other listeners will not be affected.
+Returns a promise that resolves when all the event listeners are done. *Done* meaning executed if synchronous or resolved when an async/promise-returning function. You usually wouldn't want to wait for this, but you could for example catch possible errors. If any of the listeners throw/reject, the returned promise will be rejected with the error, but the other listeners will not be affected.
 
 #### emitSerial(eventName, data?)
 
@@ -147,29 +156,32 @@ Get an async iterator which buffers a tuple of an event name and data each time 
 Call `return()` on the iterator to remove the subscription.
 
 ```js
+const Emittery = require('emittery');
+
+const emitter = new Emittery();
 const iterator = emitter.anyEvent();
 
-emitter.emit('🦄', '🌈1'); // buffered
-emitter.emit('🌟', '🌈2'); // buffered
+emitter.emit('🦄', '🌈1'); // Buffered
+emitter.emit('🌟', '🌈2'); // Buffered
 
 iterator.next()
-	.then( ({value, done}) => {
-		// done is false
+	.then(({value, done}) => {
+		// done === false
 		// value is ['🦄', '🌈1']
 		return iterator.next();
 	})
-	.then( ({value, done}) => {
-		// done is false
+	.then(({value, done}) => {
+		// done === false
 		// value is ['🌟', '🌈2']
-		// revoke subscription
+		// Revoke subscription
 		return iterator.return();
 	})
 	.then(({done}) => {
-		// done is true
+		// done === true
 	});
 ```
 
-In the same way as for ``events`` you can subscribe by using the ``for await`` statement
+In the same way as for `events`, you can subscribe by using the `for await` statement
 
 #### clearListeners()
 
@@ -188,7 +200,7 @@ Bind the given `methodNames`, or all `Emittery` methods if `methodNames` is not 
 ```js
 import Emittery = require('emittery');
 
-let object = {};
+const object = {};
 
 new Emittery().bindMethods(object);
 
@@ -203,12 +215,12 @@ The default `Emittery` class does not let you type allowed event names and their
 ```ts
 import Emittery = require('emittery');
 
-const ee = new Emittery.Typed<{value: string}, 'open' | 'close'>();
+const emitter = new Emittery.Typed<{value: string}, 'open' | 'close'>();
 
-ee.emit('open');
-ee.emit('value', 'foo\n');
-ee.emit('value', 1); // TS compilation error
-ee.emit('end'); // TS compilation error
+emitter.emit('open');
+emitter.emit('value', 'foo\n');
+emitter.emit('value', 1); // TS compilation error
+emitter.emit('end'); // TS compilation error
 ```
 
 ### Emittery.mixin(emitteryPropertyName, methodNames?)
@@ -221,7 +233,7 @@ import Emittery = require('emittery');
 @Emittery.mixin('emittery')
 class MyClass {}
 
-let instance = new MyClass();
+const instance = new MyClass();
 
 instance.emit('event');
 ```
