@@ -8,7 +8,7 @@ It's only ~200 bytes minified and gzipped. [I'm not fanatic about keeping the si
 
 It works in Node.js and the browser (using a bundler).
 
-Emitting events asynchronously is important for production code where you want the least amount of synchronous operations.
+Emitting events asynchronously is important for production code where you want the least amount of synchronous operations. Since JavaScript is single-threaded, no other code can run while doing synchronous operations. For Node.js, that means it will block other requests, defeating the strength of the platform, which is scalability through async. In the browser, a synchronous operation could potentially cause lags and block user interaction.
 
 
 ## Install
