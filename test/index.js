@@ -15,8 +15,23 @@ test('on()', async t => {
 	t.deepEqual(calls, [1, 2]);
 });
 
-test('on() - eventName must be a string', t => {
+test('on() - symbol eventName', async t => {
 	const emitter = new Emittery();
+	const eventName = Symbol('eventName');
+	const calls = [];
+	const listener1 = () => calls.push(1);
+	const listener2 = () => calls.push(2);
+	emitter.on(eventName, listener1);
+	emitter.on(eventName, listener2);
+	await emitter.emit(eventName);
+	t.deepEqual(calls, [1, 2]);
+});
+
+test('on() - eventName must be a string or a symbol', t => {
+	const emitter = new Emittery();
+
+	emitter.on('string', () => {});
+	emitter.on(Symbol('symbol'), () => {});
 
 	t.throws(() => {
 		emitter.on(42, () => {});
@@ -161,8 +176,12 @@ test('once()', async t => {
 	t.is(await promise, fixture);
 });
 
-test('once() - eventName must be a string', async t => {
+test('once() - eventName must be a string or a symbol', async t => {
 	const emitter = new Emittery();
+
+	emitter.once('string');
+	emitter.once(Symbol('symbol'));
+
 	await t.throwsAsync(emitter.once(42), TypeError);
 });
 
@@ -204,6 +223,10 @@ test.cb('emit() - multiple events', t => {
 
 test('emit() - eventName must be a string', async t => {
 	const emitter = new Emittery();
+
+	emitter.emit('string');
+	emitter.emit(Symbol('symbol'));
+
 	await t.throwsAsync(emitter.emit(42), TypeError);
 });
 
@@ -304,6 +327,10 @@ test.cb('emitSerial()', t => {
 
 test('emitSerial() - eventName must be a string', async t => {
 	const emitter = new Emittery();
+
+	emitter.emitSerial('string');
+	emitter.emitSerial(Symbol('symbol'));
+
 	await t.throwsAsync(emitter.emitSerial(42), TypeError);
 });
 
@@ -562,8 +589,11 @@ test('listenerCount() - works with empty eventName strings', t => {
 	t.is(emitter.listenerCount(''), 1);
 });
 
-test('listenerCount() - eventName must be undefined if not a string', t => {
+test('listenerCount() - eventName must be undefined if not a string nor a symbol', t => {
 	const emitter = new Emittery();
+
+	emitter.listenerCount('string');
+	emitter.listenerCount(Symbol('symbol'));
 
 	t.throws(() => {
 		emitter.listenerCount(42);
