@@ -196,7 +196,7 @@ declare namespace Emittery {
 	Maps event names to their emitted data type.
 	*/
 	interface Events {
-		[eventName: string]: unknown;
+		[eventName: string]: any;
 	}
 
 	/**
