@@ -2,9 +2,7 @@
 
 > Simple and modern async event emitter
 
-[![Build Status](https://travis-ci.org/sindresorhus/emittery.svg?branch=master)](https://travis-ci.org/sindresorhus/emittery) [![codecov](https://codecov.io/gh/sindresorhus/emittery/branch/master/graph/badge.svg)](https://codecov.io/gh/sindresorhus/emittery)
-
-It's only ~200 bytes minified and gzipped. [I'm not fanatic about keeping the size at this level though.](https://github.com/sindresorhus/emittery/pull/5#issuecomment-347479211)
+[![Build Status](https://travis-ci.org/sindresorhus/emittery.svg?branch=master)](https://travis-ci.org/sindresorhus/emittery) [![codecov](https://codecov.io/gh/sindresorhus/emittery/branch/master/graph/badge.svg)](https://codecov.io/gh/sindresorhus/emittery) [![](https://badgen.net/bundlephobia/minzip/emittery)](https://bundlephobia.com/result?p=emittery)
 
 It works in Node.js and the browser (using a bundler).
 
