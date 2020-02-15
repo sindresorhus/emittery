@@ -152,8 +152,11 @@ test('off()', async t => {
 	t.deepEqual(calls, [1]);
 });
 
-test('off() - eventName must be a string', t => {
+test('off() - eventName must be a string or a symbol', t => {
 	const emitter = new Emittery();
+
+	emitter.on('string', () => {});
+	emitter.on(Symbol('symbol'), () => {});
 
 	t.throws(() => {
 		emitter.off(42);
@@ -221,7 +224,7 @@ test.cb('emit() - multiple events', t => {
 	emitter.emit('🦄');
 });
 
-test('emit() - eventName must be a string', async t => {
+test('emit() - eventName must be a string or a symbol', async t => {
 	const emitter = new Emittery();
 
 	emitter.emit('string');
@@ -325,7 +328,7 @@ test.cb('emitSerial()', t => {
 	emitter.emitSerial('🦄', 'e');
 });
 
-test('emitSerial() - eventName must be a string', async t => {
+test('emitSerial() - eventName must be a string or a symbol', async t => {
 	const emitter = new Emittery();
 
 	emitter.emitSerial('string');
@@ -594,6 +597,7 @@ test('listenerCount() - eventName must be undefined if not a string nor a symbol
 
 	emitter.listenerCount('string');
 	emitter.listenerCount(Symbol('symbol'));
+	emitter.listenerCount();
 
 	t.throws(() => {
 		emitter.listenerCount(42);
