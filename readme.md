@@ -23,16 +23,28 @@ const Emittery = require('emittery');
 
 const emitter = new Emittery();
 
+const myEvent = Symbol('my symbol event');
+
 emitter.on('🦄', data => {
-	console.log(data);
-	// '🌈'
+	console.log(data); // '🌈'
+});
+
+emitter.on(myEvent, data => {
+	console.log(data); // '🦋'
 });
 
 emitter.emit('🦄', '🌈');
+emitter.emit(myEvent, '🦋')
+
 ```
 
 
 ## API
+
+### eventName
+
+Emittery accepts strings and symbols as event names.
+Symbol event names can be used to avoid name collisions when your classes are extended, especially for internal events.
 
 ### emitter = new Emittery()
 
