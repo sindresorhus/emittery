@@ -23,18 +23,18 @@ const Emittery = require('emittery');
 
 const emitter = new Emittery();
 
-const myEvent = Symbol('my symbol event');
-
 emitter.on('🦄', data => {
-	console.log(data); // '🌈'
+	console.log(data);
 });
 
-emitter.on(myEvent, data => {
-	console.log(data); // '🦋'
+const myUnicorn = Symbol('🦄');
+
+emitter.on(myUnicorn, data => {
+	console.log(`Unicorns love ${data}`);
 });
 
-emitter.emit('🦄', '🌈');
-emitter.emit(myEvent, '🦋')
+emitter.emit('🦄', '🌈'); // Will trigger printing '🌈'
+emitter.emit(myUnicorn, '🦋');  // Will trigger printing 'Unicorns love 🦋'
 
 ```
 
