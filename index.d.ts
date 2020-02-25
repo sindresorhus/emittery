@@ -1,3 +1,5 @@
+type EventName = string | symbol;
+
 declare class Emittery {
 	/**
 	In TypeScript, it returns a decorator which mixins `Emittery` as property `emitteryPropertyName` and `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the target class.
@@ -23,7 +25,7 @@ declare class Emittery {
 
 	@returns An unsubscribe method.
 	*/
-	on(eventName: string, listener: (eventData?: unknown) => void): Emittery.UnsubscribeFn;
+	on(eventName: EventName, listener: (eventData?: unknown) => void): Emittery.UnsubscribeFn;
 
 	/**
 	Get an async iterator which buffers data each time an event is emitted.
@@ -78,12 +80,12 @@ declare class Emittery {
 	}
 	```
 	*/
-	events(eventName:string): AsyncIterableIterator<unknown>
+	events(eventName:EventName): AsyncIterableIterator<unknown>
 
 	/**
 	Remove an event subscription.
 	*/
-	off(eventName: string, listener: (eventData?: unknown) => void): void;
+	off(eventName: EventName, listener: (eventData?: unknown) => void): void;
 
 	/**
 	Subscribe to an event only once. It will be unsubscribed after the first
@@ -91,14 +93,14 @@ declare class Emittery {
 
 	@returns The event data when `eventName` is emitted.
 	*/
-	once(eventName: string): Promise<unknown>;
+	once(eventName: EventName): Promise<unknown>;
 
 	/**
 	Trigger an event asynchronously, optionally with some data. Listeners are called in the order they were added, but executed concurrently.
 
 	@returns A promise that resolves when all the event listeners are done. *Done* meaning executed if synchronous or resolved when an async/promise-returning function. You usually wouldn't want to wait for this, but you could for example catch possible errors. If any of the listeners throw/reject, the returned promise will be rejected with the error, but the other listeners will not be affected.
 	*/
-	emit(eventName: string, eventData?: unknown): Promise<void>;
+	emit(eventName: EventName, eventData?: unknown): Promise<void>;
 
 	/**
 	Same as `emit()`, but it waits for each listener to resolve before triggering the next one. This can be useful if your events depend on each other. Although ideally they should not. Prefer `emit()` whenever possible.
@@ -107,14 +109,14 @@ declare class Emittery {
 
 	@returns A promise that resolves when all the event listeners are done.
 	*/
-	emitSerial(eventName: string, eventData?: unknown): Promise<void>;
+	emitSerial(eventName: EventName, eventData?: unknown): Promise<void>;
 
 	/**
 	Subscribe to be notified about any event.
 
 	@returns A method to unsubscribe.
 	*/
-	onAny(listener: (eventName: string, eventData?: unknown) => unknown): Emittery.UnsubscribeFn;
+	onAny(listener: (eventName: EventName, eventData?: unknown) => unknown): Emittery.UnsubscribeFn;
 
 	/**
 	Get an async iterator which buffers a tuple of an event name and data each time an event is emitted.
@@ -155,19 +157,19 @@ declare class Emittery {
 	/**
 	Remove an `onAny` subscription.
 	*/
-	offAny(listener: (eventName: string, eventData?: unknown) => void): void;
+	offAny(listener: (eventName: EventName, eventData?: unknown) => void): void;
 
 	/**
 	Clear all event listeners on the instance.
 
 	If `eventName` is given, only the listeners for that event are cleared.
 	*/
-	clearListeners(eventName?: string): void;
+	clearListeners(eventName?: EventName): void;
 
 	/**
 	The number of listeners for the `eventName` or all events if not specified.
 	*/
-	listenerCount(eventName?: string): number;
+	listenerCount(eventName?: EventName): number;
 
 	/**
 	Bind the given `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the `target` object.
@@ -191,12 +193,14 @@ declare namespace Emittery {
 	Removes an event subscription.
 	*/
 	type UnsubscribeFn = () => void;
+	type EventNameFromDataMap<EventDataMap> = Extract<keyof EventDataMap, EventName>;
 
 	/**
 	Maps event names to their emitted data type.
 	*/
 	interface Events {
-		[eventName: string]: any;
+		// Blocked by https://github.com/microsoft/TypeScript/issues/1863, should be
+		// `[eventName: EventName]: unknown;`
 	}
 
 	/**
@@ -216,27 +220,27 @@ declare namespace Emittery {
 	emitter.emit('end'); // TS compilation error
 	```
 	*/
-	class Typed<EventDataMap extends Events, EmptyEvents extends string = never> extends Emittery {
-		on<Name extends Extract<keyof EventDataMap, string>>(eventName: Name, listener: (eventData: EventDataMap[Name]) => void): Emittery.UnsubscribeFn;
+	class Typed<EventDataMap extends Events, EmptyEvents extends EventName = never> extends Emittery {
+		on<Name extends EventNameFromDataMap<EventDataMap>>(eventName: Name, listener: (eventData: EventDataMap[Name]) => void): Emittery.UnsubscribeFn;
 		on<Name extends EmptyEvents>(eventName: Name, listener: () => void): Emittery.UnsubscribeFn;
 
-		events<Name extends Extract<keyof EventDataMap, string>>(eventName: Name): AsyncIterableIterator<EventDataMap[Name]>;
+		events<Name extends EventNameFromDataMap<EventDataMap>>(eventName: Name): AsyncIterableIterator<EventDataMap[Name]>;
 
-		once<Name extends Extract<keyof EventDataMap, string>>(eventName: Name): Promise<EventDataMap[Name]>;
+		once<Name extends EventNameFromDataMap<EventDataMap>>(eventName: Name): Promise<EventDataMap[Name]>;
 		once<Name extends EmptyEvents>(eventName: Name): Promise<void>;
 
-		off<Name extends Extract<keyof EventDataMap, string>>(eventName: Name, listener: (eventData: EventDataMap[Name]) => void): void;
+		off<Name extends EventNameFromDataMap<EventDataMap>>(eventName: Name, listener: (eventData: EventDataMap[Name]) => void): void;
 		off<Name extends EmptyEvents>(eventName: Name, listener: () => void): void;
 
-		onAny(listener: (eventName: Extract<keyof EventDataMap, string> | EmptyEvents, eventData?: EventDataMap[Extract<keyof EventDataMap, string>]) => void): Emittery.UnsubscribeFn;
-		anyEvent(): AsyncIterableIterator<[Extract<keyof EventDataMap, string>, EventDataMap[Extract<keyof EventDataMap, string>]]>;
+		onAny(listener: (eventName: EventNameFromDataMap<EventDataMap> | EmptyEvents, eventData?: EventDataMap[EventNameFromDataMap<EventDataMap>]) => void): Emittery.UnsubscribeFn;
+		anyEvent(): AsyncIterableIterator<[EventNameFromDataMap<EventDataMap>, EventDataMap[EventNameFromDataMap<EventDataMap>]]>;
 
-		offAny(listener: (eventName: Extract<keyof EventDataMap, string> | EmptyEvents, eventData?: EventDataMap[Extract<keyof EventDataMap, string>]) => void): void;
+		offAny(listener: (eventName: EventNameFromDataMap<EventDataMap> | EmptyEvents, eventData?: EventDataMap[EventNameFromDataMap<EventDataMap>]) => void): void;
 
-		emit<Name extends Extract<keyof EventDataMap, string>>(eventName: Name, eventData: EventDataMap[Name]): Promise<void>;
+		emit<Name extends EventNameFromDataMap<EventDataMap>>(eventName: Name, eventData: EventDataMap[Name]): Promise<void>;
 		emit<Name extends EmptyEvents>(eventName: Name): Promise<void>;
 
-		emitSerial<Name extends Extract<keyof EventDataMap, string>>(eventName: Name, eventData: EventDataMap[Name]): Promise<void>;
+		emitSerial<Name extends EventNameFromDataMap<EventDataMap>>(eventName: Name, eventData: EventDataMap[Name]): Promise<void>;
 		emitSerial<Name extends EmptyEvents>(eventName: Name): Promise<void>;
 	}
 }

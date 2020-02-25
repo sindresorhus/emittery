@@ -25,14 +25,26 @@ const emitter = new Emittery();
 
 emitter.on('🦄', data => {
 	console.log(data);
-	// '🌈'
 });
 
-emitter.emit('🦄', '🌈');
+const myUnicorn = Symbol('🦄');
+
+emitter.on(myUnicorn, data => {
+	console.log(`Unicorns love ${data}`);
+});
+
+emitter.emit('🦄', '🌈'); // Will trigger printing '🌈'
+emitter.emit(myUnicorn, '🦋');  // Will trigger printing 'Unicorns love 🦋'
+
 ```
 
 
 ## API
+
+### eventName
+
+Emittery accepts strings and symbols as event names.
+Symbol event names can be used to avoid name collisions when your classes are extended, especially for internal events.
 
 ### emitter = new Emittery()
 

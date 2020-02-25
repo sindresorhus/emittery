@@ -7,8 +7,8 @@ const anyProducer = Symbol('anyProducer');
 const resolvedPromise = Promise.resolve();
 
 function assertEventName(eventName) {
-	if (typeof eventName !== 'string') {
-		throw new TypeError('eventName must be a string');
+	if (typeof eventName !== 'string' && typeof eventName !== 'symbol') {
+		throw new TypeError('eventName must be a string or a symbol');
 	}
 }
 
