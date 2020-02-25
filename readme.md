@@ -56,6 +56,13 @@ Returns an unsubscribe method.
 
 Using the same listener multiple times for the same event will result in only one method call per emitted event.
 
+##### Custom subscribable events
+
+Emittery exports some symbols which represent custom events that can be passed to `Emitter.on` and similar functions.
+
+- `Emittery.listenerAdded` - Fires when an event listener was added. An object with `eventName` and `listener` is provided as data where possible.
+- `Emittery.listenerRemoved` - Fires when an event listener was removed. An object with `eventName` and `listener` is provided as data where possible.
+
 ##### listener(data)
 
 #### off(eventName, listener)

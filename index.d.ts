@@ -18,6 +18,12 @@ declare class Emittery {
 	*/
 	static mixin(emitteryPropertyName: string, methodNames?: readonly string[]): Function;
 
+	/** Fires when an event listener was added. An object with `eventName` and `listener` is provided as data where possible. */
+	static listenerAdded: symbol
+
+	/** Fires when an event listener was removed. An object with `eventName` and `listener` is provided as data where possible. */
+	static listenerRemoved: symbol
+
 	/**
 	Subscribe to an event.
 
@@ -80,7 +86,7 @@ declare class Emittery {
 	}
 	```
 	*/
-	events(eventName:EventName): AsyncIterableIterator<unknown>
+	events(eventName: EventName): AsyncIterableIterator<unknown>
 
 	/**
 	Remove an event subscription.
