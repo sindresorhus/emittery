@@ -70,11 +70,11 @@ test('on() - listenerAdded offAny', t => {
 test('on() - eventName must be a string or a symbol', t => {
 	const emitter = new Emittery();
 
-	emitter.on('string', () => { });
-	emitter.on(Symbol('symbol'), () => { });
+	emitter.on('string', () => {});
+	emitter.on(Symbol('symbol'), () => {});
 
 	t.throws(() => {
-		emitter.on(42, () => { });
+		emitter.on(42, () => {});
 	}, TypeError);
 });
 
@@ -195,8 +195,8 @@ test('off()', async t => {
 test('off() - eventName must be a string or a symbol', t => {
 	const emitter = new Emittery();
 
-	emitter.on('string', () => { });
-	emitter.on(Symbol('symbol'), () => { });
+	emitter.on('string', () => {});
+	emitter.on(Symbol('symbol'), () => {});
 
 	t.throws(() => {
 		emitter.off(42);
@@ -616,11 +616,11 @@ test('clearListeners() - with event name - clears iterators for that event', asy
 
 test('listenerCount()', t => {
 	const emitter = new Emittery();
-	emitter.on('🦄', () => { });
-	emitter.on('🌈', () => { });
-	emitter.on('🦄', () => { });
-	emitter.onAny(() => { });
-	emitter.onAny(() => { });
+	emitter.on('🦄', () => {});
+	emitter.on('🌈', () => {});
+	emitter.on('🦄', () => {});
+	emitter.onAny(() => {});
+	emitter.onAny(() => {});
 	t.is(emitter.listenerCount('🦄'), 4);
 	t.is(emitter.listenerCount('🌈'), 3);
 	t.is(emitter.listenerCount(), 5);
@@ -628,7 +628,7 @@ test('listenerCount()', t => {
 
 test('listenerCount() - works with empty eventName strings', t => {
 	const emitter = new Emittery();
-	emitter.on('', () => { });
+	emitter.on('', () => {});
 	t.is(emitter.listenerCount(''), 1);
 });
 
@@ -745,7 +745,7 @@ test('mixin()', t => {
 });
 
 test('mixin() - methodNames must be array of strings or undefined', t => {
-	class TestClass { }
+	class TestClass {}
 
 	t.throws(() => Emittery.mixin('emitter', null)(TestClass));
 	t.throws(() => Emittery.mixin('emitter', 'string')(TestClass));
@@ -758,7 +758,7 @@ test('mixin() - methodNames must be array of strings or undefined', t => {
 test('mixin() - must mixin all methods if no array supplied', t => {
 	const methodsExpected = ['on', 'off', 'once', 'events', 'emit', 'emitSerial', 'onAny', 'anyEvent', 'offAny', 'clearListeners', 'listenerCount', 'bindMethods'];
 
-	class TestClass { }
+	class TestClass {}
 
 	const TestClassWithMixin = Emittery.mixin('emitter')(TestClass);
 
@@ -766,7 +766,7 @@ test('mixin() - must mixin all methods if no array supplied', t => {
 });
 
 test('mixin() - methodNames must only include Emittery methods', t => {
-	class TestClass { }
+	class TestClass {}
 
 	t.throws(() => Emittery.mixin('emitter', ['nonexistent'])(TestClass));
 });
