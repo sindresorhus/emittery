@@ -27,42 +27,54 @@ test('on() - symbol eventName', async t => {
 	t.deepEqual(calls, [1, 2]);
 });
 
-test('on() - listenerAdded', t => {
+test.cb('on() - listenerAdded', t => {
 	const emitter = new Emittery();
 	const addListener = () => 1;
 	emitter.on(Emittery.listenerAdded, ({eventName, listener}) => {
 		t.is(listener, addListener);
 		t.is(eventName, 'abc');
+		t.end();
 	});
 	emitter.on('abc', addListener);
 });
 
-test('on() - listenerRemoved', t => {
+test.cb('on() - listenerRemoved', t => {
 	const emitter = new Emittery();
 	const addListener = () => 1;
 	emitter.on('abc', addListener);
 	emitter.on(Emittery.listenerRemoved, ({eventName, listener}) => {
 		t.is(listener, addListener);
 		t.is(eventName, 'abc');
+		t.end();
 	});
 	emitter.off('abc', addListener);
 });
 
-test('on() - listenerAdded onAny', t => {
+test.cb('on() - listenerAdded onAny', t => {
 	const emitter = new Emittery();
 	const addListener = () => 1;
 	emitter.on(Emittery.listenerAdded, ({listener}) => {
 		t.is(listener, addListener);
+		t.end();
 	});
 	emitter.onAny(addListener);
 });
 
-test('on() - listenerAdded offAny', t => {
+test('off() - listenerAdded', t => {
+	const emitter = new Emittery();
+	const off = emitter.on(Emittery.listenerAdded, () => t.fail());
+	off();
+	emitter.emit('a');
+	t.pass();
+});
+
+test.cb('on() - listenerAdded offAny', t => {
 	const emitter = new Emittery();
 	const addListener = () => 1;
 	emitter.onAny(addListener);
 	emitter.on(Emittery.listenerRemoved, ({listener}) => {
 		t.is(listener, addListener);
+		t.end();
 	});
 	emitter.offAny(addListener);
 });
