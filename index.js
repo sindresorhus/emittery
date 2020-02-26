@@ -137,7 +137,7 @@ function defaultMethodNamesOrAssert(methodNames) {
 	return methodNames;
 }
 
-const isNotListenerSymbol = symbol => !(symbol === listenerAdded || symbol === listenerRemoved);
+const isListenerSymbol = symbol => symbol === listenerAdded || symbol === listenerRemoved;
 
 class Emittery {
 	static mixin(emitteryPropertyName, methodNames) {
@@ -191,7 +191,7 @@ class Emittery {
 		assertEventName(eventName);
 		assertListener(listener);
 		getListeners(this, eventName).add(listener);
-		if (isNotListenerSymbol(eventName)) {
+		if (!isListenerSymbol(eventName)) {
 			this.emit(listenerAdded, {eventName, listener});
 		}
 
@@ -201,7 +201,7 @@ class Emittery {
 	off(eventName, listener) {
 		assertEventName(eventName);
 		assertListener(listener);
-		if (isNotListenerSymbol(eventName)) {
+		if (!isListenerSymbol(eventName)) {
 			this.emit(listenerRemoved, {eventName, listener});
 		}
 
@@ -231,7 +231,7 @@ class Emittery {
 		const listeners = getListeners(this, eventName);
 		const anyListeners = anyMap.get(this);
 		const staticListeners = [...listeners];
-		const staticAnyListeners = [...anyListeners];
+		const staticAnyListeners = isListenerSymbol(eventName) ? [] : [...anyListeners];
 
 		await resolvedPromise;
 		return Promise.all([
