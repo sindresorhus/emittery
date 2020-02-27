@@ -63,6 +63,8 @@ Emittery exports some symbols which represent custom events that can be passed t
 - `Emittery.listenerAdded` - Fires when an event listener was added. An object with `eventName` and `listener` is provided as data where possible.
 - `Emittery.listenerRemoved` - Fires when an event listener was removed. An object with `eventName` and `listener` is provided as data where possible.
 
+Only events that are not of this type are able to trigger these events.
+
 ##### listener(data)
 
 #### off(eventName, listener)
