@@ -60,8 +60,8 @@ Using the same listener multiple times for the same event will result in only on
 
 Emittery exports some symbols which represent custom events that can be passed to `Emitter.on` and similar functions.
 
-- `Emittery.listenerAdded` - Fires when an event listener was added. An object with `eventName` and `listener` is provided as data where possible.
-- `Emittery.listenerRemoved` - Fires when an event listener was removed. An object with `eventName` and `listener` is provided as data where possible.
+- `Emittery.listenerAdded` - Fires when an event listener was added. An object with `eventName` and `listener` is provided as data where possible. An object with `listener` and `eventName` (if `on` or `off` was used) is provided.
+- `Emittery.listenerRemoved` - Fires when an event listener was removed. An object with `listener` and `eventName` (if `on` or `off` was used) is provided.
 
 Only events that are not of this type are able to trigger these events.
 
