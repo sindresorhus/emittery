@@ -18,10 +18,18 @@ declare class Emittery {
 	*/
 	static mixin(emitteryPropertyName: string, methodNames?: readonly string[]): Function;
 
-	/** Fires when an event listener was added. An object with `listener` and `eventName` (if `on` or `off` was used) is provided. */
+	/**
+	Fires when an event listener was added.
+	
+	An object with `listener` and `eventName` (if `on` or `off` was used) is provided.
+	*/
 	static readonly listenerAdded: unique symbol;
 
-	/** Fires when an event listener was removed. An object with `listener` and `eventName` (if `on` or `off` was used) is provided. */
+	/**
+	Fires when an event listener was removed.
+	
+	An object with `listener` and `eventName` (if `on` or `off` was used) is provided.
+	*/
 	static readonly listenerRemoved: unique symbol;
 
 	/**
