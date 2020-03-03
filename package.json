@@ -4,13 +4,14 @@
 	"description": "Simple and modern async event emitter",
 	"license": "MIT",
 	"repository": "sindresorhus/emittery",
+	"funding": "https://github.com/sindresorhus/emittery?sponsor=1",
 	"author": {
 		"name": "Sindre Sorhus",
 		"email": "sindresorhus@gmail.com",
-		"url": "sindresorhus.com"
+		"url": "https://sindresorhus.com"
 	},
 	"engines": {
-		"node": ">=8"
+		"node": ">=10"
 	},
 	"scripts": {
 		"test": "xo && nyc ava && tsd"
@@ -47,14 +48,14 @@
 		"typed"
 	],
 	"devDependencies": {
-		"@types/node": "^12.7.5",
+		"@types/node": "^13.7.5",
 		"ava": "^2.4.0",
 		"codecov": "^3.1.0",
 		"delay": "^4.3.0",
-		"nyc": "^14.1.1",
-		"p-event": "^4.1.0",
-		"tsd": "^0.7.4",
-		"xo": "^0.24.0"
+		"nyc": "^15.0.0",
+    "p-event": "^4.1.0",
+		"tsd": "^0.11.0",
+		"xo": "^0.25.4"
 	},
 	"nyc": {
 		"reporter": [

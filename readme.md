@@ -8,13 +8,11 @@ It works in Node.js and the browser (using a bundler).
 
 Emitting events asynchronously is important for production code where you want the least amount of synchronous operations. Since JavaScript is single-threaded, no other code can run while doing synchronous operations. For Node.js, that means it will block other requests, defeating the strength of the platform, which is scalability through async. In the browser, a synchronous operation could potentially cause lags and block user interaction.
 
-
 ## Install
 
 ```
 $ npm install emittery
 ```
-
 
 ## Usage
 
@@ -35,15 +33,14 @@ emitter.on(myUnicorn, data => {
 
 emitter.emit('🦄', '🌈'); // Will trigger printing '🌈'
 emitter.emit(myUnicorn, '🦋');  // Will trigger printing 'Unicorns love 🦋'
-
 ```
-
 
 ## API
 
 ### eventName
 
 Emittery accepts strings and symbols as event names.
+
 Symbol event names can be used to avoid name collisions when your classes are extended, especially for internal events.
 
 ### emitter = new Emittery()
@@ -249,7 +246,6 @@ new Emittery().bindMethods(object);
 object.emit('event');
 ```
 
-
 ## TypeScript
 
 The default `Emittery` class does not let you type allowed event names and their associated data. However, you can use `Emittery.Typed` with generics:
@@ -280,13 +276,11 @@ const instance = new MyClass();
 instance.emit('event');
 ```
 
-
 ## Scheduling details
 
 Listeners are not invoked for events emitted *before* the listener was added. Removing a listener will prevent that listener from being invoked, even if events are in the process of being (asynchronously!) emitted. This also applies to `.clearListeners()`, which removes all listeners. Listeners will be called in the order they were added. So-called *any* listeners are called *after* event-specific listeners.
 
 Note that when using `.emitSerial()`, a slow listener will delay invocation of subsequent listeners. It's possible for newer events to overtake older ones.
-
 
 ## FAQ
 
@@ -326,7 +320,6 @@ emitter.on('🦄', ([foo, bar]) => {
 
 emitter.emit('🦄', [foo, bar]);
 ```
-
 
 ## Related
 

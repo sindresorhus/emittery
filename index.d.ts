@@ -1,3 +1,8 @@
+/**
+Emittery accepts strings and symbols as event names.
+
+Symbol event names can be used to avoid name collisions when your classes are extended, especially for internal events.
+*/
 type EventName = string | symbol;
 
 declare class Emittery {
