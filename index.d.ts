@@ -20,15 +20,55 @@ declare class Emittery {
 
 	/**
 	Fires when an event listener was added.
-	
-	An object with `listener` and `eventName` (if `on` or `off` was used) is provided.
+
+	An object with `listener` and `eventName` (if `on` or `off` was used) is provided as event data.
+
+	@example
+	```
+	const Emittery = require('emittery');
+
+	const emitter = new Emittery();
+
+	emitter.on(Emittery.listenerAdded, ({listener, eventName}) => {
+		console.log(listener);
+		//=> (data) => { }
+
+		console.log(eventName);
+		//=> '🦄'
+	});
+
+	emitter.on('🦄', (data) => {
+		// Handle data
+	});
+	```
 	*/
 	static readonly listenerAdded: unique symbol;
 
 	/**
 	Fires when an event listener was removed.
-	
-	An object with `listener` and `eventName` (if `on` or `off` was used) is provided.
+
+	An object with `listener` and `eventName` (if `on` or `off` was used) is provided as event data.
+
+	@example
+	```
+	const Emittery = require('emittery');
+
+	const emitter = new Emittery();
+
+	const off = emitter.on('🦄', (data) => {
+		// Handle data
+	});
+
+	emitter.on(Emittery.listenerRemoved, ({listener, eventName}) => {
+		console.log(listener);
+		//=> (data) => { }
+
+		console.log(eventName);
+		//=> '🦄'
+	});
+
+	off();
+	```
 	*/
 	static readonly listenerRemoved: unique symbol;
 
@@ -94,7 +134,7 @@ declare class Emittery {
 	}
 	```
 	*/
-	events(eventName:EventName): AsyncIterableIterator<unknown>
+	events(eventName: EventName): AsyncIterableIterator<unknown>
 
 	/**
 	Remove an event subscription.

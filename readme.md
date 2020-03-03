@@ -63,6 +63,24 @@ Emittery exports some symbols which represent custom events that can be passed t
 - `Emittery.listenerAdded` - Fires when an event listener was added.
 - `Emittery.listenerRemoved` - Fires when an event listener was removed.
 
+```js
+const Emittery = require('emittery');
+
+const emitter = new Emittery();
+
+emitter.on(Emittery.listenerAdded, ({listener, eventName}) => {
+	console.log(listener);
+	//=> (data) => { }
+
+	console.log(eventName);
+	//=> '🦄'
+});
+
+emitter.on('🦄', (data) => {
+	// Handle data
+});
+```
+
 ###### Listener data
 
 - `listener` - The listener that was added.
