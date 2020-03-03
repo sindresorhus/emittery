@@ -1,5 +1,6 @@
 import test from 'ava';
 import delay from 'delay';
+import pEvent from 'p-event';
 import Emittery from '..';
 
 const shouldSkip = process.version.startsWith('v8.');
@@ -27,37 +28,38 @@ test('on() - symbol eventName', async t => {
 	t.deepEqual(calls, [1, 2]);
 });
 
-test.cb('on() - listenerAdded', t => {
+test('on() - listenerAdded', async t => {
 	const emitter = new Emittery();
 	const addListener = () => 1;
-	emitter.on(Emittery.listenerAdded, ({eventName, listener}) => {
-		t.is(listener, addListener);
-		t.is(eventName, 'abc');
-		t.end();
+	setImmediate(() => emitter.on('abc', addListener));
+	const {eventName, listener} = await pEvent(emitter, Emittery.listenerAdded, {
+		rejectionEvents: []
 	});
-	emitter.on('abc', addListener);
+	t.is(listener, addListener);
+	t.is(eventName, 'abc');
 });
 
-test.cb('on() - listenerRemoved', t => {
+test('on() - listenerRemoved', async t => {
 	const emitter = new Emittery();
 	const addListener = () => 1;
 	emitter.on('abc', addListener);
-	emitter.on(Emittery.listenerRemoved, ({eventName, listener}) => {
-		t.is(listener, addListener);
-		t.is(eventName, 'abc');
-		t.end();
+	setImmediate(() => emitter.off('abc', addListener));
+	const {eventName, listener} = await pEvent(emitter, Emittery.listenerRemoved, {
+		rejectionEvents: []
 	});
-	emitter.off('abc', addListener);
+	t.is(listener, addListener);
+	t.is(eventName, 'abc');
 });
 
-test.cb('on() - listenerAdded onAny', t => {
+test('on() - listenerAdded onAny', async t => {
 	const emitter = new Emittery();
 	const addListener = () => 1;
-	emitter.on(Emittery.listenerAdded, ({listener}) => {
-		t.is(listener, addListener);
-		t.end();
+	setImmediate(() => emitter.onAny(addListener));
+	const {eventName, listener} = await pEvent(emitter, Emittery.listenerAdded, {
+		rejectionEvents: []
 	});
-	emitter.onAny(addListener);
+	t.is(listener, addListener);
+	t.is(eventName, undefined);
 });
 
 test('off() - listenerAdded', t => {
@@ -68,25 +70,24 @@ test('off() - listenerAdded', t => {
 	t.pass();
 });
 
-test.cb('on() - listenerAdded offAny', t => {
+test('on() - listenerAdded offAny', async t => {
 	const emitter = new Emittery();
 	const addListener = () => 1;
 	emitter.onAny(addListener);
-	emitter.on(Emittery.listenerRemoved, ({listener}) => {
-		t.is(listener, addListener);
-		t.end();
-	});
-	emitter.offAny(addListener);
+	setImmediate(() => emitter.offAny(addListener));
+	const {listener, eventName} = await pEvent(emitter, Emittery.listenerRemoved);
+	t.is(listener, addListener);
+	t.is(eventName, undefined);
 });
 
 test('on() - eventName must be a string or a symbol', t => {
 	const emitter = new Emittery();
 
-	emitter.on('string', () => {});
-	emitter.on(Symbol('symbol'), () => {});
+	emitter.on('string', () => { });
+	emitter.on(Symbol('symbol'), () => { });
 
 	t.throws(() => {
-		emitter.on(42, () => {});
+		emitter.on(42, () => { });
 	}, TypeError);
 });
 
@@ -207,8 +208,8 @@ test('off()', async t => {
 test('off() - eventName must be a string or a symbol', t => {
 	const emitter = new Emittery();
 
-	emitter.on('string', () => {});
-	emitter.on(Symbol('symbol'), () => {});
+	emitter.on('string', () => { });
+	emitter.on(Symbol('symbol'), () => { });
 
 	t.throws(() => {
 		emitter.off(42);
@@ -628,11 +629,11 @@ test('clearListeners() - with event name - clears iterators for that event', asy
 
 test('listenerCount()', t => {
 	const emitter = new Emittery();
-	emitter.on('🦄', () => {});
-	emitter.on('🌈', () => {});
-	emitter.on('🦄', () => {});
-	emitter.onAny(() => {});
-	emitter.onAny(() => {});
+	emitter.on('🦄', () => { });
+	emitter.on('🌈', () => { });
+	emitter.on('🦄', () => { });
+	emitter.onAny(() => { });
+	emitter.onAny(() => { });
 	t.is(emitter.listenerCount('🦄'), 4);
 	t.is(emitter.listenerCount('🌈'), 3);
 	t.is(emitter.listenerCount(), 5);
@@ -640,7 +641,7 @@ test('listenerCount()', t => {
 
 test('listenerCount() - works with empty eventName strings', t => {
 	const emitter = new Emittery();
-	emitter.on('', () => {});
+	emitter.on('', () => { });
 	t.is(emitter.listenerCount(''), 1);
 });
 
@@ -757,7 +758,7 @@ test('mixin()', t => {
 });
 
 test('mixin() - methodNames must be array of strings or undefined', t => {
-	class TestClass {}
+	class TestClass { }
 
 	t.throws(() => Emittery.mixin('emitter', null)(TestClass));
 	t.throws(() => Emittery.mixin('emitter', 'string')(TestClass));
@@ -770,7 +771,7 @@ test('mixin() - methodNames must be array of strings or undefined', t => {
 test('mixin() - must mixin all methods if no array supplied', t => {
 	const methodsExpected = ['on', 'off', 'once', 'events', 'emit', 'emitSerial', 'onAny', 'anyEvent', 'offAny', 'clearListeners', 'listenerCount', 'bindMethods'];
 
-	class TestClass {}
+	class TestClass { }
 
 	const TestClassWithMixin = Emittery.mixin('emitter')(TestClass);
 
@@ -778,7 +779,7 @@ test('mixin() - must mixin all methods if no array supplied', t => {
 });
 
 test('mixin() - methodNames must only include Emittery methods', t => {
-	class TestClass {}
+	class TestClass { }
 
 	t.throws(() => Emittery.mixin('emitter', ['nonexistent'])(TestClass));
 });
