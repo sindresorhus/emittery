@@ -85,7 +85,7 @@ declare class Emittery {
 	}
 	```
 	*/
-	events(eventName:EventName): AsyncIterableIterator<unknown>
+	events(eventName: EventName): AsyncIterableIterator<unknown>
 
 	/**
 	Remove an event subscription.
