@@ -7,7 +7,10 @@ type EventName = string | symbol;
 
 /** The data provided as `eventData` when listening for `Emittery.listenerAdded` or `Emittery.listenerRemoved`. */
 interface EventListenerData {
+	/** The listener that was added. */
 	listener: (eventData?: unknown) => void;
+
+	/** The name of the event that was added if `on` or `off` was used instead of `onAny` or `offAny`. */
 	eventName?: string;
 }
 
