@@ -191,6 +191,7 @@ class Emittery {
 		assertEventName(eventName);
 		assertListener(listener);
 		getListeners(this, eventName).add(listener);
+
 		if (!isListenerSymbol(eventName)) {
 			this.emit(listenerAdded, {eventName, listener});
 		}
@@ -201,6 +202,7 @@ class Emittery {
 	off(eventName, listener) {
 		assertEventName(eventName);
 		assertListener(listener);
+
 		if (!isListenerSymbol(eventName)) {
 			this.emit(listenerRemoved, {eventName, listener});
 		}
