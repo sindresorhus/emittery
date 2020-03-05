@@ -67,13 +67,13 @@ const emitter = new Emittery();
 
 emitter.on(Emittery.listenerAdded, ({listener, eventName}) => {
 	console.log(listener);
-	//=> (data) => { }
+	//=> data => {}
 
 	console.log(eventName);
 	//=> '🦄'
 });
 
-emitter.on('🦄', (data) => {
+emitter.on('🦄', data => {
 	// Handle data
 });
 ```
