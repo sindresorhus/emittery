@@ -5,6 +5,12 @@ Symbol event names can be used to avoid name collisions when your classes are ex
 */
 type EventName = string | symbol;
 
+/** The data provided as `eventData` when listening for `Emittery.listenerAdded` or `Emittery.listenerRemoved`. */
+interface EventListenerData {
+	listener: (eventData?: unknown) => void;
+	eventName?: string;
+}
+
 declare class Emittery {
 	/**
 	In TypeScript, it returns a decorator which mixins `Emittery` as property `emitteryPropertyName` and `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the target class.
@@ -85,6 +91,7 @@ declare class Emittery {
 	@returns An unsubscribe method.
 	*/
 	on(eventName: EventName, listener: (eventData?: unknown) => void): Emittery.UnsubscribeFn;
+	on(eventName: typeof Emittery.listenerAdded | typeof Emittery.listenerRemoved, listener: (eventData: EventListenerData) => void): Emittery.UnsubscribeFn
 
 	/**
 	Get an async iterator which buffers data each time an event is emitted.
@@ -153,6 +160,7 @@ declare class Emittery {
 	@returns The event data when `eventName` is emitted.
 	*/
 	once(eventName: EventName): Promise<unknown>;
+	once(eventName: typeof Emittery.listenerAdded | typeof Emittery.listenerRemoved): Promise<EventListenerData>
 
 	/**
 	Trigger an event asynchronously, optionally with some data. Listeners are called in the order they were added, but executed concurrently.
