@@ -30,19 +30,19 @@ declare class Emittery {
 
 	@example
 	```
-	const Emittery = require('emittery');
+	import Emittery = require('emittery');
 
 	const emitter = new Emittery();
 
 	emitter.on(Emittery.listenerAdded, ({listener, eventName}) => {
 		console.log(listener);
-		//=> (data) => { }
+		//=> data => {}
 
 		console.log(eventName);
 		//=> '🦄'
 	});
 
-	emitter.on('🦄', (data) => {
+	emitter.on('🦄', data => {
 		// Handle data
 	});
 	```
@@ -56,17 +56,17 @@ declare class Emittery {
 
 	@example
 	```
-	const Emittery = require('emittery');
+	import Emittery = require('emittery');
 
 	const emitter = new Emittery();
 
-	const off = emitter.on('🦄', (data) => {
+	const off = emitter.on('🦄', data => {
 		// Handle data
 	});
 
 	emitter.on(Emittery.listenerRemoved, ({listener, eventName}) => {
 		console.log(listener);
-		//=> (data) => { }
+		//=> data => {}
 
 		console.log(eventName);
 		//=> '🦄'
