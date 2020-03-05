@@ -63,6 +63,5 @@
 			"lcov",
 			"text"
 		]
-	},
-	"dependencies": {}
+	}
 }
