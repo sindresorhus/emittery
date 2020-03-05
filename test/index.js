@@ -85,7 +85,7 @@ test('on() - eventName must be a string or a symbol', t => {
 	emitter.on(Symbol('symbol'), () => {});
 
 	t.throws(() => {
-		emitter.on(42, () => { });
+		emitter.on(42, () => {});
 	}, TypeError);
 });
 
