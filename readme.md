@@ -81,7 +81,7 @@ emitter.on('🦄', data => {
 ###### Listener data
 
 - `listener` - The listener that was added.
-- `eventName` - The name of the event that was added if `on` or `off` was used instead of `onAny` or `offAny`.
+- `eventName` - The name of the event that was added or removed if `.on()` or `.off()` was used, or `undefined` if `.onAny()` or `.offAny()` was used.
 
 Only events that are not of this type are able to trigger these events.
 
