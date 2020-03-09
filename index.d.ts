@@ -274,7 +274,7 @@ declare namespace Emittery {
 		listener: (eventData?: unknown) => void;
 
 		/**
-		The name of the event that was added or removed if `on` or `off` was used instead of `onAny` or `offAny`.
+		The name of the event that was added or removed if `.on()` or `.off()` was used, or `undefined` if `.onAny()` or `.offAny()` was used.
 		*/
 		eventName?: EventName;
 	}
