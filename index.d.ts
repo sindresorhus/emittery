@@ -17,7 +17,7 @@ interface EventListenerData {
 	/**
 	The name of the event that was added if `on` or `off` was used instead of `onAny` or `offAny`.
 	*/
-	eventName?: string;
+	eventName?: EventName;
 }
 
 declare class Emittery {
