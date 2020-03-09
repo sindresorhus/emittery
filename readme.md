@@ -53,6 +53,38 @@ Returns an unsubscribe method.
 
 Using the same listener multiple times for the same event will result in only one method call per emitted event.
 
+##### Custom subscribable events
+
+Emittery exports some symbols which represent custom events that can be passed to `Emitter.on` and similar methods.
+
+- `Emittery.listenerAdded` - Fires when an event listener was added.
+- `Emittery.listenerRemoved` - Fires when an event listener was removed.
+
+```js
+const Emittery = require('emittery');
+
+const emitter = new Emittery();
+
+emitter.on(Emittery.listenerAdded, ({listener, eventName}) => {
+	console.log(listener);
+	//=> data => {}
+
+	console.log(eventName);
+	//=> '🦄'
+});
+
+emitter.on('🦄', data => {
+	// Handle data
+});
+```
+
+###### Listener data
+
+- `listener` - The listener that was added.
+- `eventName` - The name of the event that was added or removed if `.on()` or `.off()` was used, or `undefined` if `.onAny()` or `.offAny()` was used.
+
+Only events that are not of this type are able to trigger these events.
+
 ##### listener(data)
 
 #### off(eventName, listener)

@@ -24,12 +24,67 @@ declare class Emittery {
 	static mixin(emitteryPropertyName: string, methodNames?: readonly string[]): Function;
 
 	/**
+	Fires when an event listener was added.
+
+	An object with `listener` and `eventName` (if `on` or `off` was used) is provided as event data.
+
+	@example
+	```
+	import Emittery = require('emittery');
+
+	const emitter = new Emittery();
+
+	emitter.on(Emittery.listenerAdded, ({listener, eventName}) => {
+		console.log(listener);
+		//=> data => {}
+
+		console.log(eventName);
+		//=> '🦄'
+	});
+
+	emitter.on('🦄', data => {
+		// Handle data
+	});
+	```
+	*/
+	static readonly listenerAdded: unique symbol;
+
+	/**
+	Fires when an event listener was removed.
+
+	An object with `listener` and `eventName` (if `on` or `off` was used) is provided as event data.
+
+	@example
+	```
+	import Emittery = require('emittery');
+
+	const emitter = new Emittery();
+
+	const off = emitter.on('🦄', data => {
+		// Handle data
+	});
+
+	emitter.on(Emittery.listenerRemoved, ({listener, eventName}) => {
+		console.log(listener);
+		//=> data => {}
+
+		console.log(eventName);
+		//=> '🦄'
+	});
+
+	off();
+	```
+	*/
+	static readonly listenerRemoved: unique symbol;
+
+	/**
 	Subscribe to an event.
 
 	Using the same listener multiple times for the same event will result in only one method call per emitted event.
 
 	@returns An unsubscribe method.
 	*/
+	on(eventName: typeof Emittery.listenerAdded | typeof Emittery.listenerRemoved, listener: (eventData: Emittery.ListenerChangedData) => void): Emittery.UnsubscribeFn
 	on(eventName: EventName, listener: (eventData?: unknown) => void): Emittery.UnsubscribeFn;
 
 	/**
@@ -98,6 +153,7 @@ declare class Emittery {
 
 	@returns The event data when `eventName` is emitted.
 	*/
+	once(eventName: typeof Emittery.listenerAdded | typeof Emittery.listenerRemoved): Promise<Emittery.ListenerChangedData>
 	once(eventName: EventName): Promise<unknown>;
 
 	/**
@@ -206,6 +262,21 @@ declare namespace Emittery {
 	interface Events {
 		// Blocked by https://github.com/microsoft/TypeScript/issues/1863, should be
 		// `[eventName: EventName]: unknown;`
+	}
+
+	/**
+	The data provided as `eventData` when listening for `Emittery.listenerAdded` or `Emittery.listenerRemoved`.
+	*/
+	interface ListenerChangedData {
+		/**
+		The listener that was added or removed.
+		*/
+		listener: (eventData?: unknown) => void;
+
+		/**
+		The name of the event that was added or removed if `.on()` or `.off()` was used, or `undefined` if `.onAny()` or `.offAny()` was used.
+		*/
+		eventName?: EventName;
 	}
 
 	/**

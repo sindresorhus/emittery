@@ -1,5 +1,6 @@
 import test from 'ava';
 import delay from 'delay';
+import pEvent from 'p-event';
 import Emittery from '..';
 
 test('on()', async t => {
@@ -23,6 +24,58 @@ test('on() - symbol eventName', async t => {
 	emitter.on(eventName, listener2);
 	await emitter.emit(eventName);
 	t.deepEqual(calls, [1, 2]);
+});
+
+test('on() - listenerAdded', async t => {
+	const emitter = new Emittery();
+	const addListener = () => 1;
+	setImmediate(() => emitter.on('abc', addListener));
+	const {eventName, listener} = await pEvent(emitter, Emittery.listenerAdded, {
+		rejectionEvents: []
+	});
+	t.is(listener, addListener);
+	t.is(eventName, 'abc');
+});
+
+test('on() - listenerRemoved', async t => {
+	const emitter = new Emittery();
+	const addListener = () => 1;
+	emitter.on('abc', addListener);
+	setImmediate(() => emitter.off('abc', addListener));
+	const {eventName, listener} = await pEvent(emitter, Emittery.listenerRemoved, {
+		rejectionEvents: []
+	});
+	t.is(listener, addListener);
+	t.is(eventName, 'abc');
+});
+
+test('on() - listenerAdded onAny', async t => {
+	const emitter = new Emittery();
+	const addListener = () => 1;
+	setImmediate(() => emitter.onAny(addListener));
+	const {eventName, listener} = await pEvent(emitter, Emittery.listenerAdded, {
+		rejectionEvents: []
+	});
+	t.is(listener, addListener);
+	t.is(eventName, undefined);
+});
+
+test('off() - listenerAdded', t => {
+	const emitter = new Emittery();
+	const off = emitter.on(Emittery.listenerAdded, () => t.fail());
+	off();
+	emitter.emit('a');
+	t.pass();
+});
+
+test('on() - listenerAdded offAny', async t => {
+	const emitter = new Emittery();
+	const addListener = () => 1;
+	emitter.onAny(addListener);
+	setImmediate(() => emitter.offAny(addListener));
+	const {listener, eventName} = await pEvent(emitter, Emittery.listenerRemoved);
+	t.is(listener, addListener);
+	t.is(eventName, undefined);
 });
 
 test('on() - eventName must be a string or a symbol', t => {

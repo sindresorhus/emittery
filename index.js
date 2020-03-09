@@ -6,6 +6,9 @@ const producersMap = new WeakMap();
 const anyProducer = Symbol('anyProducer');
 const resolvedPromise = Promise.resolve();
 
+const listenerAdded = Symbol('listenerAdded');
+const listenerRemoved = Symbol('listenerRemoved');
+
 function assertEventName(eventName) {
 	if (typeof eventName !== 'string' && typeof eventName !== 'symbol') {
 		throw new TypeError('eventName must be a string or a symbol');
@@ -134,6 +137,8 @@ function defaultMethodNamesOrAssert(methodNames) {
 	return methodNames;
 }
 
+const isListenerSymbol = symbol => symbol === listenerAdded || symbol === listenerRemoved;
+
 class Emittery {
 	static mixin(emitteryPropertyName, methodNames) {
 		methodNames = defaultMethodNamesOrAssert(methodNames);
@@ -186,12 +191,22 @@ class Emittery {
 		assertEventName(eventName);
 		assertListener(listener);
 		getListeners(this, eventName).add(listener);
+
+		if (!isListenerSymbol(eventName)) {
+			this.emit(listenerAdded, {eventName, listener});
+		}
+
 		return this.off.bind(this, eventName, listener);
 	}
 
 	off(eventName, listener) {
 		assertEventName(eventName);
 		assertListener(listener);
+
+		if (!isListenerSymbol(eventName)) {
+			this.emit(listenerRemoved, {eventName, listener});
+		}
+
 		getListeners(this, eventName).delete(listener);
 	}
 
@@ -218,7 +233,7 @@ class Emittery {
 		const listeners = getListeners(this, eventName);
 		const anyListeners = anyMap.get(this);
 		const staticListeners = [...listeners];
-		const staticAnyListeners = [...anyListeners];
+		const staticAnyListeners = isListenerSymbol(eventName) ? [] : [...anyListeners];
 
 		await resolvedPromise;
 		return Promise.all([
@@ -262,6 +277,7 @@ class Emittery {
 	onAny(listener) {
 		assertListener(listener);
 		anyMap.get(this).add(listener);
+		this.emit(listenerAdded, {listener});
 		return this.offAny.bind(this, listener);
 	}
 
@@ -271,6 +287,7 @@ class Emittery {
 
 	offAny(listener) {
 		assertListener(listener);
+		this.emit(listenerRemoved, {listener});
 		anyMap.get(this).delete(listener);
 	}
 
@@ -352,6 +369,19 @@ Emittery.Typed = class extends Emittery {};
 Object.defineProperty(Emittery.Typed, 'Typed', {
 	enumerable: false,
 	value: undefined
+});
+
+Object.defineProperty(Emittery, 'listenerAdded', {
+	value: listenerAdded,
+	writable: false,
+	enumerable: true,
+	configurable: false
+});
+Object.defineProperty(Emittery, 'listenerRemoved', {
+	value: listenerRemoved,
+	writable: false,
+	enumerable: true,
+	configurable: false
 });
 
 module.exports = Emittery;
