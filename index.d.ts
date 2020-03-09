@@ -5,21 +5,6 @@ Symbol event names can be used to avoid name collisions when your classes are ex
 */
 type EventName = string | symbol;
 
-/**
-The data provided as `eventData` when listening for `Emittery.listenerAdded` or `Emittery.listenerRemoved`.
-*/
-export interface ListenerChangedData {
-	/**
-	The listener that was added or removed.
-	*/
-	listener: (eventData?: unknown) => void;
-
-	/**
-	The name of the event that was added or removed if `on` or `off` was used instead of `onAny` or `offAny`.
-	*/
-	eventName?: EventName;
-}
-
 declare class Emittery {
 	/**
 	In TypeScript, it returns a decorator which mixins `Emittery` as property `emitteryPropertyName` and `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the target class.
@@ -99,7 +84,7 @@ declare class Emittery {
 
 	@returns An unsubscribe method.
 	*/
-	on(eventName: typeof Emittery.listenerAdded | typeof Emittery.listenerRemoved, listener: (eventData: ListenerChangedData) => void): Emittery.UnsubscribeFn
+	on(eventName: typeof Emittery.listenerAdded | typeof Emittery.listenerRemoved, listener: (eventData: Emittery.ListenerChangedData) => void): Emittery.UnsubscribeFn
 	on(eventName: EventName, listener: (eventData?: unknown) => void): Emittery.UnsubscribeFn;
 
 	/**
@@ -168,7 +153,7 @@ declare class Emittery {
 
 	@returns The event data when `eventName` is emitted.
 	*/
-	once(eventName: typeof Emittery.listenerAdded | typeof Emittery.listenerRemoved): Promise<ListenerChangedData>
+	once(eventName: typeof Emittery.listenerAdded | typeof Emittery.listenerRemoved): Promise<Emittery.ListenerChangedData>
 	once(eventName: EventName): Promise<unknown>;
 
 	/**
@@ -277,6 +262,21 @@ declare namespace Emittery {
 	interface Events {
 		// Blocked by https://github.com/microsoft/TypeScript/issues/1863, should be
 		// `[eventName: EventName]: unknown;`
+	}
+
+	/**
+	The data provided as `eventData` when listening for `Emittery.listenerAdded` or `Emittery.listenerRemoved`.
+	*/
+	interface ListenerChangedData {
+		/**
+		The listener that was added or removed.
+		*/
+		listener: (eventData?: unknown) => void;
+
+		/**
+		The name of the event that was added or removed if `on` or `off` was used instead of `onAny` or `offAny`.
+		*/
+		eventName?: EventName;
 	}
 
 	/**
