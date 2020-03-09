@@ -99,8 +99,8 @@ declare class Emittery {
 
 	@returns An unsubscribe method.
 	*/
-	on(eventName: EventName, listener: (eventData?: unknown) => void): Emittery.UnsubscribeFn;
 	on(eventName: typeof Emittery.listenerAdded | typeof Emittery.listenerRemoved, listener: (eventData: ListenerChangedData) => void): Emittery.UnsubscribeFn
+	on(eventName: EventName, listener: (eventData?: unknown) => void): Emittery.UnsubscribeFn;
 
 	/**
 	Get an async iterator which buffers data each time an event is emitted.
@@ -168,8 +168,8 @@ declare class Emittery {
 
 	@returns The event data when `eventName` is emitted.
 	*/
-	once(eventName: EventName): Promise<unknown>;
 	once(eventName: typeof Emittery.listenerAdded | typeof Emittery.listenerRemoved): Promise<ListenerChangedData>
+	once(eventName: EventName): Promise<unknown>;
 
 	/**
 	Trigger an event asynchronously, optionally with some data. Listeners are called in the order they were added, but executed concurrently.
