@@ -187,33 +187,44 @@ class Emittery {
 		producersMap.set(this, new Map());
 	}
 
-	on(eventName, listener) {
-		assertEventName(eventName);
-		assertListener(listener);
-		getListeners(this, eventName).add(listener);
-
-		if (!isListenerSymbol(eventName)) {
-			this.emit(listenerAdded, {eventName, listener});
-		}
-
-		return this.off.bind(this, eventName, listener);
-	}
-
-	off(eventName, listener) {
-		assertEventName(eventName);
+	on(eventNames, listener) {
 		assertListener(listener);
 
-		if (!isListenerSymbol(eventName)) {
-			this.emit(listenerRemoved, {eventName, listener});
-		}
-
-		getListeners(this, eventName).delete(listener);
-	}
-
-	once(eventName) {
-		return new Promise(resolve => {
+		const events = Array.isArray(eventNames) ? eventNames : [eventNames];
+		for (const eventName of events) {
 			assertEventName(eventName);
-			const off = this.on(eventName, data => {
+			getListeners(this, eventName).add(listener);
+
+			if (!isListenerSymbol(eventName)) {
+				this.emit(listenerAdded, {eventName, listener});
+			}
+		}
+
+		return this.off.bind(this, events, listener);
+	}
+
+	off(eventNames, listener) {
+		assertListener(listener);
+
+		const events = Array.isArray(eventNames) ? eventNames : [eventNames];
+		for (const eventName of events) {
+			assertEventName(eventName);
+			getListeners(this, eventName).delete(listener);
+
+			if (!isListenerSymbol(eventName)) {
+				this.emit(listenerRemoved, {eventName, listener});
+			}
+		}
+	}
+
+	once(eventNames) {
+		return new Promise(resolve => {
+			const events = Array.isArray(eventNames) ? eventNames : [eventNames];
+			for (const eventName of events) {
+				assertEventName(eventName);
+			}
+
+			const off = this.on(events, data => {
 				off();
 				resolve(data);
 			});

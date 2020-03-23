@@ -14,6 +14,17 @@ test('on()', async t => {
 	t.deepEqual(calls, [1, 2]);
 });
 
+test('on() - multiple event names', async t => {
+	const emitter = new Emittery();
+	let count = 0;
+	const listener = () => ++count;
+
+	emitter.on(['🦄', '🐶'], listener);
+	await emitter.emit('🦄');
+	await emitter.emit('🐶');
+	t.is(count, 2);
+});
+
 test('on() - symbol eventName', async t => {
 	const emitter = new Emittery();
 	const eventName = Symbol('eventName');
@@ -201,6 +212,24 @@ test('off()', async t => {
 	t.deepEqual(calls, [1]);
 });
 
+test('off() - multiple event names', async t => {
+	const emitter = new Emittery();
+	const calls = [];
+	const listener = () => calls.push(1);
+
+	emitter.on(['🦄', '🐶', '🦊'], listener);
+	await emitter.emit('🦄');
+	t.deepEqual(calls, [1]);
+
+	emitter.off(['🦄', '🐶'], listener);
+	await emitter.emit('🦄');
+	await emitter.emit('🐶');
+	t.deepEqual(calls, [1]);
+
+	await emitter.emit('🦊');
+	t.deepEqual(calls, [1, 1]);
+});
+
 test('off() - eventName must be a string or a symbol', t => {
 	const emitter = new Emittery();
 
@@ -225,6 +254,14 @@ test('once()', async t => {
 	const emitter = new Emittery();
 	const promise = emitter.once('🦄');
 	emitter.emit('🦄', fixture);
+	t.is(await promise, fixture);
+});
+
+test('once() - multiple event names', async t => {
+	const fixture = '🌈';
+	const emitter = new Emittery();
+	const promise = emitter.once(['🦄', '🐶']);
+	emitter.emit('🐶', fixture);
 	t.is(await promise, fixture);
 });
 

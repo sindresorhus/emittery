@@ -4,6 +4,7 @@ Emittery accepts strings and symbols as event names.
 Symbol event names can be used to avoid name collisions when your classes are extended, especially for internal events.
 */
 type EventName = string | symbol;
+type MultiEventName = string | string[] | symbol;
 
 declare class Emittery {
 	/**
@@ -78,14 +79,14 @@ declare class Emittery {
 	static readonly listenerRemoved: unique symbol;
 
 	/**
-	Subscribe to an event.
+	Subscribe to one or more events.
 
 	Using the same listener multiple times for the same event will result in only one method call per emitted event.
 
 	@returns An unsubscribe method.
 	*/
 	on(eventName: typeof Emittery.listenerAdded | typeof Emittery.listenerRemoved, listener: (eventData: Emittery.ListenerChangedData) => void): Emittery.UnsubscribeFn
-	on(eventName: EventName, listener: (eventData?: unknown) => void): Emittery.UnsubscribeFn;
+	on(eventName: MultiEventName, listener: (eventData?: unknown) => void): Emittery.UnsubscribeFn;
 
 	/**
 	Get an async iterator which buffers data each time an event is emitted.
@@ -143,18 +144,18 @@ declare class Emittery {
 	events(eventName: EventName): AsyncIterableIterator<unknown>
 
 	/**
-	Remove an event subscription.
+	Remove one or more event subscriptions.
 	*/
-	off(eventName: EventName, listener: (eventData?: unknown) => void): void;
+	off(eventName: MultiEventName, listener: (eventData?: unknown) => void): void;
 
 	/**
-	Subscribe to an event only once. It will be unsubscribed after the first
+	Subscribe to one or more events only once. It will be unsubscribed after the first
 	event.
 
 	@returns The event data when `eventName` is emitted.
 	*/
 	once(eventName: typeof Emittery.listenerAdded | typeof Emittery.listenerRemoved): Promise<Emittery.ListenerChangedData>
-	once(eventName: EventName): Promise<unknown>;
+	once(eventName: MultiEventName): Promise<unknown>;
 
 	/**
 	Trigger an event asynchronously, optionally with some data. Listeners are called in the order they were added, but executed concurrently.

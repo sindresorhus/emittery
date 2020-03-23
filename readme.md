@@ -45,13 +45,29 @@ Symbol event names can be used to avoid name collisions when your classes are ex
 
 ### emitter = new Emittery()
 
-#### on(eventName, listener)
+#### on(eventName | eventName[], listener)
 
-Subscribe to an event.
+Subscribe to one or more events.
 
 Returns an unsubscribe method.
 
 Using the same listener multiple times for the same event will result in only one method call per emitted event.
+
+```js
+const Emittery = require('emittery');
+
+const emitter = new Emittery();
+
+emitter.on('🦄', data => {
+	console.log(data);
+});
+emitter.on(['🦄', '🐶'], data => {
+	console.log(data);
+});
+
+emitter.emit('🦄', '🌈'); // log => '🌈' x2
+emitter.emit('🐶', '🍖'); // log => '🍖'
+```
 
 ##### Custom subscribable events
 
@@ -87,15 +103,34 @@ Only events that are not of this type are able to trigger these events.
 
 ##### listener(data)
 
-#### off(eventName, listener)
+#### off(eventName | eventName[], listener)
 
-Remove an event subscription.
+Remove one or more event subscriptions.
+
+```js
+const Emittery = require('emittery');
+
+const emitter = new Emittery();
+
+const listener = data => console.log(data);
+(async () => {
+	emitter.on(['🦄', '🐶', '🦊'], listener);
+	await emitter.emit('🦄', 'a');
+	await emitter.emit('🐶', 'b');
+	await emitter.emit('🦊', 'c');
+	emitter.off('🦄', listener);
+	emitter.off(['🐶', '🦊'], listener);
+	await emitter.emit('🦄', 'a'); // nothing happens
+	await emitter.emit('🐶', 'b'); // nothing happens
+	await emitter.emit('🦊', 'c'); // nothing happens
+})();
+```
 
 ##### listener(data)
 
-#### once(eventName)
+#### once(eventName | eventName[])
 
-Subscribe to an event only once. It will be unsubscribed after the first event.
+Subscribe to one or more events only once. It will be unsubscribed after the first event.
 
 Returns a promise for the event data when `eventName` is emitted.
 
@@ -108,8 +143,12 @@ emitter.once('🦄').then(data => {
 	console.log(data);
 	//=> '🌈'
 });
+emitter.once(['🦄', '🐶']).then(data => {
+	console.log(data);
+});
 
-emitter.emit('🦄', '🌈');
+emitter.emit('🦄', '🌈'); // log => '🌈' x2
+emitter.emit('🐶', '🍖');	// nothing happens
 ```
 
 #### events(eventName)
