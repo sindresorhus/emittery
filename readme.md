@@ -87,6 +87,7 @@ Type: `string`
 Default: `undefined`
 
 Define a name for the instance of Emittery to use when outputting debug data.
+
 Example:
 ```js
 const Emittery = require('emittery');
@@ -306,6 +307,7 @@ Type: `boolean`
 Default: `false`
 
 Enables debug output for this instance of Emittery.
+
 Example:
 ```js
 const Emittery = require('emittery');
