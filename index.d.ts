@@ -5,6 +5,34 @@ Symbol event names can be used to avoid name collisions when your classes are ex
 */
 type EventName = string | symbol;
 
+/**
+Emittery can log debug output to console, this function takes care of outputting log data.
+
+To enable this feature set the DEBUG environment variable to 'emittery' or '*'. Additionally you can set the 'isDebug' option to true on the Emittery class, or an instance of it for debugging a single instance.
+*/
+type DebugLogger = (type: string, debugName: string, eventName?: EventName, eventData?: unknown) => void;
+
+/**
+Decides if Emittery should be in debug mode.
+*/
+type DebugPredicate = () => boolean;
+
+interface Options {
+	/**
+	Define a name for the instance of Emittery to use when outputting debug data.
+	@example
+	```
+	const Emittery = require('emittery');
+	Emittery.isDebug = () => true;
+	const emitter = new Emittery({debugName: "myEmitter"});
+	emitter.on('test', data => { // do something });
+	//=> [emitter:subscribe][myEmitter] Event Name: test
+		data: undefined
+	```
+	*/
+	readonly debugName?: string;
+}
+
 declare class Emittery {
 	/**
 	In TypeScript, it returns a decorator which mixins `Emittery` as property `emitteryPropertyName` and `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the target class.
@@ -76,6 +104,45 @@ declare class Emittery {
 	```
 	*/
 	static readonly listenerRemoved: unique symbol;
+
+	/**
+	Handles debug data, by default it print it to the console.
+
+	@default Prints the type, debugName, eventName and eventData to the console
+	@example
+	```
+	const Emittery = require('emittery');
+	Emittery.isDebug = () => true;
+	Emittery.debugLogger = (type, debugName, eventName, eventData) => console.log(`[${type}]: ${eventName}`);
+	const emitter = new Emittery();
+	emitter.on('test', data => { // do something });
+	//=> [subscribe]: test
+	```
+	*/
+	static debugLogger: DebugLogger;
+
+	/**
+	Controls debug mode for all instances
+
+	@default Returns true if the DEBUG environment variable is set to 'emittery' or '*', otherwise false
+	@example
+	```
+	const Emittery = require('emittery');
+	Emittery.isDebug = () => true;
+	const emitter = new Emittery({debugName: 'myEmitter'});
+	emitter.on('test', data => { // do something });
+	//=> [emittery:subscribe][myEmitter] Event Name: test
+		data: undefined
+	```
+	*/
+	static isDebug: DebugPredicate;
+
+	/**
+	Create a new Emittery instance with the specified opitons
+
+	@returns An instance of Emittery that you can use to listen for and emit events
+	*/
+	constructor(options?: Options);
 
 	/**
 	Subscribe to an event.

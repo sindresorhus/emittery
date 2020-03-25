@@ -210,7 +210,7 @@ class Emittery {
 		assertListener(listener);
 		getListeners(this, eventName).add(listener);
 		if (Emittery.isDebug() || this.isDebug) {
-			Emittery.debugLogger('subscribe', this.debugName, eventName, null);
+			Emittery.debugLogger('subscribe', this.debugName, eventName, undefined);
 		}
 
 		if (!isListenerSymbol(eventName)) {
@@ -225,7 +225,7 @@ class Emittery {
 		assertListener(listener);
 
 		if (Emittery.isDebug() || this.isDebug) {
-			Emittery.debugLogger('unsubscribe', this.debugName, eventName, null);
+			Emittery.debugLogger('unsubscribe', this.debugName, eventName, undefined);
 		}
 
 		if (!isListenerSymbol(eventName)) {
@@ -237,7 +237,7 @@ class Emittery {
 
 	once(eventName) {
 		if (Emittery.isDebug() || this.isDebug) {
-			Emittery.debugLogger('subscribeOnce', this.debugName, eventName, null);
+			Emittery.debugLogger('subscribeOnce', this.debugName, eventName, undefined);
 		}
 
 		return new Promise(resolve => {
@@ -314,7 +314,7 @@ class Emittery {
 	onAny(listener) {
 		assertListener(listener);
 		if (Emittery.isDebug() || this.isDebug) {
-			Emittery.debugLogger('subscribeAny', this.debugName, null, null);
+			Emittery.debugLogger('subscribeAny', this.debugName, undefined, undefined);
 		}
 
 		anyMap.get(this).add(listener);
@@ -329,7 +329,7 @@ class Emittery {
 	offAny(listener) {
 		assertListener(listener);
 		if (Emittery.isDebug() || this.isDebug) {
-			Emittery.debugLogger('unsubscribeAny', this.debugName, null, null);
+			Emittery.debugLogger('unsubscribeAny', this.debugName, undefined, undefined);
 		}
 
 		this.emit(listenerRemoved, {listener});
@@ -338,7 +338,7 @@ class Emittery {
 
 	clearListeners(eventName) {
 		if (Emittery.isDebug() || this.isDebug) {
-			Emittery.debugLogger('clear', this.debugName, eventName, null);
+			Emittery.debugLogger('clear', this.debugName, eventName, undefined);
 		}
 
 		if (typeof eventName === 'string') {

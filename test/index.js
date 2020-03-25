@@ -729,7 +729,7 @@ test('onAny() - isDebug logs output', t => {
 	emitter.onAny(() => {});
 	t.true(eventStore.length > 0);
 	t.is(eventStore[0].type, 'subscribeAny');
-	t.is(eventStore[0].eventName, null);
+	t.is(eventStore[0].eventName, undefined);
 	t.is(eventStore[0].debugName, 'testEmitter');
 });
 
@@ -745,7 +745,7 @@ test('offAny() - isDebug logs output', t => {
 	off();
 	t.true(eventStore.length > 0);
 	t.is(eventStore[2].type, 'unsubscribeAny');
-	t.is(eventStore[2].eventName, null);
+	t.is(eventStore[2].eventName, undefined);
 	t.is(eventStore[2].debugName, 'testEmitter');
 });
 

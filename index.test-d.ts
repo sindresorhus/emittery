@@ -1,4 +1,4 @@
-import {expectType, expectError} from 'tsd';
+import {expectType, expectError, expectNotAssignable, expectAssignable} from 'tsd';
 import Emittery = require('.');
 
 // emit
@@ -38,4 +38,15 @@ import Emittery = require('.');
 {
 	const ee = new Emittery();
 	expectError(ee.on('anEvent', (data: any, more: any) => undefined));
+}
+
+// isDebug
+{
+	expectNotAssignable<boolean>(Emittery.isDebug);
+	expectNotAssignable<() => undefined>(Emittery.isDebug);
+	expectAssignable<() => boolean>(Emittery.isDebug);
+	expectNotAssignable<() => undefined>(Emittery.debugLogger);
+	expectNotAssignable<(data: unknown) => undefined>(Emittery.debugLogger);
+	expectNotAssignable<(type: string, debugName: string) => undefined>(Emittery.debugLogger);
+	expectAssignable<(type: string, debugName: string, eventName?: string | symbol, eventData?: unknown) => void>(Emittery.debugLogger);
 }
