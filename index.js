@@ -181,16 +181,28 @@ class Emittery {
 		};
 	}
 
-	constructor() {
+	static isDebug = process.env.DEBUG === 'emittery' || process.env.DEBUG === '*';
+	static debugLogger = (type, debugName, eventName, eventData) => {
+		if (typeof eventName !== 'string') eventName = eventName.toString();
+		if (typeof eventData === 'object') eventData = JSON.stringify(eventData);
+		console.log(`[emittery:${type}][${debugName}] Event Name: ${eventName}\n\tdata: ${eventData}`);
+	};
+
+	constructor(options = {}) {
 		anyMap.set(this, new Set());
 		eventsMap.set(this, new Map());
 		producersMap.set(this, new Map());
+		this.debugName = options.debugName;
+		this.isDebug = false;
 	}
 
 	on(eventName, listener) {
 		assertEventName(eventName);
 		assertListener(listener);
 		getListeners(this, eventName).add(listener);
+		if (Emittery.isDebug || this.isDebug) {
+			Emittery.debugLogger('subscribe', this.debugName, eventName, null);
+		}
 
 		if (!isListenerSymbol(eventName)) {
 			this.emit(listenerAdded, {eventName, listener});
@@ -203,6 +215,10 @@ class Emittery {
 		assertEventName(eventName);
 		assertListener(listener);
 
+		if (Emittery.isDebug || this.isDebug) {
+			Emittery.debugLogger('unsubscribe', this.debugName, eventName, null);
+		}
+
 		if (!isListenerSymbol(eventName)) {
 			this.emit(listenerRemoved, {eventName, listener});
 		}
@@ -211,6 +227,9 @@ class Emittery {
 	}
 
 	once(eventName) {
+		if (Emittery.isDebug || this.isDebug) {
+			Emittery.debugLogger('attachOnce', this.debugName, eventName, null);
+		}
 		return new Promise(resolve => {
 			assertEventName(eventName);
 			const off = this.on(eventName, data => {
@@ -227,6 +246,10 @@ class Emittery {
 
 	async emit(eventName, eventData) {
 		assertEventName(eventName);
+
+		if (Emittery.isDebug || this.isDebug) {
+			Emittery.debugLogger('emit', this.debugName, eventName, eventData);
+		}
 
 		enqueueProducers(this, eventName, eventData);
 
@@ -253,6 +276,9 @@ class Emittery {
 	async emitSerial(eventName, eventData) {
 		assertEventName(eventName);
 
+		if (Emittery.isDebug || this.isDebug) {
+			Emittery.debugLogger('emitSerial', this.debugName, eventName, eventData);
+		}
 		const listeners = getListeners(this, eventName);
 		const anyListeners = anyMap.get(this);
 		const staticListeners = [...listeners];
@@ -276,6 +302,9 @@ class Emittery {
 
 	onAny(listener) {
 		assertListener(listener);
+		if (Emittery.isDebug || this.isDebug) {
+			Emittery.debugLogger('subscribeAny', this.debugName, eventName, null);
+		}
 		anyMap.get(this).add(listener);
 		this.emit(listenerAdded, {listener});
 		return this.offAny.bind(this, listener);
@@ -287,11 +316,18 @@ class Emittery {
 
 	offAny(listener) {
 		assertListener(listener);
+		if (Emittery.isDebug || this.isDebug) {
+			Emittery.debugLogger('unsubscribeAny', this.debugName, eventName, null);
+		}
 		this.emit(listenerRemoved, {listener});
 		anyMap.get(this).delete(listener);
 	}
 
 	clearListeners(eventName) {
+		if (Emittery.isDebug || this.isDebug) {
+			Emittery.debugLogger('clear', this.debugName, eventName, null);
+		}
+
 		if (typeof eventName === 'string') {
 			getListeners(this, eventName).clear();
 
