@@ -17,6 +17,9 @@ Decides if Emittery should be in debug mode.
 */
 type DebugPredicate = () => boolean;
 
+/**
+Configure the new instance of Emittery
+*/
 interface Options {
 	/**
 	Define a name for the instance of Emittery to use when outputting debug data.
@@ -26,8 +29,8 @@ interface Options {
 	Emittery.isDebug = () => true;
 	const emitter = new Emittery({debugName: "myEmitter"});
 	emitter.on('test', data => { // do something });
-	//=> [emitter:subscribe][myEmitter] Event Name: test
-		data: undefined
+	//=> [emittery:subscribe][myEmitter] Event Name: test
+	//	data: undefined
 	```
 	*/
 	readonly debugName?: string;
@@ -114,8 +117,10 @@ declare class Emittery {
 	const Emittery = require('emittery');
 	Emittery.isDebug = () => true;
 	Emittery.debugLogger = (type, debugName, eventName, eventData) => console.log(`[${type}]: ${eventName}`);
+
 	const emitter = new Emittery();
 	emitter.on('test', data => { // do something });
+
 	//=> [subscribe]: test
 	```
 	*/
@@ -129,10 +134,12 @@ declare class Emittery {
 	```
 	const Emittery = require('emittery');
 	Emittery.isDebug = () => true;
+
 	const emitter = new Emittery({debugName: 'myEmitter'});
 	emitter.on('test', data => { // do something });
+
 	//=> [emittery:subscribe][myEmitter] Event Name: test
-		data: undefined
+	//	data: undefined
 	```
 	*/
 	static isDebug: DebugPredicate;
@@ -314,6 +321,24 @@ declare class Emittery {
 	```
 	*/
 	bindMethods(target: object, methodNames?: readonly string[]): void;
+
+	/**
+	Enables debug output for this instance of Emittery
+
+	@default false
+	@example
+	```
+	const Emittery = require('emittery');
+
+	const emitter = new Emittery({debugName: 'myEmitter'});
+	emitter.isDebug = true;
+	emitter.on('test', data => { // do something });
+
+	//=> [emittery:subscribe][myEmitter] Event Name: test
+	//	data: undefined
+	```
+	*/
+	isDebug: boolean;
 }
 
 declare namespace Emittery {

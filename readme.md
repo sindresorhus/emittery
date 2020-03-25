@@ -43,7 +43,58 @@ Emittery accepts strings and symbols as event names.
 
 Symbol event names can be used to avoid name collisions when your classes are extended, especially for internal events.
 
-### emitter = new Emittery()
+### isDebug()
+Controls debug mode for all instances
+
+**Default:** Returns true if the DEBUG environment variable is set to 'emittery' or '*', otherwise false.
+**Example:**
+```js
+const Emittery = require('emittery');
+Emittery.isDebug = () => true;
+
+const emitter = new Emittery({debugName: 'myEmitter'});
+emitter.on('test', data => { // do something });
+
+//=> [emittery:subscribe][myEmitter] Event Name: test
+//	data: undefined
+```
+
+### debugLogger(type, debugName, eventName, eventData)
+Handles debug data, by default it print it to the console.
+
+**Default:** Prints the type, debugName, eventName and eventData to the console.
+**Example:**
+```js
+const Emittery = require('emittery');
+Emittery.isDebug = () => true;
+Emittery.debugLogger = (type, debugName, eventName, eventData) => console.log(`[${type}]: ${eventName}`);
+
+const emitter = new Emittery();
+emitter.on('test', data => { // do something });
+
+//=> [subscribe]: test
+```
+
+### emitter = new Emittery(options)
+#### options
+Configure the new instance of Emittery
+
+##### debugName
+Type: `string`
+Default: `undefined`
+
+Define a name for the instance of Emittery to use when outputting debug data.
+Example:
+```js
+const Emittery = require('emittery');
+Emittery.isDebug = () => true;
+
+const emitter = new Emittery({debugName: "myEmitter"});
+emitter.on('test', data => { // do something });
+
+//=> [emittery:subscribe][myEmitter] Event Name: test
+//	data: undefined
+```
 
 #### on(eventName, listener)
 
@@ -244,6 +295,23 @@ const object = {};
 new Emittery().bindMethods(object);
 
 object.emit('event');
+```
+
+#### isDebug
+Type: `boolean`
+Default: `false`
+
+Enables debug output for this instance of Emittery.
+Example:
+```js
+const Emittery = require('emittery');
+
+const emitter = new Emittery({debugName: 'myEmitter'});
+emitter.isDebug = true;
+emitter.on('test', data => { // do something });
+
+//=> [emittery:subscribe][myEmitter] Event Name: test
+//	data: undefined
 ```
 
 ## TypeScript
