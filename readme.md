@@ -47,6 +47,7 @@ Symbol event names can be used to avoid name collisions when your classes are ex
 Controls debug mode for all instances
 
 **Default:** Returns true if the DEBUG environment variable is set to 'emittery' or '*', otherwise false.
+
 **Example:**
 ```js
 const Emittery = require('emittery');
@@ -60,9 +61,10 @@ emitter.on('test', data => { // do something });
 ```
 
 ### debugLogger(type, debugName, eventName, eventData)
-Handles debug data, by default it print it to the console.
+Handles debug data.
 
 **Default:** Prints the type, debugName, eventName and eventData to the console.
+
 **Example:**
 ```js
 const Emittery = require('emittery');
@@ -81,6 +83,7 @@ Configure the new instance of Emittery
 
 ##### debugName
 Type: `string`
+
 Default: `undefined`
 
 Define a name for the instance of Emittery to use when outputting debug data.
@@ -299,6 +302,7 @@ object.emit('event');
 
 #### isDebug
 Type: `boolean`
+
 Default: `false`
 
 Enables debug output for this instance of Emittery.
