@@ -4,7 +4,7 @@ Emittery accepts strings and symbols as event names.
 Symbol event names can be used to avoid name collisions when your classes are extended, especially for internal events.
 */
 type EventName = string | symbol;
-type MultiEventName = string | string[] | symbol;
+type EventNames = string | string[] | symbol;
 
 declare class Emittery {
 	/**
@@ -103,7 +103,7 @@ declare class Emittery {
 	```
 	*/
 	on(eventName: typeof Emittery.listenerAdded | typeof Emittery.listenerRemoved, listener: (eventData: Emittery.ListenerChangedData) => void): Emittery.UnsubscribeFn
-	on(eventName: MultiEventName, listener: (eventData?: unknown) => void): Emittery.UnsubscribeFn;
+	on(eventName: EventNames, listener: (eventData?: unknown) => void): Emittery.UnsubscribeFn;
 
 	/**
 	Get an async iterator which buffers data each time an event is emitted.
@@ -183,7 +183,7 @@ declare class Emittery {
 	})();
 	```
 	*/
-	off(eventName: MultiEventName, listener: (eventData?: unknown) => void): void;
+	off(eventName: EventNames, listener: (eventData?: unknown) => void): void;
 
 	/**
 	Subscribe to one or more events only once. It will be unsubscribed after the first
@@ -210,7 +210,7 @@ declare class Emittery {
 	```
 	*/
 	once(eventName: typeof Emittery.listenerAdded | typeof Emittery.listenerRemoved): Promise<Emittery.ListenerChangedData>
-	once(eventName: MultiEventName): Promise<unknown>;
+	once(eventName: EventNames): Promise<unknown>;
 
 	/**
 	Trigger an event asynchronously, optionally with some data. Listeners are called in the order they were added, but executed concurrently.
