@@ -84,6 +84,23 @@ declare class Emittery {
 	Using the same listener multiple times for the same event will result in only one method call per emitted event.
 
 	@returns An unsubscribe method.
+
+	@example
+	```
+	import Emittery = require('emittery');
+
+	const emitter = new Emittery();
+
+	emitter.on('🦄', data => {
+		console.log(data);
+	});
+	emitter.on(['🦄', '🐶'], data => {
+		console.log(data);
+	});
+
+	emitter.emit('🦄', '🌈'); // log => '🌈' x2
+	emitter.emit('🐶', '🍖'); // log => '🍖'
+	```
 	*/
 	on(eventName: typeof Emittery.listenerAdded | typeof Emittery.listenerRemoved, listener: (eventData: Emittery.ListenerChangedData) => void): Emittery.UnsubscribeFn
 	on(eventName: MultiEventName, listener: (eventData?: unknown) => void): Emittery.UnsubscribeFn;
@@ -145,6 +162,26 @@ declare class Emittery {
 
 	/**
 	Remove one or more event subscriptions.
+
+	@example
+	```
+	import Emittery = require('emittery');
+
+	const emitter = new Emittery();
+
+	const listener = data => console.log(data);
+	(async () => {
+		emitter.on(['🦄', '🐶', '🦊'], listener);
+		await emitter.emit('🦄', 'a');
+		await emitter.emit('🐶', 'b');
+		await emitter.emit('🦊', 'c');
+		emitter.off('🦄', listener);
+		emitter.off(['🐶', '🦊'], listener);
+		await emitter.emit('🦄', 'a'); // nothing happens
+		await emitter.emit('🐶', 'b'); // nothing happens
+		await emitter.emit('🦊', 'c'); // nothing happens
+	})();
+	```
 	*/
 	off(eventName: MultiEventName, listener: (eventData?: unknown) => void): void;
 
@@ -153,6 +190,24 @@ declare class Emittery {
 	event.
 
 	@returns The event data when `eventName` is emitted.
+
+	@example
+	```
+	import Emittery = require('emittery');
+
+	const emitter = new Emittery();
+
+	emitter.once('🦄').then(data => {
+		console.log(data);
+		//=> '🌈'
+	});
+	emitter.once(['🦄', '🐶']).then(data => {
+		console.log(data);
+	});
+
+	emitter.emit('🦄', '🌈'); // log => '🌈' x2
+	emitter.emit('🐶', '🍖');	// nothing happens
+	```
 	*/
 	once(eventName: typeof Emittery.listenerAdded | typeof Emittery.listenerRemoved): Promise<Emittery.ListenerChangedData>
 	once(eventName: MultiEventName): Promise<unknown>;
