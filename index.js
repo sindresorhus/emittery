@@ -219,12 +219,7 @@ class Emittery {
 
 	once(eventNames) {
 		return new Promise(resolve => {
-			const events = Array.isArray(eventNames) ? eventNames : [eventNames];
-			for (const eventName of events) {
-				assertEventName(eventName);
-			}
-
-			const off = this.on(events, data => {
+			const off = this.on(eventNames, data => {
 				off();
 				resolve(data);
 			});
