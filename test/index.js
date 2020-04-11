@@ -6,8 +6,12 @@ import Emittery from '..';
 test('on()', async t => {
 	const emitter = new Emittery();
 	const calls = [];
-	const listener1 = () => calls.push(1);
-	const listener2 = () => calls.push(2);
+	const listener1 = () => {
+		calls.push(1);
+	};
+	const listener2 = () => {
+		calls.push(2);
+	};
 	emitter.on('🦄', listener1);
 	emitter.on('🦄', listener2);
 	await emitter.emit('🦄');
@@ -17,7 +21,9 @@ test('on()', async t => {
 test('on() - multiple event names', async t => {
 	const emitter = new Emittery();
 	let count = 0;
-	const listener = () => ++count;
+	const listener = () => {
+		++count;
+	};
 
 	emitter.on(['🦄', '🐶'], listener);
 	await emitter.emit('🦄');
@@ -29,8 +35,12 @@ test('on() - symbol eventName', async t => {
 	const emitter = new Emittery();
 	const eventName = Symbol('eventName');
 	const calls = [];
-	const listener1 = () => calls.push(1);
-	const listener2 = () => calls.push(2);
+	const listener1 = () => {
+		calls.push(1);
+	};
+	const listener2 = () => {
+		calls.push(2);
+	};
 	emitter.on(eventName, listener1);
 	emitter.on(eventName, listener2);
 	await emitter.emit(eventName);
@@ -111,7 +121,9 @@ test('on() - must have a listener', t => {
 test('on() - returns a unsubcribe method', async t => {
 	const emitter = new Emittery();
 	const calls = [];
-	const listener = () => calls.push(1);
+	const listener = () => {
+		calls.push(1);
+	};
 
 	const off = emitter.on('🦄', listener);
 	await emitter.emit('🦄');
@@ -125,7 +137,9 @@ test('on() - returns a unsubcribe method', async t => {
 test('on() - dedupes identical listeners', async t => {
 	const emitter = new Emittery();
 	const calls = [];
-	const listener = () => calls.push(1);
+	const listener = () => {
+		calls.push(1);
+	};
 
 	emitter.on('🦄', listener);
 	emitter.on('🦄', listener);
@@ -201,7 +215,9 @@ test('events() - discarded iterators should stop receiving events', async t => {
 test('off()', async t => {
 	const emitter = new Emittery();
 	const calls = [];
-	const listener = () => calls.push(1);
+	const listener = () => {
+		calls.push(1);
+	};
 
 	emitter.on('🦄', listener);
 	await emitter.emit('🦄');
@@ -215,7 +231,9 @@ test('off()', async t => {
 test('off() - multiple event names', async t => {
 	const emitter = new Emittery();
 	const calls = [];
-	const listener = () => calls.push(1);
+	const listener = () => {
+		calls.push(1);
+	};
 
 	emitter.on(['🦄', '🐶', '🦊'], listener);
 	await emitter.emit('🦄');
@@ -339,16 +357,22 @@ test.cb('emit() - is async', t => {
 test('emit() - calls listeners subscribed when emit() was invoked', async t => {
 	const emitter = new Emittery();
 	const calls = [];
-	const off1 = emitter.on('🦄', () => calls.push(1));
+	const off1 = emitter.on('🦄', () => {
+		calls.push(1);
+	});
 	const p = emitter.emit('🦄');
-	emitter.on('🦄', () => calls.push(2));
+	emitter.on('🦄', () => {
+		calls.push(2);
+	});
 	await p;
 	t.deepEqual(calls, [1]);
 
 	const off3 = emitter.on('🦄', () => {
 		calls.push(3);
 		off1();
-		emitter.on('🦄', () => calls.push(4));
+		emitter.on('🦄', () => {
+			calls.push(4);
+		});
 	});
 	await emitter.emit('🦄');
 	t.deepEqual(calls, [1, 1, 2, 3]);
@@ -356,7 +380,9 @@ test('emit() - calls listeners subscribed when emit() was invoked', async t => {
 
 	const off5 = emitter.on('🦄', () => {
 		calls.push(5);
-		emitter.onAny(() => calls.push(6));
+		emitter.onAny(() => {
+			calls.push(6);
+		});
 	});
 	await emitter.emit('🦄');
 	t.deepEqual(calls, [1, 1, 2, 3, 2, 4, 5]);
@@ -367,7 +393,9 @@ test('emit() - calls listeners subscribed when emit() was invoked', async t => {
 		calls.push(7);
 		off8();
 	});
-	off8 = emitter.on('🦄', () => calls.push(8));
+	off8 = emitter.on('🦄', () => {
+		calls.push(8);
+	});
 	await emitter.emit('🦄');
 	t.deepEqual(calls, [1, 1, 2, 3, 2, 4, 5, 2, 4, 7, 6]);
 
@@ -376,7 +404,9 @@ test('emit() - calls listeners subscribed when emit() was invoked', async t => {
 		calls.push(9);
 		off10();
 	});
-	off10 = emitter.onAny(() => calls.push(10));
+	off10 = emitter.onAny(() => {
+		calls.push(10);
+	});
 	await emitter.emit('🦄');
 	t.deepEqual(calls, [1, 1, 2, 3, 2, 4, 5, 2, 4, 7, 6, 2, 4, 7, 6, 9]);
 
@@ -405,11 +435,21 @@ test.cb('emitSerial()', t => {
 		}
 	};
 
-	emitter.on('🦄', () => listener(1));
-	emitter.on('🦄', () => listener(2));
-	emitter.on('🦄', () => listener(3));
-	emitter.on('🦄', () => listener(4));
-	emitter.on('🦄', () => listener(5));
+	emitter.on('🦄', () => {
+		listener(1);
+	});
+	emitter.on('🦄', () => {
+		listener(2);
+	});
+	emitter.on('🦄', () => {
+		listener(3);
+	});
+	emitter.on('🦄', () => {
+		listener(4);
+	});
+	emitter.on('🦄', () => {
+		listener(5);
+	});
 
 	emitter.emitSerial('🦄', 'e');
 });
@@ -443,16 +483,22 @@ test.cb('emitSerial() - is async', t => {
 test('emitSerial() - calls listeners subscribed when emitSerial() was invoked', async t => {
 	const emitter = new Emittery();
 	const calls = [];
-	const off1 = emitter.on('🦄', () => calls.push(1));
+	const off1 = emitter.on('🦄', () => {
+		calls.push(1);
+	});
 	const p = emitter.emitSerial('🦄');
-	emitter.on('🦄', () => calls.push(2));
+	emitter.on('🦄', () => {
+		calls.push(2);
+	});
 	await p;
 	t.deepEqual(calls, [1]);
 
 	const off3 = emitter.on('🦄', () => {
 		calls.push(3);
 		off1();
-		emitter.on('🦄', () => calls.push(4));
+		emitter.on('🦄', () => {
+			calls.push(4);
+		});
 	});
 	await emitter.emitSerial('🦄');
 	t.deepEqual(calls, [1, 1, 2, 3]);
@@ -460,7 +506,9 @@ test('emitSerial() - calls listeners subscribed when emitSerial() was invoked', 
 
 	const off5 = emitter.on('🦄', () => {
 		calls.push(5);
-		emitter.onAny(() => calls.push(6));
+		emitter.onAny(() => {
+			calls.push(6);
+		});
 	});
 	await emitter.emitSerial('🦄');
 	t.deepEqual(calls, [1, 1, 2, 3, 2, 4, 5]);
@@ -471,7 +519,9 @@ test('emitSerial() - calls listeners subscribed when emitSerial() was invoked', 
 		calls.push(7);
 		off8();
 	});
-	off8 = emitter.on('🦄', () => calls.push(8));
+	off8 = emitter.on('🦄', () => {
+		calls.push(8);
+	});
 	await emitter.emitSerial('🦄');
 	t.deepEqual(calls, [1, 1, 2, 3, 2, 4, 5, 2, 4, 7, 6]);
 
@@ -480,7 +530,9 @@ test('emitSerial() - calls listeners subscribed when emitSerial() was invoked', 
 		calls.push(9);
 		off10();
 	});
-	off10 = emitter.onAny(() => calls.push(10));
+	off10 = emitter.onAny(() => {
+		calls.push(10);
+	});
 	await emitter.emitSerial('🦄');
 	t.deepEqual(calls, [1, 1, 2, 3, 2, 4, 5, 2, 4, 7, 6, 2, 4, 7, 6, 9]);
 
@@ -571,7 +623,9 @@ test('anyEvents() - discarded iterators should stop receiving events', async t =
 test('offAny()', async t => {
 	const emitter = new Emittery();
 	const calls = [];
-	const listener = () => calls.push(1);
+	const listener = () => {
+		calls.push(1);
+	};
 	emitter.onAny(listener);
 	await emitter.emit('🦄');
 	t.deepEqual(calls, [1]);
@@ -591,11 +645,21 @@ test('offAny() - no listener', t => {
 test('clearListeners()', async t => {
 	const emitter = new Emittery();
 	const calls = [];
-	emitter.on('🦄', () => calls.push('🦄1'));
-	emitter.on('🌈', () => calls.push('🌈'));
-	emitter.on('🦄', () => calls.push('🦄2'));
-	emitter.onAny(() => calls.push('any1'));
-	emitter.onAny(() => calls.push('any2'));
+	emitter.on('🦄', () => {
+		calls.push('🦄1');
+	});
+	emitter.on('🌈', () => {
+		calls.push('🌈');
+	});
+	emitter.on('🦄', () => {
+		calls.push('🦄2');
+	});
+	emitter.onAny(() => {
+		calls.push('any1');
+	});
+	emitter.onAny(() => {
+		calls.push('any2');
+	});
 	await emitter.emit('🦄');
 	await emitter.emit('🌈');
 	t.deepEqual(calls, ['🦄1', '🦄2', 'any1', 'any2', '🌈', 'any1', 'any2']);
@@ -626,11 +690,21 @@ test('clearListeners() - also clears iterators', async t => {
 test('clearListeners() - with event name', async t => {
 	const emitter = new Emittery();
 	const calls = [];
-	emitter.on('🦄', () => calls.push('🦄1'));
-	emitter.on('🌈', () => calls.push('🌈'));
-	emitter.on('🦄', () => calls.push('🦄2'));
-	emitter.onAny(() => calls.push('any1'));
-	emitter.onAny(() => calls.push('any2'));
+	emitter.on('🦄', () => {
+		calls.push('🦄1');
+	});
+	emitter.on('🌈', () => {
+		calls.push('🌈');
+	});
+	emitter.on('🦄', () => {
+		calls.push('🦄2');
+	});
+	emitter.onAny(() => {
+		calls.push('any1');
+	});
+	emitter.onAny(() => {
+		calls.push('any2');
+	});
 	await emitter.emit('🦄');
 	await emitter.emit('🌈');
 	t.deepEqual(calls, ['🦄1', '🦄2', 'any1', 'any2', '🌈', 'any1', 'any2']);
