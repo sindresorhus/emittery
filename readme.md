@@ -148,7 +148,7 @@ emitter.once(['🦄', '🐶']).then(data => {
 });
 
 emitter.emit('🦄', '🌈'); // log => '🌈' x2
-emitter.emit('🐶', '🍖');	// nothing happens
+emitter.emit('🐶', '🍖'); // nothing happens
 ```
 
 #### events(eventName)
