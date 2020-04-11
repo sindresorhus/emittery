@@ -435,21 +435,11 @@ test.cb('emitSerial()', t => {
 		}
 	};
 
-	emitter.on('🦄', () => {
-		listener(1);
-	});
-	emitter.on('🦄', () => {
-		listener(2);
-	});
-	emitter.on('🦄', () => {
-		listener(3);
-	});
-	emitter.on('🦄', () => {
-		listener(4);
-	});
-	emitter.on('🦄', () => {
-		listener(5);
-	});
+	emitter.on('🦄', () => listener(1));
+	emitter.on('🦄', () => listener(2));
+	emitter.on('🦄', () => listener(3));
+	emitter.on('🦄', () => listener(4));
+	emitter.on('🦄', () => listener(5));
 
 	emitter.emitSerial('🦄', 'e');
 });
