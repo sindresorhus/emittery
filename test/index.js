@@ -9,9 +9,11 @@ test('on()', async t => {
 	const listener1 = () => {
 		calls.push(1);
 	};
+
 	const listener2 = () => {
 		calls.push(2);
 	};
+
 	emitter.on('🦄', listener1);
 	emitter.on('🦄', listener2);
 	await emitter.emit('🦄');
@@ -38,9 +40,11 @@ test('on() - symbol eventName', async t => {
 	const listener1 = () => {
 		calls.push(1);
 	};
+
 	const listener2 = () => {
 		calls.push(2);
 	};
+
 	emitter.on(eventName, listener1);
 	emitter.on(eventName, listener2);
 	await emitter.emit(eventName);
@@ -616,6 +620,7 @@ test('offAny()', async t => {
 	const listener = () => {
 		calls.push(1);
 	};
+
 	emitter.onAny(listener);
 	await emitter.emit('🦄');
 	t.deepEqual(calls, [1]);
