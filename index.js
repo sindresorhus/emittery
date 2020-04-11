@@ -190,8 +190,8 @@ class Emittery {
 	on(eventNames, listener) {
 		assertListener(listener);
 
-		const events = Array.isArray(eventNames) ? eventNames : [eventNames];
-		for (const eventName of events) {
+		eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
+		for (const eventName of eventNames) {
 			assertEventName(eventName);
 			getListeners(this, eventName).add(listener);
 
@@ -200,14 +200,14 @@ class Emittery {
 			}
 		}
 
-		return this.off.bind(this, events, listener);
+		return this.off.bind(this, eventNames, listener);
 	}
 
 	off(eventNames, listener) {
 		assertListener(listener);
 
-		const events = Array.isArray(eventNames) ? eventNames : [eventNames];
-		for (const eventName of events) {
+		eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
+		for (const eventName of eventNames) {
 			assertEventName(eventName);
 			getListeners(this, eventName).delete(listener);
 
