@@ -5,6 +5,7 @@ import Emittery from '..';
 
 test('on()', async t => {
 	const emitter = new Emittery();
+	const eventName = Symbol('eventName');
 	const calls = [];
 	const listener1 = () => {
 		calls.push(1);
@@ -14,23 +15,31 @@ test('on()', async t => {
 		calls.push(2);
 	};
 
+	const listener3 = () => {
+		calls.push(3);
+	};
+
 	emitter.on('🦄', listener1);
 	emitter.on('🦄', listener2);
+	emitter.on(eventName, listener3);
 	await emitter.emit('🦄');
-	t.deepEqual(calls, [1, 2]);
+	await emitter.emit(eventName);
+	t.deepEqual(calls, [1, 2, 3]);
 });
 
 test('on() - multiple event names', async t => {
 	const emitter = new Emittery();
+	const eventName = Symbol('eventName');
 	let count = 0;
 	const listener = () => {
 		++count;
 	};
 
-	emitter.on(['🦄', '🐶'], listener);
+	emitter.on(['🦄', '🐶', eventName], listener);
 	await emitter.emit('🦄');
 	await emitter.emit('🐶');
-	t.is(count, 2);
+	await emitter.emit(eventName);
+	t.is(count, 3);
 });
 
 test('on() - symbol eventName', async t => {
