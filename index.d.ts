@@ -209,8 +209,8 @@ declare class Emittery {
 		console.log(data);
 	});
 
-	emitter.emit('🦄', '🌈'); // log => '🌈' x2
-	emitter.emit('🐶', '🍖');	// nothing happens
+	emitter.emit('🦄', '🌈'); // Logs `🌈` twice
+	emitter.emit('🐶', '🍖'); // Nothing happens
 	```
 	*/
 	once(eventName: typeof Emittery.listenerAdded | typeof Emittery.listenerRemoved): Promise<Emittery.ListenerChangedData>
