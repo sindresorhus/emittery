@@ -203,6 +203,35 @@ for await (const data of iterator) {
 }
 ```
 
+It accepts multiple event names.
+
+```js
+const Emittery = require('emittery');
+
+const emitter = new Emittery();
+const iterator = emitter.events(['🦄', '🦊']);
+
+emitter.emit('🦄', '🌈1'); // Buffered
+emitter.emit('🦊', '🌈2'); // Buffered
+
+iterator
+	.next()
+	.then(({value, done}) => {
+		// done === false
+		// value === '🌈1'
+		return iterator.next();
+	})
+	.then(({value, done}) => {
+		// done === false
+		// value === '🌈2'
+		// Revoke subscription
+		return iterator.return();
+	})
+	.then(({done}) => {
+		// done === true
+	});
+```
+
 #### emit(eventName, data?)
 
 Trigger an event asynchronously, optionally with some data. Listeners are called in the order they were added, but executed concurrently.
@@ -261,15 +290,15 @@ iterator.next()
 
 In the same way as for `events`, you can subscribe by using the `for await` statement
 
-#### clearListeners()
+#### clearListeners(eventNames?)
 
 Clear all event listeners on the instance.
 
-If `eventName` is given, only the listeners for that event are cleared.
+If `eventNames` is given, only the listeners for that events are cleared.
 
-#### listenerCount(eventName?)
+#### listenerCount(eventNames?)
 
-The number of listeners for the `eventName` or all events if not specified.
+The number of listeners for the `eventNames` or all events if not specified.
 
 #### bindMethods(target, methodNames?)
 

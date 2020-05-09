@@ -182,6 +182,28 @@ test.serial('events()', async t => {
 	t.deepEqual(await iterator.next(), {done: true});
 });
 
+test.serial('events() - multiple event names', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.events(['🦄', '🐶']);
+
+	await emitter.emit('🦄', '🌈');
+	await emitter.emit('🐶', '🌈');
+	setTimeout(() => {
+		emitter.emit('🦄', Promise.resolve('🌟'));
+	}, 10);
+
+	t.plan(4);
+	const expected = ['🌈', '🌈', '🌟'];
+	for await (const data of iterator) {
+		t.deepEqual(data, expected.shift());
+		if (expected.length === 0) {
+			break;
+		}
+	}
+
+	t.deepEqual(await iterator.next(), {done: true});
+});
+
 test('events() - return() called during emit', async t => {
 	const emitter = new Emittery();
 	let iterator = null;
@@ -718,6 +740,30 @@ test('clearListeners() - with event name', async t => {
 	t.deepEqual(calls, ['🦄1', '🦄2', 'any1', 'any2', '🌈', 'any1', 'any2', 'any1', 'any2', '🌈', 'any1', 'any2']);
 });
 
+test('clearListeners() - with multiple event names', async t => {
+	const emitter = new Emittery();
+	const calls = [];
+	emitter.on('🦄', () => {
+		calls.push('🦄1');
+	});
+	emitter.on('🌈', () => {
+		calls.push('🌈');
+	});
+	emitter.on('🦄', () => {
+		calls.push('🦄2');
+	});
+	emitter.onAny(() => {
+		calls.push('any1');
+	});
+	await emitter.emit('🦄');
+	await emitter.emit('🌈');
+	t.deepEqual(calls, ['🦄1', '🦄2', 'any1', '🌈', 'any1']);
+	emitter.clearListeners(['🦄', '🌈']);
+	await emitter.emit('🦄');
+	await emitter.emit('🌈');
+	t.deepEqual(calls, ['🦄1', '🦄2', 'any1', '🌈', 'any1', 'any1', 'any1']);
+});
+
 test('clearListeners() - with event name - clears iterators for that event', async t => {
 	const emitter = new Emittery();
 	const iterator = emitter.events('🦄');
@@ -745,6 +791,17 @@ test('listenerCount()', t => {
 	emitter.onAny(() => {});
 	t.is(emitter.listenerCount('🦄'), 4);
 	t.is(emitter.listenerCount('🌈'), 3);
+	t.is(emitter.listenerCount(), 5);
+});
+
+test('listenerCount() - multiple event names', t => {
+	const emitter = new Emittery();
+	emitter.on('🦄', () => {});
+	emitter.on('🌈', () => {});
+	emitter.on('🦄', () => {});
+	emitter.onAny(() => {});
+	emitter.onAny(() => {});
+	t.is(emitter.listenerCount(['🦄', '🌈']), 7);
 	t.is(emitter.listenerCount(), 5);
 });
 

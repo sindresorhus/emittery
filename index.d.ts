@@ -161,8 +161,38 @@ declare class Emittery {
 		}
 	}
 	```
+
+	It accepts multiple event names.
+
+	@example
+	```
+	import Emittery = require('emittery');
+
+	const emitter = new Emittery();
+	const iterator = emitter.events(['🦄', '🦊']);
+
+	emitter.emit('🦄', '🌈1'); // Buffered
+	emitter.emit('🦊', '🌈2'); // Buffered
+
+	iterator
+		.next()
+		.then(({value, done}) => {
+			// done === false
+			// value === '🌈1'
+			return iterator.next();
+		})
+		.then(({value, done}) => {
+			// done === false
+			// value === '🌈2'
+			// Revoke subscription
+			return iterator.return();
+		})
+		.then(({done}) => {
+			// done === true
+		});
+	```
 	*/
-	events(eventName: EventName): AsyncIterableIterator<unknown>
+	events(eventName: EventNames): AsyncIterableIterator<unknown>
 
 	/**
 	Remove one or more event subscriptions.
@@ -285,12 +315,12 @@ declare class Emittery {
 
 	If `eventName` is given, only the listeners for that event are cleared.
 	*/
-	clearListeners(eventName?: EventName): void;
+	clearListeners(eventName?: EventNames): void;
 
 	/**
 	The number of listeners for the `eventName` or all events if not specified.
 	*/
-	listenerCount(eventName?: EventName): number;
+	listenerCount(eventName?: EventNames): number;
 
 	/**
 	Bind the given `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the `target` object.
