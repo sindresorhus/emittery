@@ -236,7 +236,7 @@ class Emittery {
 		const staticAnyListeners = isListenerSymbol(eventName) ? [] : [...anyListeners];
 
 		await resolvedPromise;
-		return Promise.all([
+		await Promise.all([
 			...staticListeners.map(async listener => {
 				if (listeners.has(listener)) {
 					return listener(eventData);

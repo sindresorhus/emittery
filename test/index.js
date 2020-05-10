@@ -352,6 +352,26 @@ test('emit() - calls listeners subscribed when emit() was invoked', async t => {
 	t.deepEqual(calls, [1, 1, 2, 3, 2, 4, 5, 2, 4, 7, 6, 2, 4, 7, 6, 9, 2, 4, 7, 6, 9]);
 });
 
+test('emit() - returns undefined if listeners don’t throw', async t => {
+	const emitter = new Emittery();
+	const listener = () => '🌈';
+
+	emitter.on('🦄', listener);
+
+	t.is(await emitter.emit('🦄'), undefined);
+});
+
+test('emit() - returns an error if any listener throws', async t => {
+	const emitter = new Emittery();
+	const listener = () => {
+		throw new Error('🌈');
+	};
+
+	emitter.on('🦄', listener);
+
+	await t.throwsAsync(emitter.emit('🦄'), Error);
+});
+
 test.cb('emitSerial()', t => {
 	t.plan(1);
 
