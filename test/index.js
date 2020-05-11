@@ -352,6 +352,30 @@ test('emit() - calls listeners subscribed when emit() was invoked', async t => {
 	t.deepEqual(calls, [1, 1, 2, 3, 2, 4, 5, 2, 4, 7, 6, 2, 4, 7, 6, 9, 2, 4, 7, 6, 9]);
 });
 
+test('emit() - returns undefined', async t => {
+	const emitter = new Emittery();
+
+	emitter.on('🦄', () => '🌈');
+	t.is(await emitter.emit('🦄'), undefined);
+
+	emitter.on('🦄🦄', async () => '🌈');
+	t.is(await emitter.emit('🦄🦄'), undefined);
+});
+
+test('emit() - throws an error if any listener throws', async t => {
+	const emitter = new Emittery();
+
+	emitter.on('🦄', () => {
+		throw new Error('🌈');
+	});
+	await t.throwsAsync(emitter.emit('🦄'), {instanceOf: Error});
+
+	emitter.on('🦄🦄', async () => {
+		throw new Error('🌈');
+	});
+	await t.throwsAsync(emitter.emit('🦄🦄'), {instanceOf: Error});
+});
+
 test.cb('emitSerial()', t => {
 	t.plan(1);
 
