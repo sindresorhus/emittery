@@ -31,7 +31,7 @@ function getListeners(instance, eventName) {
 }
 
 function getEventProducers(instance, eventName) {
-	const key = typeof eventName === 'string' ? eventName : anyProducer;
+	const key = typeof eventName === 'string' || typeof eventName === 'symbol' ? eventName : anyProducer;
 	const producers = producersMap.get(instance);
 	if (!producers.has(key)) {
 		producers.set(key, new Set());
@@ -313,7 +313,7 @@ class Emittery {
 		eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
 
 		for (const eventName of eventNames) {
-			if (typeof eventName === 'string') {
+			if (typeof eventName === 'string' || typeof eventName === 'symbol') {
 				getListeners(this, eventName).clear();
 
 				const producers = getEventProducers(this, eventName);
