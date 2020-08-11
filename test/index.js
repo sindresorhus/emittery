@@ -359,21 +359,6 @@ test('once() - eventName must be a string or a symbol', async t => {
 	await t.throwsAsync(emitter.once(42), TypeError);
 });
 
-test('once() - isDebug logs output', t => {
-	const eventStore = [];
-	Emittery.debugLogger = (type, debugName, eventName, eventData) => {
-		eventStore.push({type, debugName, eventName, eventData});
-	};
-
-	const emitter = new Emittery({debugName: 'testEmitter'});
-	emitter.isDebug = true;
-	emitter.once('test', () => {});
-	t.true(eventStore.length > 0);
-	t.is(eventStore[0].type, 'subscribeOnce');
-	t.is(eventStore[0].eventName, 'test');
-	t.is(eventStore[0].debugName, 'testEmitter');
-});
-
 test.cb('emit() - one event', t => {
 	t.plan(1);
 
