@@ -9,6 +9,8 @@ const resolvedPromise = Promise.resolve();
 const listenerAdded = Symbol('listenerAdded');
 const listenerRemoved = Symbol('listenerRemoved');
 
+let globalDebugFlag = false;
+
 function assertEventName(eventName) {
 	if (typeof eventName !== 'string' && typeof eventName !== 'symbol') {
 		throw new TypeError('eventName must be a string or a symbol');
@@ -190,7 +192,11 @@ class Emittery {
 	}
 
 	static get isDebug() {
-		return process.env.DEBUG === 'emittery' || process.env.DEBUG === '*';
+		return process.env.DEBUG === 'emittery' || process.env.DEBUG === '*' || globalDebugFlag;
+	}
+
+	static set isDebug(newValue) {
+		globalDebugFlag = newValue;
 	}
 
 	static debugLogger(type, debugName, eventName, eventData) {

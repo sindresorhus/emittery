@@ -1110,3 +1110,20 @@ test('isDebug default logger handles symbol event names and object for event dat
 	emitter.on(eventName, () => {});
 	await t.notThrowsAsync(emitter.emit(eventName, {complex: ['data', 'structure', 1]}));
 });
+
+test('isDebug can be turned on globally during runtime', t => {
+	Emittery.isDebug = true;
+	const eventStore = [];
+	Emittery.debugLogger = (type, debugName, eventName, eventData) => {
+		eventStore.push({type, debugName, eventName, eventData});
+	};
+
+	const emitter = new Emittery({debugName: 'testEmitter'});
+	emitter.on('test', () => {});
+	emitter.emit('test', 'test data');
+	t.true(eventStore.length > 0);
+	t.is(eventStore[2].type, 'emit');
+	t.is(eventStore[2].eventName, 'test');
+	t.is(eventStore[2].debugName, 'testEmitter');
+	t.is(eventStore[2].eventData, 'test data');
+});
