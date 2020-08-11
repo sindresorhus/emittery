@@ -13,14 +13,9 @@ type EventNames = EventName | readonly EventName[];
 /**
 Emittery can log debug output to console, this function takes care of outputting log data.
 
-To enable this feature set the DEBUG environment variable to 'emittery' or '*'. Additionally you can set the 'isDebug' option to true on the Emittery class, or an instance of it for debugging a single instance.
+To enable this feature set the DEBUG environment variable to 'emittery' or '*'. Additionally you can set the 'isDebug' option to true on the Emittery class, or on an instance of it for debugging a single instance.
 */
 type DebugLogger = (type: string, debugName: string, eventName?: EventName, eventData?: unknown) => void;
-
-/**
-Decides if Emittery should be in debug mode.
-*/
-type DebugPredicate = () => boolean;
 
 /**
 Configure the new instance of Emittery
@@ -31,7 +26,7 @@ interface Options {
 	@example
 	```
 	const Emittery = require('emittery');
-	Emittery.isDebug = () => true;
+	Emittery.isDebug = true;
 	const emitter = new Emittery({debugName: "myEmitter"});
 	emitter.on('test', data => { // do something });
 	//=> [emittery:subscribe][myEmitter] Event Name: test
@@ -114,13 +109,13 @@ declare class Emittery {
 	static readonly listenerRemoved: unique symbol;
 
 	/**
-	Handles debug data, by default it print it to the console.
+	Handles debug data, by default it prints it to the console.
 
 	@default Prints the type, debugName, eventName and eventData to the console
 	@example
 	```
 	const Emittery = require('emittery');
-	Emittery.isDebug = () => true;
+	Emittery.isDebug = true;
 	Emittery.debugLogger = (type, debugName, eventName, eventData) => console.log(`[${type}]: ${eventName}`);
 
 	const emitter = new Emittery();
@@ -138,7 +133,7 @@ declare class Emittery {
 	@example
 	```
 	const Emittery = require('emittery');
-	Emittery.isDebug = () => true;
+	Emittery.isDebug = true;
 
 	const emitter = new Emittery({debugName: 'myEmitter'});
 	emitter.on('test', data => { // do something });
@@ -147,7 +142,7 @@ declare class Emittery {
 	//	data: undefined
 	```
 	*/
-	static isDebug: DebugPredicate;
+	static isDebug: boolean;
 
 	/**
 	Create a new Emittery instance with the specified opitons

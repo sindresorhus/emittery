@@ -43,15 +43,15 @@ Emittery accepts strings and symbols as event names.
 
 Symbol event names can be used to avoid name collisions when your classes are extended, especially for internal events.
 
-### isDebug()
+### isDebug
 Controls debug mode for all instances
 
-**Default:** Returns true if the DEBUG environment variable is set to 'emittery' or '*', otherwise false.
+Default: Returns true if the DEBUG environment variable is set to 'emittery' or '*', otherwise false.
 
-**Example:**
+Example:
 ```js
 const Emittery = require('emittery');
-Emittery.isDebug = () => true;
+Emittery.isDebug = true;
 
 const emitter = new Emittery({debugName: 'myEmitter'});
 emitter.on('test', data => { // do something });
@@ -63,12 +63,12 @@ emitter.on('test', data => { // do something });
 ### debugLogger(type, debugName, eventName, eventData)
 Handles debug data.
 
-**Default:** Prints the type, debugName, eventName and eventData to the console.
+Default: Prints the type, debugName, eventName and eventData to the console.
 
-**Example:**
+Example:
 ```js
 const Emittery = require('emittery');
-Emittery.isDebug = () => true;
+Emittery.isDebug = true;
 Emittery.debugLogger = (type, debugName, eventName, eventData) => console.log(`[${type}]: ${eventName}`);
 
 const emitter = new Emittery();
@@ -91,7 +91,7 @@ Define a name for the instance of Emittery to use when outputting debug data.
 Example:
 ```js
 const Emittery = require('emittery');
-Emittery.isDebug = () => true;
+Emittery.isDebug = true;
 
 const emitter = new Emittery({debugName: "myEmitter"});
 emitter.on('test', data => { // do something });

@@ -42,9 +42,7 @@ import Emittery = require('.');
 
 // isDebug
 {
-	expectNotAssignable<boolean>(Emittery.isDebug);
-	expectNotAssignable<() => undefined>(Emittery.isDebug);
-	expectAssignable<() => boolean>(Emittery.isDebug);
+	expectAssignable<boolean>(Emittery.isDebug);
 	expectNotAssignable<() => undefined>(Emittery.debugLogger);
 	expectNotAssignable<(data: unknown) => undefined>(Emittery.debugLogger);
 	expectNotAssignable<(type: string, debugName: string) => undefined>(Emittery.debugLogger);
