@@ -200,10 +200,6 @@ class Emittery {
 	}
 
 	static debugLogger(type, debugName, eventName, eventData) {
-		if (typeof eventName !== 'string') {
-			eventName = eventName.toString();
-		}
-
 		if (typeof eventData === 'object') {
 			eventData = JSON.stringify(eventData);
 		}
