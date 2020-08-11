@@ -189,7 +189,7 @@ class Emittery {
 		};
 	}
 
-	static isDebug() {
+	static get isDebug() {
 		return process.env.DEBUG === 'emittery' || process.env.DEBUG === '*';
 	}
 
@@ -221,7 +221,7 @@ class Emittery {
 			assertEventName(eventName);
 			getListeners(this, eventName).add(listener);
 
-			if (Emittery.isDebug() || this.isDebug) {
+			if (Emittery.isDebug || this.isDebug) {
 				Emittery.debugLogger('subscribe', this.debugName, eventName, undefined);
 			}
 
@@ -241,7 +241,7 @@ class Emittery {
 			assertEventName(eventName);
 			getListeners(this, eventName).delete(listener);
 
-			if (Emittery.isDebug() || this.isDebug) {
+			if (Emittery.isDebug || this.isDebug) {
 				Emittery.debugLogger('unsubscribe', this.debugName, eventName, undefined);
 			}
 
@@ -272,7 +272,7 @@ class Emittery {
 	async emit(eventName, eventData) {
 		assertEventName(eventName);
 
-		if (Emittery.isDebug() || this.isDebug) {
+		if (Emittery.isDebug || this.isDebug) {
 			Emittery.debugLogger('emit', this.debugName, eventName, eventData);
 		}
 
@@ -301,7 +301,7 @@ class Emittery {
 	async emitSerial(eventName, eventData) {
 		assertEventName(eventName);
 
-		if (Emittery.isDebug() || this.isDebug) {
+		if (Emittery.isDebug || this.isDebug) {
 			Emittery.debugLogger('emitSerial', this.debugName, eventName, eventData);
 		}
 
@@ -328,7 +328,7 @@ class Emittery {
 
 	onAny(listener) {
 		assertListener(listener);
-		if (Emittery.isDebug() || this.isDebug) {
+		if (Emittery.isDebug || this.isDebug) {
 			Emittery.debugLogger('subscribeAny', this.debugName, undefined, undefined);
 		}
 
@@ -343,7 +343,7 @@ class Emittery {
 
 	offAny(listener) {
 		assertListener(listener);
-		if (Emittery.isDebug() || this.isDebug) {
+		if (Emittery.isDebug || this.isDebug) {
 			Emittery.debugLogger('unsubscribeAny', this.debugName, undefined, undefined);
 		}
 
@@ -355,7 +355,7 @@ class Emittery {
 		eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
 
 		for (const eventName of eventNames) {
-			if (Emittery.isDebug() || this.isDebug) {
+			if (Emittery.isDebug || this.isDebug) {
 				Emittery.debugLogger('clear', this.debugName, eventName, undefined);
 			}
 
