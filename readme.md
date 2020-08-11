@@ -100,13 +100,29 @@ emitter.on('test', data => { // do something });
 //	data: undefined
 ```
 
-#### on(eventName, listener)
+#### on(eventName | eventName[], listener)
 
-Subscribe to an event.
+Subscribe to one or more events.
 
 Returns an unsubscribe method.
 
 Using the same listener multiple times for the same event will result in only one method call per emitted event.
+
+```js
+const Emittery = require('emittery');
+
+const emitter = new Emittery();
+
+emitter.on('🦄', data => {
+	console.log(data);
+});
+emitter.on(['🦄', '🐶'], data => {
+	console.log(data);
+});
+
+emitter.emit('🦄', '🌈'); // log => '🌈' x2
+emitter.emit('🐶', '🍖'); // log => '🍖'
+```
 
 ##### Custom subscribable events
 
@@ -142,15 +158,34 @@ Only events that are not of this type are able to trigger these events.
 
 ##### listener(data)
 
-#### off(eventName, listener)
+#### off(eventName | eventName[], listener)
 
-Remove an event subscription.
+Remove one or more event subscriptions.
+
+```js
+const Emittery = require('emittery');
+
+const emitter = new Emittery();
+
+const listener = data => console.log(data);
+(async () => {
+	emitter.on(['🦄', '🐶', '🦊'], listener);
+	await emitter.emit('🦄', 'a');
+	await emitter.emit('🐶', 'b');
+	await emitter.emit('🦊', 'c');
+	emitter.off('🦄', listener);
+	emitter.off(['🐶', '🦊'], listener);
+	await emitter.emit('🦄', 'a'); // nothing happens
+	await emitter.emit('🐶', 'b'); // nothing happens
+	await emitter.emit('🦊', 'c'); // nothing happens
+})();
+```
 
 ##### listener(data)
 
-#### once(eventName)
+#### once(eventName | eventName[])
 
-Subscribe to an event only once. It will be unsubscribed after the first event.
+Subscribe to one or more events only once. It will be unsubscribed after the first event.
 
 Returns a promise for the event data when `eventName` is emitted.
 
@@ -163,8 +198,12 @@ emitter.once('🦄').then(data => {
 	console.log(data);
 	//=> '🌈'
 });
+emitter.once(['🦄', '🐶']).then(data => {
+	console.log(data);
+});
 
-emitter.emit('🦄', '🌈');
+emitter.emit('🦄', '🌈'); // log => '🌈' x2
+emitter.emit('🐶', '🍖'); // nothing happens
 ```
 
 #### events(eventName)
@@ -217,6 +256,35 @@ for await (const data of iterator) {
 		break; // Revoke the subscription when we see the value '🌈2'.
 	}
 }
+```
+
+It accepts multiple event names.
+
+```js
+const Emittery = require('emittery');
+
+const emitter = new Emittery();
+const iterator = emitter.events(['🦄', '🦊']);
+
+emitter.emit('🦄', '🌈1'); // Buffered
+emitter.emit('🦊', '🌈2'); // Buffered
+
+iterator
+	.next()
+	.then(({value, done}) => {
+		// done === false
+		// value === '🌈1'
+		return iterator.next();
+	})
+	.then(({value, done}) => {
+		// done === false
+		// value === '🌈2'
+		// Revoke subscription
+		return iterator.return();
+	})
+	.then(({done}) => {
+		// done === true
+	});
 ```
 
 #### emit(eventName, data?)
@@ -277,15 +345,15 @@ iterator.next()
 
 In the same way as for `events`, you can subscribe by using the `for await` statement
 
-#### clearListeners()
+#### clearListeners(eventNames?)
 
 Clear all event listeners on the instance.
 
-If `eventName` is given, only the listeners for that event are cleared.
+If `eventNames` is given, only the listeners for that events are cleared.
 
-#### listenerCount(eventName?)
+#### listenerCount(eventNames?)
 
-The number of listeners for the `eventName` or all events if not specified.
+The number of listeners for the `eventNames` or all events if not specified.
 
 #### bindMethods(target, methodNames?)
 

@@ -31,7 +31,7 @@ function getListeners(instance, eventName) {
 }
 
 function getEventProducers(instance, eventName) {
-	const key = typeof eventName === 'string' ? eventName : anyProducer;
+	const key = typeof eventName === 'string' || typeof eventName === 'symbol' ? eventName : anyProducer;
 	const producers = producersMap.get(instance);
 	if (!producers.has(key)) {
 		producers.set(key, new Set());
@@ -56,7 +56,9 @@ function enqueueProducers(instance, eventName, eventData) {
 	}
 }
 
-function iterator(instance, eventName) {
+function iterator(instance, eventNames) {
+	eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
+
 	let isFinished = false;
 	let flush = () => {};
 	let queue = [];
@@ -72,7 +74,9 @@ function iterator(instance, eventName) {
 		}
 	};
 
-	getEventProducers(instance, eventName).add(producer);
+	for (const eventName of eventNames) {
+		getEventProducers(instance, eventName).add(producer);
+	}
 
 	return {
 		async next() {
@@ -101,7 +105,11 @@ function iterator(instance, eventName) {
 
 		async return(value) {
 			queue = undefined;
-			getEventProducers(instance, eventName).delete(producer);
+
+			for (const eventName of eventNames) {
+				getEventProducers(instance, eventName).delete(producer);
+			}
+
 			flush();
 
 			return arguments.length > 0 ?
@@ -205,53 +213,60 @@ class Emittery {
 		this.isDebug = false;
 	}
 
-	on(eventName, listener) {
-		assertEventName(eventName);
-		assertListener(listener);
-		getListeners(this, eventName).add(listener);
-		if (Emittery.isDebug() || this.isDebug) {
-			Emittery.debugLogger('subscribe', this.debugName, eventName, undefined);
-		}
-
-		if (!isListenerSymbol(eventName)) {
-			this.emit(listenerAdded, {eventName, listener});
-		}
-
-		return this.off.bind(this, eventName, listener);
-	}
-
-	off(eventName, listener) {
-		assertEventName(eventName);
+	on(eventNames, listener) {
 		assertListener(listener);
 
-		if (Emittery.isDebug() || this.isDebug) {
-			Emittery.debugLogger('unsubscribe', this.debugName, eventName, undefined);
-		}
-
-		if (!isListenerSymbol(eventName)) {
-			this.emit(listenerRemoved, {eventName, listener});
-		}
-
-		getListeners(this, eventName).delete(listener);
-	}
-
-	once(eventName) {
-		if (Emittery.isDebug() || this.isDebug) {
-			Emittery.debugLogger('subscribeOnce', this.debugName, eventName, undefined);
-		}
-
-		return new Promise(resolve => {
+		eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
+		for (const eventName of eventNames) {
 			assertEventName(eventName);
-			const off = this.on(eventName, data => {
+			getListeners(this, eventName).add(listener);
+
+			if (Emittery.isDebug() || this.isDebug) {
+				Emittery.debugLogger('subscribe', this.debugName, eventName, undefined);
+			}
+
+			if (!isListenerSymbol(eventName)) {
+				this.emit(listenerAdded, {eventName, listener});
+			}
+		}
+
+		return this.off.bind(this, eventNames, listener);
+	}
+
+	off(eventNames, listener) {
+		assertListener(listener);
+
+		eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
+		for (const eventName of eventNames) {
+			assertEventName(eventName);
+			getListeners(this, eventName).delete(listener);
+
+			if (Emittery.isDebug() || this.isDebug) {
+				Emittery.debugLogger('unsubscribe', this.debugName, eventName, undefined);
+			}
+
+			if (!isListenerSymbol(eventName)) {
+				this.emit(listenerRemoved, {eventName, listener});
+			}
+		}
+	}
+
+	once(eventNames) {
+		return new Promise(resolve => {
+			const off = this.on(eventNames, data => {
 				off();
 				resolve(data);
 			});
 		});
 	}
 
-	events(eventName) {
-		assertEventName(eventName);
-		return iterator(this, eventName);
+	events(eventNames) {
+		eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
+		for (const eventName of eventNames) {
+			assertEventName(eventName);
+		}
+
+		return iterator(this, eventNames);
 	}
 
 	async emit(eventName, eventData) {
@@ -269,7 +284,7 @@ class Emittery {
 		const staticAnyListeners = isListenerSymbol(eventName) ? [] : [...anyListeners];
 
 		await resolvedPromise;
-		return Promise.all([
+		await Promise.all([
 			...staticListeners.map(async listener => {
 				if (listeners.has(listener)) {
 					return listener(eventData);
@@ -336,56 +351,66 @@ class Emittery {
 		anyMap.get(this).delete(listener);
 	}
 
-	clearListeners(eventName) {
-		if (Emittery.isDebug() || this.isDebug) {
-			Emittery.debugLogger('clear', this.debugName, eventName, undefined);
-		}
+	clearListeners(eventNames) {
+		eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
 
-		if (typeof eventName === 'string') {
-			getListeners(this, eventName).clear();
-
-			const producers = getEventProducers(this, eventName);
-
-			for (const producer of producers) {
-				producer.finish();
+		for (const eventName of eventNames) {
+			if (Emittery.isDebug() || this.isDebug) {
+				Emittery.debugLogger('clear', this.debugName, eventName, undefined);
 			}
 
-			producers.clear();
-		} else {
-			anyMap.get(this).clear();
+			if (typeof eventName === 'string' || typeof eventName === 'symbol') {
+				getListeners(this, eventName).clear();
 
-			for (const listeners of eventsMap.get(this).values()) {
-				listeners.clear();
-			}
+				const producers = getEventProducers(this, eventName);
 
-			for (const producers of producersMap.get(this).values()) {
 				for (const producer of producers) {
 					producer.finish();
 				}
 
 				producers.clear();
+			} else {
+				anyMap.get(this).clear();
+
+				for (const listeners of eventsMap.get(this).values()) {
+					listeners.clear();
+				}
+
+				for (const producers of producersMap.get(this).values()) {
+					for (const producer of producers) {
+						producer.finish();
+					}
+
+					producers.clear();
+				}
 			}
 		}
 	}
 
-	listenerCount(eventName) {
-		if (typeof eventName === 'string') {
-			return anyMap.get(this).size + getListeners(this, eventName).size +
-				getEventProducers(this, eventName).size + getEventProducers(this).size;
-		}
+	listenerCount(eventNames) {
+		eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
+		let count = 0;
 
-		if (typeof eventName !== 'undefined') {
-			assertEventName(eventName);
-		}
+		for (const eventName of eventNames) {
+			if (typeof eventName === 'string') {
+				count += anyMap.get(this).size + getListeners(this, eventName).size +
+					getEventProducers(this, eventName).size + getEventProducers(this).size;
+				continue;
+			}
 
-		let count = anyMap.get(this).size;
+			if (typeof eventName !== 'undefined') {
+				assertEventName(eventName);
+			}
 
-		for (const value of eventsMap.get(this).values()) {
-			count += value.size;
-		}
+			count += anyMap.get(this).size;
 
-		for (const value of producersMap.get(this).values()) {
-			count += value.size;
+			for (const value of eventsMap.get(this).values()) {
+				count += value.size;
+			}
+
+			for (const value of producersMap.get(this).values()) {
+				count += value.size;
+			}
 		}
 
 		return count;
