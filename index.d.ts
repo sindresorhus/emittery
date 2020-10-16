@@ -26,7 +26,7 @@ declare class Emittery {
 	instance.emit('event');
 	```
 	*/
-	static mixin(emitteryPropertyName: string, methodNames?: readonly string[]): Function;
+	static mixin(emitteryPropertyName: string | symbol, methodNames?: readonly string[]): Function;
 
 	/**
 	Fires when an event listener was added.
