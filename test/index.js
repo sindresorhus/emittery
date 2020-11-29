@@ -391,6 +391,21 @@ test.cb('emit() - is async', t => {
 	t.false(unicorn);
 });
 
+test('emit() - awaits async listeners', async t => {
+	const emitter = new Emittery();
+	let unicorn = false;
+
+	emitter.on('🦄', async () => {
+		await Promise.resolve();
+		unicorn = true;
+	});
+
+	const promise = emitter.emit('🦄');
+	t.false(unicorn);
+	await promise;
+	t.true(unicorn);
+});
+
 test('emit() - calls listeners subscribed when emit() was invoked', async t => {
 	const emitter = new Emittery();
 	const calls = [];

@@ -144,11 +144,11 @@ declare class Emittery<
 	*/
 	on<Name extends keyof EventData>(
 		eventName: Name,
-		listener: (eventData: EventData[Name]) => void
+		listener: (eventData: EventData[Name]) => void | Promise<void>
 	): Emittery.UnsubscribeFn;
 	on(
 		eventName: typeof Emittery.listenerAdded | typeof Emittery.listenerRemoved,
-		listener: (eventData: Emittery.ListenerChangedData) => void
+		listener: (eventData: Emittery.ListenerChangedData) => void | Promise<void>
 	): Emittery.UnsubscribeFn;
 
 	/**
@@ -263,7 +263,7 @@ declare class Emittery<
 	*/
 	off<Name extends keyof EventData>(
 		eventName: Name,
-		listener: (eventData: EventData[Name]) => void
+		listener: (eventData: EventData[Name]) => void | Promise<void>
 	): void;
 
 	/**
@@ -328,7 +328,7 @@ declare class Emittery<
 		listener: (
 			eventName: keyof EventData,
 			eventData: EventData[keyof EventData]
-		) => void
+		) => void | Promise<void>
 	): Emittery.UnsubscribeFn;
 
 	/**
@@ -376,7 +376,7 @@ declare class Emittery<
 		listener: (
 			eventName: keyof EventData,
 			eventData: EventData[keyof EventData]
-		) => void
+		) => void | Promise<void>
 	): void;
 
 	/**
@@ -421,7 +421,7 @@ declare namespace Emittery {
 		/**
 		The listener that was added or removed.
 		*/
-		listener: (eventData?: unknown) => void;
+		listener: (eventData?: unknown) => Promise<void>;
 
 		/**
 		The name of the event that was added or removed if `.on()` or `.off()` was used, or `undefined` if `.onAny()` or `.offAny()` was used.
