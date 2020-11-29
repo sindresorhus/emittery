@@ -37,5 +37,15 @@ import Emittery = require('.');
 
 {
 	const ee = new Emittery();
-	expectError(ee.on('anEvent', (data: any, more: any) => undefined));
+	expectError(ee.on("anEvent", (data: any, more: any) => undefined));
+}
+
+// strict typing
+{
+	const ee = new Emittery<{ value: string }, "open" | "close">();
+	ee.emit("open");
+	ee.emit("close");
+	ee.emit("value", "test");
+	expectError(ee.emit("value"));
+	expectError(ee.emit("open", "test"));
 }

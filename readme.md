@@ -316,17 +316,22 @@ object.emit('event');
 
 ## TypeScript
 
-The default `Emittery` class does not let you type allowed event names and their associated data. However, you can use `Emittery.Typed` with generics:
+The default `Emittery` class has generic types that allow TypeScript users to strongly type the list of events and the data passed to their event listeners.
 
 ```ts
-import Emittery = require('emittery');
+import Emittery = require("emittery");
 
-const emitter = new Emittery.Typed<{value: string}, 'open' | 'close'>();
+const emitter = new Emittery<
+	// pass {[eventName]: <eventArgs>} as the first type argument for events that pass data to their listeners
+	{ value: string },
+	// pass a string union type for the event names that don't have data
+	"open" | "close"
+>();
 
-emitter.emit('open');
-emitter.emit('value', 'foo\n');
-emitter.emit('value', 1); // TS compilation error
-emitter.emit('end'); // TS compilation error
+emitter.emit("open");
+emitter.emit("value", "foo\n");
+emitter.emit("value", 1); // TS compilation error
+emitter.emit("end"); // TS compilation error
 ```
 
 ### Emittery.mixin(emitteryPropertyName, methodNames?)
