@@ -42,7 +42,11 @@ import Emittery = require('.');
 
 // strict typing
 {
-	const ee = new Emittery<{ value: string }, "open" | "close">();
+	const ee = new Emittery<{
+		value: string;
+		open: undefined;
+		close: undefined;
+	}>();
 	ee.emit("open");
 	ee.emit("close");
 	ee.emit("value", "test");

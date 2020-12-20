@@ -316,22 +316,31 @@ object.emit('event');
 
 ## TypeScript
 
-The default `Emittery` class has generic types that allow TypeScript users to strongly type the list of events and the data passed to their event listeners.
+The default `Emittery` class has generic types that can be provided by TypeScript users to strongly type the list of events and the data passed to their event listeners.
 
 ```ts
 import Emittery = require("emittery");
 
 const emitter = new Emittery<
-	// pass {[eventName]: <eventArgs>} as the first type argument for events that pass data to their listeners
-	{ value: string },
-	// pass a string union type for the event names that don't have data
-	"open" | "close"
+	// pass { [eventName]: undefined | <eventArg> } as the first type argument for events that pass data to their listeners
+	// a value in this map of undefined means the event listeners should expect no data, and a type other than undefined means the listeners will receive one argument of that type
+	{
+		open: string,
+		close: undefined
+	},
 >();
 
-emitter.emit("open");
-emitter.emit("value", "foo\n");
-emitter.emit("value", 1); // TS compilation error
-emitter.emit("end"); // TS compilation error
+// typechecks just fine because the data type for the `open` event is `string`
+emitter.emit('open', 'foo\n');
+
+// typechecks just fine because `close` is present but points to undefined in the event data type map
+emitter.emit('close');
+
+// TS compilation error because `1` isn't assignable to `string`
+emitter.emit('open', 1);
+
+// TS compilation error because `other` isn't defined in the event data type map
+emitter.emit('other'); // TS compilation error
 ```
 
 ### Emittery.mixin(emitteryPropertyName, methodNames?)

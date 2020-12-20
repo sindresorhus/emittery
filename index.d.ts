@@ -5,19 +5,14 @@ Symbol event names can be used to avoid name collisions when your classes are ex
 */
 type EventName = string | symbol;
 
-/**
-Emittery also accepts an array of strings and symbols as event names.
-*/
-type EventNames = EventName | readonly EventName[];
-
-type EventNameFromDataMap<EventDataMap> = Extract<
-	keyof EventDataMap,
-	EventName
->;
+// Helper type for turning the passed EventData type map into a list of string keys that don't require data alongside the event name when emitting. Uses the same trick that `Omit` does internally to filter keys by building a map of keys to keys we want to keep, and then accessing all the keys to return just the list of keys we want to keep.
+type DatalessEventNames<EventData> = {
+	[Key in keyof EventData]: EventData[Key] extends undefined ? Key : never;
+}[keyof EventData];
 
 declare class Emittery<
-	EventDataMap extends Emittery.Events = { [key: string]: unknown },
-	EmptyEvents extends EventName = string
+	EventData = { [eventName: string]: any },
+	DatalessEvents = DatalessEventNames<EventData>
 > {
 	/**
 	In TypeScript, it returns a decorator which mixins `Emittery` as property `emitteryPropertyName` and `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the target class.
@@ -117,13 +112,9 @@ declare class Emittery<
 	emitter.emit('🐶', '🍖'); // log => '🍖'
 	```
 	*/
-	on<Name extends EventNameFromDataMap<EventDataMap>>(
+	on<Name extends keyof EventData>(
 		eventName: Name,
-		listener: (eventData: EventDataMap[Name]) => void
-	): Emittery.UnsubscribeFn;
-	on<Name extends EmptyEvents>(
-		eventName: Name,
-		listener: () => void
+		listener: (eventData: EventData[Name]) => void
 	): Emittery.UnsubscribeFn;
 	on(
 		eventName: typeof Emittery.listenerAdded | typeof Emittery.listenerRemoved,
@@ -213,9 +204,9 @@ declare class Emittery<
 		});
 	```
 	*/
-	events<Name extends EventNameFromDataMap<EventDataMap>>(
+	events<Name extends keyof EventData>(
 		eventName: Name
-	): AsyncIterableIterator<EventDataMap[Name]>;
+	): AsyncIterableIterator<EventData[Name]>;
 
 	/**
 	Remove one or more event subscriptions.
@@ -240,11 +231,10 @@ declare class Emittery<
 	})();
 	```
 	*/
-	off<Name extends EventNameFromDataMap<EventDataMap>>(
+	off<Name extends keyof EventData>(
 		eventName: Name,
-		listener: (eventData: EventDataMap[Name]) => void
+		listener: (eventData: EventData[Name]) => void
 	): void;
-	off<Name extends EmptyEvents>(eventName: Name, listener: () => void): void;
 
 	/**
 	Subscribe to one or more events only once. It will be unsubscribed after the first
@@ -270,10 +260,7 @@ declare class Emittery<
 	emitter.emit('🐶', '🍖'); // Nothing happens
 	```
 	*/
-	once<Name extends EventNameFromDataMap<EventDataMap>>(
-		eventName: Name
-	): Promise<EventDataMap[Name]>;
-	once<Name extends EmptyEvents>(eventName: Name): Promise<void>;
+	once<Name extends keyof EventData>(eventName: Name): Promise<EventData[Name]>;
 	once(
 		eventName: typeof Emittery.listenerAdded | typeof Emittery.listenerRemoved
 	): Promise<Emittery.ListenerChangedData>;
@@ -283,11 +270,11 @@ declare class Emittery<
 
 	@returns A promise that resolves when all the event listeners are done. *Done* meaning executed if synchronous or resolved when an async/promise-returning function. You usually wouldn't want to wait for this, but you could for example catch possible errors. If any of the listeners throw/reject, the returned promise will be rejected with the error, but the other listeners will not be affected.
 	*/
-	emit<Name extends EventNameFromDataMap<EventDataMap>>(
+	emit<Name extends DatalessEvents>(eventName: Name): Promise<void>;
+	emit<Name extends keyof EventData>(
 		eventName: Name,
-		eventData: EventDataMap[Name]
+		eventData: EventData[Name]
 	): Promise<void>;
-	emit<Name extends EmptyEvents>(eventName: Name): Promise<void>;
 
 	/**
 	Same as `emit()`, but it waits for each listener to resolve before triggering the next one. This can be useful if your events depend on each other. Although ideally they should not. Prefer `emit()` whenever possible.
@@ -296,11 +283,11 @@ declare class Emittery<
 
 	@returns A promise that resolves when all the event listeners are done.
 	*/
-	emitSerial<Name extends EventNameFromDataMap<EventDataMap>>(
+	emitSerial<Name extends DatalessEvents>(eventName: Name): Promise<void>;
+	emitSerial<Name extends keyof EventData>(
 		eventName: Name,
-		eventData: EventDataMap[Name]
+		eventData: EventData[Name]
 	): Promise<void>;
-	emitSerial<Name extends EmptyEvents>(eventName: Name): Promise<void>;
 
 	/**
 	Subscribe to be notified about any event.
@@ -308,9 +295,9 @@ declare class Emittery<
 	@returns A method to unsubscribe.
 	*/
 	onAny(
-		listener: (
-			eventName: EventNameFromDataMap<EventDataMap> | EmptyEvents,
-			eventData?: EventDataMap[EventNameFromDataMap<EventDataMap>]
+		listener: <Event extends keyof EventData>(
+			eventName: Event,
+			eventData?: EventData[Event]
 		) => void
 	): Emittery.UnsubscribeFn;
 	/**
@@ -348,19 +335,16 @@ declare class Emittery<
 	```
 	*/
 	anyEvent(): AsyncIterableIterator<
-		[
-			EventNameFromDataMap<EventDataMap>,
-			EventDataMap[EventNameFromDataMap<EventDataMap>]
-		]
+		[keyof EventData, EventData[keyof EventData]]
 	>;
 
 	/**
 	Remove an `onAny` subscription.
 	*/
 	offAny(
-		listener: (
-			eventName: EventNameFromDataMap<EventDataMap> | EmptyEvents,
-			eventData?: EventDataMap[EventNameFromDataMap<EventDataMap>]
+		listener: <Event extends keyof EventData>(
+			eventName: Event,
+			eventData?: EventData[Event]
 		) => void
 	): void;
 
@@ -369,16 +353,12 @@ declare class Emittery<
 
 	If `eventName` is given, only the listeners for that event are cleared.
 	*/
-	clearListeners(
-		eventName?: EventNameFromDataMap<EventDataMap> | EmptyEvents
-	): void;
+	clearListeners(eventName?: keyof EventData): void;
 
 	/**
 	The number of listeners for the `eventName` or all events if not specified.
 	*/
-	listenerCount(
-		eventName?: EventNameFromDataMap<EventDataMap> | EmptyEvents
-	): number;
+	listenerCount(eventName?: keyof EventData): number;
 
 	/**
 	Bind the given `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the `target` object.
