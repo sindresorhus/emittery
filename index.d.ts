@@ -11,7 +11,7 @@ type DatalessEventNames<EventData> = {
 }[keyof EventData];
 
 declare class Emittery<
-	EventData = {[eventName: string]: any},
+	EventData = {  [eventName: string]: any  },
 	DatalessEvents = DatalessEventNames<EventData>
 > {
 	/**
@@ -295,9 +295,9 @@ declare class Emittery<
 	@returns A method to unsubscribe.
 	*/
 	onAny(
-		listener: <Event extends keyof EventData>(
-			eventName: Event,
-			eventData?: EventData[Event]
+		listener: <Name extends keyof EventData>(
+			eventName: Name,
+			eventData?: EventData[Name]
 		) => void
 	): Emittery.UnsubscribeFn;
 	/**
@@ -342,9 +342,9 @@ declare class Emittery<
 	Remove an `onAny` subscription.
 	*/
 	offAny(
-		listener: <Event extends keyof EventData>(
-			eventName: Event,
-			eventData?: EventData[Event]
+		listener: <Name extends keyof EventData>(
+			eventName: Name,
+			eventData?: EventData[Name]
 		) => void
 	): void;
 
