@@ -5,13 +5,13 @@ Symbol event names can be used to avoid name collisions when your classes are ex
 */
 type EventName = string | symbol;
 
-// Helper type for turning the passed EventData type map into a list of string keys that don't require data alongside the event name when emitting. Uses the same trick that `Omit` does internally to filter keys by building a map of keys to keys we want to keep, and then accessing all the keys to return just the list of keys we want to keep.
+// Helper type for turning the passed `EventData` type map into a list of string keys that don't require data alongside the event name when emitting. Uses the same trick that `Omit` does internally to filter keys by building a map of keys to keys we want to keep, and then accessing all the keys to return just the list of keys we want to keep.
 type DatalessEventNames<EventData> = {
 	[Key in keyof EventData]: EventData[Key] extends undefined ? Key : never;
 }[keyof EventData];
 
 declare class Emittery<
-	EventData = { [eventName: string]: any },
+	EventData = {[eventName: string]: any},
 	DatalessEvents = DatalessEventNames<EventData>
 > {
 	/**
