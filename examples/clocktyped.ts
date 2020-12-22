@@ -11,12 +11,11 @@ interface TickData {
 type EventDataMap = {
 	tick: TickData,
 	error: Error
+	start: undefined,
+	stop: undefined,
 };
 
-// List of event which do not required data
-type EmptyEvents = 'start' | 'stop';
-
-class Clock extends Emittery.Typed<EventDataMap, EmptyEvents> {
+class Clock extends Emittery<EventDataMap> {
 	private startedAt = 0;
 	private timer: NodeJS.Timer | null = null;
 

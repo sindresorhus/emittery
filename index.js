@@ -392,13 +392,6 @@ class Emittery {
 
 const allEmitteryMethods = Object.getOwnPropertyNames(Emittery.prototype).filter(v => v !== 'constructor');
 
-// Subclass used to encourage TS users to type their events.
-Emittery.Typed = class extends Emittery {};
-Object.defineProperty(Emittery.Typed, 'Typed', {
-	enumerable: false,
-	value: undefined
-});
-
 Object.defineProperty(Emittery, 'listenerAdded', {
 	value: listenerAdded,
 	writable: false,
