@@ -242,7 +242,9 @@ test('events() - discarded iterators should stop receiving events', async t => {
 		emitter.emit('🦄', '🌟');
 	}, 10);
 
-	await new Promise(resolve => setTimeout(resolve, 20));
+	await new Promise(resolve => {
+		setTimeout(resolve, 20);
+	});
 
 	t.deepEqual(await iterator.next(), {done: true});
 });
@@ -664,7 +666,9 @@ test('anyEvents() - discarded iterators should stop receiving events', async t =
 		emitter.emit('🦄', '🌟');
 	}, 10);
 
-	await new Promise(resolve => setTimeout(resolve, 20));
+	await new Promise(resolve => {
+		setTimeout(resolve, 20);
+	});
 
 	t.deepEqual(await iterator.next(), {done: true});
 });

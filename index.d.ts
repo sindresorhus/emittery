@@ -41,29 +41,9 @@ type DatalessEventNames<EventData> = {
 	```
 */
 declare class Emittery<
-	EventData = { [eventName: string]: any }, // TODO: switch this index signature to include Symbols when https://github.com/microsoft/TypeScript/issues/1863 ships. If you want to use symbol keys right now, you need to pass an interface with those symbol keys explicitly listed.
+	EventData = Record<string, any>, // When https://github.com/microsoft/TypeScript/issues/1863 ships, we can switch this to have an index signature including Symbols. If you want to use symbol keys right now, you need to pass an interface with those symbol keys explicitly listed.
 	DatalessEvents = DatalessEventNames<EventData>
 > {
-	/**
-	In TypeScript, it returns a decorator which mixins `Emittery` as property `emitteryPropertyName` and `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the target class.
-
-	@example
-	```
-	import Emittery = require('emittery');
-
-	@Emittery.mixin('emittery')
-	class MyClass {}
-
-	const instance = new MyClass();
-
-	instance.emit('event');
-	```
-	*/
-	static mixin(
-		emitteryPropertyName: string | symbol,
-		methodNames?: readonly string[]
-	): Function;
-
 	/**
 	Fires when an event listener was added.
 
@@ -117,6 +97,26 @@ declare class Emittery<
 	```
 	*/
 	static readonly listenerRemoved: unique symbol;
+
+	/**
+	In TypeScript, it returns a decorator which mixins `Emittery` as property `emitteryPropertyName` and `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the target class.
+
+	@example
+	```
+	import Emittery = require('emittery');
+
+	@Emittery.mixin('emittery')
+	class MyClass {}
+
+	const instance = new MyClass();
+
+	instance.emit('event');
+	```
+	*/
+	static mixin(
+		emitteryPropertyName: string | symbol,
+		methodNames?: readonly string[]
+	): <T extends { new (): any }>(klass: T) => T; // eslint-disable-line @typescript-eslint/prefer-function-type
 
 	/**
 	Subscribe to one or more events.
@@ -366,7 +366,7 @@ declare class Emittery<
 	```
 	*/
 	anyEvent(): AsyncIterableIterator<
-		[keyof EventData, EventData[keyof EventData]]
+	[keyof EventData, EventData[keyof EventData]]
 	>;
 
 	/**
@@ -405,7 +405,7 @@ declare class Emittery<
 	object.emit('event');
 	```
 	*/
-	bindMethods(target: object, methodNames?: readonly string[]): void;
+	bindMethods(target: Record<string, unknown>, methodNames?: readonly string[]): void;
 }
 
 declare namespace Emittery {
@@ -413,14 +413,6 @@ declare namespace Emittery {
 	Removes an event subscription.
 	*/
 	type UnsubscribeFn = () => void;
-
-	/**
-	Maps event names to their emitted data type.
-	*/
-	interface Events {
-		// Blocked by https://github.com/microsoft/TypeScript/issues/1863, should be
-		// `[eventName: EventName]: unknown;`
-	}
 
 	/**
 	The data provided as `eventData` when listening for `Emittery.listenerAdded` or `Emittery.listenerRemoved`.

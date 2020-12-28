@@ -9,10 +9,10 @@ interface TickData {
 
 // Map Clock's events emitting data to the type of their data.
 type EventDataMap = {
-	tick: TickData,
-	error: Error
-	start: undefined,
-	stop: undefined,
+	tick: TickData;
+	error: Error;
+	start: undefined;
+	stop: undefined;
 };
 
 class Clock extends Emittery<EventDataMap> {
@@ -21,18 +21,6 @@ class Clock extends Emittery<EventDataMap> {
 
 	public constructor() {
 		super();
-	}
-
-	private tick() {
-		if (!this.timer) {
-			this.emit('error', new Error('Clock has not been started'));
-			return;
-		}
-
-		const now = Date.now();
-		const duration = now - this.startedAt;
-
-		this.emit('tick', {duration, now});
 	}
 
 	public start() {
@@ -55,6 +43,18 @@ class Clock extends Emittery<EventDataMap> {
 		this.timer = null;
 
 		this.emit('stop');
+	}
+
+	private tick() {
+		if (!this.timer) {
+			this.emit('error', new Error('Clock has not been started'));
+			return;
+		}
+
+		const now = Date.now();
+		const duration = now - this.startedAt;
+
+		this.emit('tick', {duration, now});
 	}
 }
 
