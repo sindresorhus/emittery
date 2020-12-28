@@ -10,7 +10,6 @@ type DatalessEventNames<EventData> = {
 	[Key in keyof EventData]: EventData[Key] extends undefined ? Key : never;
 }[keyof EventData];
 
-
 /**
   Emittery is a strictly typed, fully async EventEmitter implementation. Event listeners can be registered with `on` or `once`, and events can be emitted with `emit`.
 
@@ -326,11 +325,12 @@ declare class Emittery<
 	@returns A method to unsubscribe.
 	*/
 	onAny(
-		listener: <Name extends keyof EventData>(
-			eventName: Name,
-			eventData?: EventData[Name]
+		listener: (
+			eventName: keyof EventData,
+			eventData: EventData[keyof EventData]
 		) => void
 	): Emittery.UnsubscribeFn;
+
 	/**
 	Get an async iterator which buffers a tuple of an event name and data each time an event is emitted.
 
@@ -373,9 +373,9 @@ declare class Emittery<
 	Remove an `onAny` subscription.
 	*/
 	offAny(
-		listener: <Name extends keyof EventData>(
-			eventName: Name,
-			eventData?: EventData[Name]
+		listener: (
+			eventName: keyof EventData,
+			eventData: EventData[keyof EventData]
 		) => void
 	): void;
 
