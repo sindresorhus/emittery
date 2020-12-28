@@ -50,7 +50,6 @@
 	"devDependencies": {
 		"@types/node": "^13.7.5",
 		"ava": "^2.4.0",
-		"codecov": "^3.1.0",
 		"delay": "^4.3.0",
 		"nyc": "^15.0.0",
 		"p-event": "^4.1.0",
