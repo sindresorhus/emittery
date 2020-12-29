@@ -121,9 +121,9 @@ const listener = data => console.log(data);
 	await emitter.emit('🦊', 'c');
 	emitter.off('🦄', listener);
 	emitter.off(['🐶', '🦊'], listener);
-	await emitter.emit('🦄', 'a'); // nothing happens
-	await emitter.emit('🐶', 'b'); // nothing happens
-	await emitter.emit('🦊', 'c'); // nothing happens
+	await emitter.emit('🦄', 'a'); // Nothing happens
+	await emitter.emit('🐶', 'b'); // Nothing happens
+	await emitter.emit('🦊', 'c'); // Nothing happens
 })();
 ```
 
@@ -148,8 +148,8 @@ emitter.once(['🦄', '🐶']).then(data => {
 	console.log(data);
 });
 
-emitter.emit('🦄', '🌈'); // log => '🌈' x2
-emitter.emit('🐶', '🍖'); // nothing happens
+emitter.emit('🦄', '🌈'); // Log => '🌈' x2
+emitter.emit('🐶', '🍖'); // Nothing happens
 ```
 
 #### events(eventName)

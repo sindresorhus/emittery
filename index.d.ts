@@ -11,34 +11,35 @@ type DatalessEventNames<EventData> = {
 }[keyof EventData];
 
 /**
-  Emittery is a strictly typed, fully async EventEmitter implementation. Event listeners can be registered with `on` or `once`, and events can be emitted with `emit`.
+Emittery is a strictly typed, fully async EventEmitter implementation. Event listeners can be registered with `on` or `once`, and events can be emitted with `emit`.
 
-  `Emittery` has a generic `EventData` type that can be provided by users to strongly type the list of events and the data passed to the listeners for those events. Pass an interface of {[eventName]: undefined | <eventArg>}, with all the event names as the keys and the values as the type of the argument passed to listeners if there is one, or `undefined` if there isn't.
+`Emittery` has a generic `EventData` type that can be provided by users to strongly type the list of events and the data passed to the listeners for those events. Pass an interface of {[eventName]: undefined | <eventArg>}, with all the event names as the keys and the values as the type of the argument passed to listeners if there is one, or `undefined` if there isn't.
 
-  ```ts
-  import Emittery = require('emittery');
+@example
+```
+import Emittery = require('emittery');
 
-  const emitter = new Emittery<
-  	// Pass `{[eventName: <string | symbol>]: undefined | <eventArg>}` as the first type argument for events that pass data to their listeners.
-    // A value of `undefined` in this map means the event listeners should expect no data, and a type other than `undefined` means the listeners will receive one argument of that type.
-    {
-  		open: string,
-      close: undefined
-	  }
-  >();
+const emitter = new Emittery<
+	// Pass `{[eventName: <string | symbol>]: undefined | <eventArg>}` as the first type argument for events that pass data to their listeners.
+	// A value of `undefined` in this map means the event listeners should expect no data, and a type other than `undefined` means the listeners will receive one argument of that type.
+	{
+		open: string,
+		close: undefined
+	}
+>();
 
-  // Typechecks just fine because the data type for the `open` event is `string`.
-  emitter.emit('open', 'foo\n');
+// Typechecks just fine because the data type for the `open` event is `string`.
+emitter.emit('open', 'foo\n');
 
-   // Typechecks just fine because `close` is present but points to undefined in the event data type map.
-  emitter.emit('close');
+// Typechecks just fine because `close` is present but points to undefined in the event data type map.
+emitter.emit('close');
 
-  // TS compilation error because `1` isn't assignable to `string`.
-  emitter.emit('open', 1);
+// TS compilation error because `1` isn't assignable to `string`.
+emitter.emit('open', 1);
 
-  // TS compilation error because `other` isn't defined in the event data type map.
-  emitter.emit('other');
-	```
+// TS compilation error because `other` isn't defined in the event data type map.
+emitter.emit('other');
+```
 */
 declare class Emittery<
 	EventData = Record<string, any>, // When https://github.com/microsoft/TypeScript/issues/1863 ships, we can switch this to have an index signature including Symbols. If you want to use symbol keys right now, you need to pass an interface with those symbol keys explicitly listed.
