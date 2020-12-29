@@ -83,6 +83,20 @@ import Emittery = require('.');
 	expectError(ee.on('value', (value: number) => {}));
 }
 
+// Async listeners
+{
+	const ee = new Emittery<{
+		open: undefined;
+		close: string;
+	}>();
+	ee.on('open', () => {});
+	ee.on('open', async () => {});
+	ee.on('open', async () => Promise.resolve());
+	ee.on('close', async value => {
+		expectType<string>(value);
+	});
+}
+
 // Strict typing for onAny, offAny listeners
 {
 	const ee = new Emittery<{
