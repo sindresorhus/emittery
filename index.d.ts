@@ -421,7 +421,7 @@ declare namespace Emittery {
 		/**
 		The listener that was added or removed.
 		*/
-		listener: (eventData?: unknown) => Promise<void>;
+		listener: (eventData?: unknown) => void | Promise<void>;
 
 		/**
 		The name of the event that was added or removed if `.on()` or `.off()` was used, or `undefined` if `.onAny()` or `.offAny()` was used.
