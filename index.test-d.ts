@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 import {expectType, expectError} from 'tsd';
+import pEvent = require('p-event');
 import Emittery = require('.');
 
 // Emit
@@ -154,6 +155,26 @@ import Emittery = require('.');
 			expectType<string | number>(event[1]);
 		}
 	};
+}
+
+// Compatibility with p-event, without explicit types
+{
+	const ee = new Emittery();
+	pEvent.iterator(ee, 'data', {
+		resolutionEvents: ['finish']
+	});
+}
+
+// Compatibility with p-event, with explicit types
+{
+	const ee = new Emittery<{
+		data: unknown;
+		error: unknown;
+		finish: undefined;
+	}>();
+	pEvent.iterator(ee, 'data', {
+		resolutionEvents: ['finish']
+	});
 }
 
 // Mixin type
