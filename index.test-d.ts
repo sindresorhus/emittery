@@ -3,6 +3,8 @@ import {expectType, expectError} from 'tsd';
 import pEvent = require('p-event');
 import Emittery = require('.');
 
+type AnyListener = (eventData?: unknown) => void | Promise<void>;
+
 // Emit
 {
 	const ee = new Emittery();
@@ -17,10 +19,14 @@ import Emittery = require('.');
 	ee.on('anEvent', async () => Promise.resolve());
 	ee.on('anEvent', data => undefined);
 	ee.on('anEvent', async data => Promise.resolve());
-	ee.on(Emittery.listenerAdded, ({eventName, listener}) => {});
-	ee.on(Emittery.listenerRemoved, ({eventName, listener}) => {});
-	const off = ee.on('anEvent', () => undefined);
-	off();
+	ee.on(Emittery.listenerAdded, ({eventName, listener}) => {
+		expectType<string | symbol | undefined>(eventName);
+		expectType<AnyListener>(listener);
+	});
+	ee.on(Emittery.listenerRemoved, ({eventName, listener}) => {
+		expectType<string | symbol | undefined>(eventName);
+		expectType<AnyListener>(listener);
+	});
 }
 
 // Off
@@ -30,6 +36,24 @@ import Emittery = require('.');
 	ee.off('anEvent', async () => Promise.resolve());
 	ee.off('anEvent', data => undefined);
 	ee.off('anEvent', async data => Promise.resolve());
+	ee.off(Emittery.listenerAdded, ({eventName, listener}) => {});
+	ee.off(Emittery.listenerRemoved, ({eventName, listener}) => {});
+}
+
+// Once
+{
+	const ee = new Emittery();
+	const test = async () => {
+		await ee.once('anEvent');
+		await ee.once(Emittery.listenerAdded).then(({eventName, listener}) => {
+			expectType<string | symbol | undefined>(eventName);
+			expectType<AnyListener>(listener);
+		});
+		await ee.once(Emittery.listenerRemoved).then(({eventName, listener}) => {
+			expectType<string | symbol | undefined>(eventName);
+			expectType<AnyListener>(listener);
+		});
+	};
 }
 
 {
@@ -40,6 +64,13 @@ import Emittery = require('.');
 {
 	const ee = new Emittery();
 	expectError(ee.on('anEvent', (data: any, more: any) => undefined));
+}
+
+// Userland can't emit the meta events
+{
+	const ee = new Emittery();
+	expectError(ee.emit(Emittery.listenerRemoved));
+	expectError(ee.emit(Emittery.listenerAdded));
 }
 
 // Strict typing for emission

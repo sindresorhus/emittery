@@ -263,9 +263,9 @@ declare class Emittery<
 	})();
 	```
 	*/
-	off<Name extends keyof EventData>(
+	off<Name extends keyof AllEventData>(
 		eventName: Name,
-		listener: (eventData: EventData[Name]) => void | Promise<void>
+		listener: (eventData: AllEventData[Name]) => void | Promise<void>
 	): void;
 
 	/**
