@@ -11,9 +11,8 @@ type DatalessEventNames<EventData> = {
 }[keyof EventData];
 
 declare const listenerAdded: unique symbol;
-type ListenerAddedSymbol = typeof listenerAdded;
 declare const listenerRemoved: unique symbol;
-type ListenerRemovedSymbol = typeof listenerRemoved;
+type OmnipresentEventData = {[listenerAdded]: Emittery.ListenerChangedData; [listenerRemoved]: Emittery.ListenerChangedData};
 
 /**
 Emittery is a strictly typed, fully async EventEmitter implementation. Event listeners can be registered with `on` or `once`, and events can be emitted with `emit`.
@@ -48,7 +47,7 @@ emitter.emit('other');
 */
 declare class Emittery<
 	EventData = Record<string, any>, // When https://github.com/microsoft/TypeScript/issues/1863 ships, we can switch this to have an index signature including Symbols. If you want to use symbol keys right now, you need to pass an interface with those symbol keys explicitly listed.
-	ExtendedEventData = EventData & Record<ListenerAddedSymbol | ListenerRemovedSymbol, Emittery.ListenerChangedData>,
+	AllEventData = EventData & OmnipresentEventData,
 	DatalessEvents = DatalessEventNames<EventData>
 > {
 	/**
@@ -75,7 +74,7 @@ declare class Emittery<
 	});
 	```
 	*/
-	static readonly listenerAdded: ListenerAddedSymbol;
+	static readonly listenerAdded: typeof listenerAdded;
 
 	/**
 	Fires when an event listener was removed.
@@ -103,7 +102,7 @@ declare class Emittery<
 	off();
 	```
 	*/
-	static readonly listenerRemoved: ListenerRemovedSymbol;
+	static readonly listenerRemoved: typeof listenerRemoved;
 
 	/**
 	In TypeScript, it returns a decorator which mixins `Emittery` as property `emitteryPropertyName` and `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the target class.
@@ -149,9 +148,9 @@ declare class Emittery<
 	emitter.emit('🐶', '🍖'); // log => '🍖'
 	```
 	*/
-	on<Name extends keyof ExtendedEventData>(
+	on<Name extends keyof AllEventData>(
 		eventName: Name,
-		listener: (eventData: ExtendedEventData[Name]) => void | Promise<void>
+		listener: (eventData: AllEventData[Name]) => void | Promise<void>
 	): Emittery.UnsubscribeFn;
 
 	/**
@@ -293,7 +292,7 @@ declare class Emittery<
 	emitter.emit('🐶', '🍖'); // Nothing happens
 	```
 	*/
-	once<Name extends keyof ExtendedEventData>(eventName: Name): Promise<ExtendedEventData[Name]>;
+	once<Name extends keyof AllEventData>(eventName: Name): Promise<AllEventData[Name]>;
 
 	/**
 	Trigger an event asynchronously, optionally with some data. Listeners are called in the order they were added, but executed concurrently.
