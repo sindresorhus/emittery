@@ -237,7 +237,7 @@ declare class Emittery<
 	```
 	*/
 	events<Name extends keyof EventData>(
-		eventName: Name
+		eventName: Name | Name[]
 	): AsyncIterableIterator<EventData[Name]>;
 
 	/**

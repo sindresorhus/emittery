@@ -188,6 +188,30 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 	};
 }
 
+// Strict typing for .events iterator
+{
+	const testEventsIterator = async () => {
+		const ee = new Emittery<{
+			value: string;
+			open: undefined;
+			close: undefined;
+		}>();
+
+		for await (const event of ee.events('value')) {
+			expectType<string>(event);
+		}
+
+		for await (const event of ee.events(['value', 'open'])) {
+			expectType<string | undefined>(event);
+		}
+
+		const ee2 = new Emittery();
+		for await (const event of ee2.events('unknown')) {
+			expectType<any>(event);
+		}
+	};
+}
+
 // Compatibility with p-event, without explicit types
 {
 	const ee = new Emittery();
