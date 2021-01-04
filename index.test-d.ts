@@ -188,7 +188,7 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 	};
 }
 
-// Strict typing for .events iterator
+// Strict typing for `.events` iterator
 {
 	const testEventsIterator = async () => {
 		const ee = new Emittery<{
