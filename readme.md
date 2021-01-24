@@ -2,7 +2,7 @@
 
 > Simple and modern async event emitter
 
-[![Coverage Status](https://codecov.io/gh/sindresorhus/emittery/branch/master/graph/badge.svg)](https://codecov.io/gh/sindresorhus/emittery)
+[![Coverage Status](https://codecov.io/gh/sindresorhus/emittery/branch/main/graph/badge.svg)](https://codecov.io/gh/sindresorhus/emittery)
 [![](https://badgen.net/bundlephobia/minzip/emittery)](https://bundlephobia.com/result?p=emittery)
 
 It works in Node.js and the browser (using a bundler).
