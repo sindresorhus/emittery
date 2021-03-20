@@ -65,15 +65,15 @@ emitter2.on('otherTest', data => { // do something });
 //	data: undefined
 ```
 
-### emitter = new Emittery(?options)
+### emitter = new Emittery(options?)
 
 Create a new instance of Emittery
 
-#### ?options
+#### options?
 
 Configure the new instance of Emittery
 
-##### ?debug
+##### debug?
 
 Configure the debugging options for this instance
 
@@ -153,7 +153,6 @@ emitter.on('test', data => { // do something });
 
 //=> [subscribe]: test
 ```
-*/
 
 
 #### on(eventName | eventName[], listener)
