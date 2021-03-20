@@ -199,19 +199,25 @@ class Emittery {
 		globalDebugFlag = newValue;
 	}
 
-	static debugLogger(type, debugName, eventName, eventData) {
+	debugLogger(type, debugName, eventName, eventData) {
 		if (typeof eventData === 'object') {
 			eventData = JSON.stringify(eventData);
 		}
 
-		console.log(`[emittery:${type}][${debugName}] Event Name: ${eventName}\n\tdata: ${eventData}`);
+		if (typeof eventName === 'symbol') {
+			eventName = eventName.toString();
+		}
+
+		const currentTime = new Date();
+		const logTime = `${currentTime.getHours()}:${currentTime.getMinutes()}:${currentTime.getSeconds()}.${currentTime.getMilliseconds()}`;
+		console.log(`[${logTime}][emittery:${type}][${debugName}] Event Name: ${eventName}\n\tdata: ${eventData}`);
 	}
 
 	constructor(options = {}) {
 		anyMap.set(this, new Set());
 		eventsMap.set(this, new Map());
 		producersMap.set(this, new Map());
-		this.debugName = options.debugName;
+		this.debug = options.debug || {name: ''};
 		this.isDebug = false;
 	}
 
@@ -224,7 +230,7 @@ class Emittery {
 			getListeners(this, eventName).add(listener);
 
 			if (Emittery.isDebug || this.isDebug) {
-				Emittery.debugLogger('subscribe', this.debugName, eventName, undefined);
+				this.debugLogger('subscribe', this.debug.name, eventName, undefined);
 			}
 
 			if (!isListenerSymbol(eventName)) {
@@ -244,7 +250,7 @@ class Emittery {
 			getListeners(this, eventName).delete(listener);
 
 			if (Emittery.isDebug || this.isDebug) {
-				Emittery.debugLogger('unsubscribe', this.debugName, eventName, undefined);
+				this.debugLogger('unsubscribe', this.debug.name, eventName, undefined);
 			}
 
 			if (!isListenerSymbol(eventName)) {
@@ -275,7 +281,7 @@ class Emittery {
 		assertEventName(eventName);
 
 		if (Emittery.isDebug || this.isDebug) {
-			Emittery.debugLogger('emit', this.debugName, eventName, eventData);
+			this.debugLogger('emit', this.debug.name, eventName, eventData);
 		}
 
 		enqueueProducers(this, eventName, eventData);
@@ -304,7 +310,7 @@ class Emittery {
 		assertEventName(eventName);
 
 		if (Emittery.isDebug || this.isDebug) {
-			Emittery.debugLogger('emitSerial', this.debugName, eventName, eventData);
+			this.debugLogger('emitSerial', this.debug.name, eventName, eventData);
 		}
 
 		const listeners = getListeners(this, eventName);
@@ -331,7 +337,7 @@ class Emittery {
 	onAny(listener) {
 		assertListener(listener);
 		if (Emittery.isDebug || this.isDebug) {
-			Emittery.debugLogger('subscribeAny', this.debugName, undefined, undefined);
+			this.debugLogger('subscribeAny', this.debug.name, undefined, undefined);
 		}
 
 		anyMap.get(this).add(listener);
@@ -346,7 +352,7 @@ class Emittery {
 	offAny(listener) {
 		assertListener(listener);
 		if (Emittery.isDebug || this.isDebug) {
-			Emittery.debugLogger('unsubscribeAny', this.debugName, undefined, undefined);
+			this.debugLogger('unsubscribeAny', this.debug.name, undefined, undefined);
 		}
 
 		this.emit(listenerRemoved, {listener});
@@ -358,7 +364,7 @@ class Emittery {
 
 		for (const eventName of eventNames) {
 			if (Emittery.isDebug || this.isDebug) {
-				Emittery.debugLogger('clear', this.debugName, eventName, undefined);
+				this.debugLogger('clear', this.debug.name, eventName, undefined);
 			}
 
 			if (typeof eventName === 'string' || typeof eventName === 'symbol') {

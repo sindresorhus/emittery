@@ -77,6 +77,24 @@ declare class Emittery<
 	DatalessEvents = DatalessEventNames<EventData>
 > {
 	/**
+	Controls debug mode for all instances
+
+	@default Returns true if the DEBUG environment variable is set to 'emittery' or '*', otherwise false
+	@example
+	```
+	const Emittery = require('emittery');
+	Emittery.isDebug = true;
+
+	const emitter = new Emittery({debugName: 'myEmitter'});
+	emitter.on('test', data => { // do something });
+
+	//=> [emittery:subscribe][myEmitter] Event Name: test
+	//	data: undefined
+	```
+	*/
+	static isDebug: boolean;
+
+	/**
 	Fires when an event listener was added.
 
 	An object with `listener` and `eventName` (if `on` or `off` was used) is provided as event data.
@@ -131,6 +149,49 @@ declare class Emittery<
 	static readonly listenerRemoved: typeof listenerRemoved;
 
 	/**
+	Handles debug data, by default it prints it to the console.
+
+	@default Prints the type, debugName, eventName and eventData to the console
+	@example
+	```
+	const Emittery = require('emittery');
+	Emittery.isDebug = true;
+	Emittery.debugLogger = (type, debugName, eventName, eventData) => console.log(`[${type}]: ${eventName}`);
+
+	const emitter = new Emittery();
+	emitter.on('test', data => { // do something });
+
+	//=> [subscribe]: test
+	```
+	*/
+	debugLogger: DebugLogger;
+
+	/**
+	Enables debug output for this instance of Emittery
+
+	@default false
+	@example
+	```
+	const Emittery = require('emittery');
+
+	const emitter = new Emittery({debugName: 'myEmitter'});
+	emitter.isDebug = true;
+	emitter.on('test', data => { // do something });
+
+	//=> [emittery:subscribe][myEmitter] Event Name: test
+	//	data: undefined
+	```
+	*/
+	isDebug: boolean;
+
+	/**
+	Create a new Emittery instance with the specified opitons
+
+	@returns An instance of Emittery that you can use to listen for and emit events
+	*/
+	constructor(options?: Options);
+
+	/**
 	In TypeScript, it returns a decorator which mixins `Emittery` as property `emitteryPropertyName` and `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the target class.
 
 	@example
@@ -149,49 +210,6 @@ declare class Emittery<
 		emitteryPropertyName: string | symbol,
 		methodNames?: readonly string[]
 	): <T extends { new (): any }>(klass: T) => T; // eslint-disable-line @typescript-eslint/prefer-function-type
-
-	/**
-	Handles debug data, by default it prints it to the console.
-
-	@default Prints the type, debugName, eventName and eventData to the console
-	@example
-	```
-	const Emittery = require('emittery');
-	Emittery.isDebug = true;
-	Emittery.debugLogger = (type, debugName, eventName, eventData) => console.log(`[${type}]: ${eventName}`);
-
-	const emitter = new Emittery();
-	emitter.on('test', data => { // do something });
-
-	//=> [subscribe]: test
-	```
-	*/
-	static debugLogger: DebugLogger;
-
-	/**
-	Controls debug mode for all instances
-
-	@default Returns true if the DEBUG environment variable is set to 'emittery' or '*', otherwise false
-	@example
-	```
-	const Emittery = require('emittery');
-	Emittery.isDebug = true;
-
-	const emitter = new Emittery({debugName: 'myEmitter'});
-	emitter.on('test', data => { // do something });
-
-	//=> [emittery:subscribe][myEmitter] Event Name: test
-	//	data: undefined
-	```
-	*/
-	static isDebug: boolean;
-
-	/**
-	Create a new Emittery instance with the specified opitons
-
-	@returns An instance of Emittery that you can use to listen for and emit events
-	*/
-	constructor(options?: Options);
 
 	/**
 	Subscribe to one or more events.
@@ -474,24 +492,6 @@ declare class Emittery<
 	```
 	*/
 	bindMethods(target: Record<string, unknown>, methodNames?: readonly string[]): void;
-
-	/**
-	Enables debug output for this instance of Emittery
-
-	@default false
-	@example
-	```
-	const Emittery = require('emittery');
-
-	const emitter = new Emittery({debugName: 'myEmitter'});
-	emitter.isDebug = true;
-	emitter.on('test', data => { // do something });
-
-	//=> [emittery:subscribe][myEmitter] Event Name: test
-	//	data: undefined
-	```
-	*/
-	isDebug: boolean;
 }
 
 declare namespace Emittery {
