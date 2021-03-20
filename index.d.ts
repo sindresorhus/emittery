@@ -15,26 +15,29 @@ declare const listenerRemoved: unique symbol;
 type OmnipresentEventData = {[listenerAdded]: Emittery.ListenerChangedData; [listenerRemoved]: Emittery.ListenerChangedData};
 
 /**
-Emittery can collect and log debug information, this function takes care of outputting debug data.
+Emittery can collect and log debug information.
 
-To enable this feature set the DEBUG environment variable to 'emittery' or '*'. Additionally you can set the 'isDebug' option to true on the Emittery class, or 'myEmitter.debug.enabled' on an instance of it for debugging a single instance.
+To enable this feature set the DEBUG environment variable to 'emittery' or '*'. Additionally you can set the static `isDebug` variable to true on the Emittery class, or `myEmitter.debug.enabled` on an instance of it for debugging a single instance.
+
+See API for more information on how debugging works
 */
 type DebugLogger = (type: string, debugName: string, eventName?: EventName, eventData?: Record<string, any>) => void;
 
 /**
-Configure debug options of the instance
+Configure debug options of an instance
 */
 interface DebugOptions {
 	/**
 	Define a name for the instance of Emittery to use when outputting debug data.
 
+	@default Empty string
 	@example
 	```
 	const Emittery = require('emittery');
 	Emittery.isDebug = true;
 	const emitter = new Emittery({debug: {name: 'myEmitter'}});
 	emitter.on('test', data => { // do something });
-	//=> [emittery:subscribe][myEmitter] Event Name: test
+	//=> [16:43:20.417][emittery:subscribe][myEmitter] Event Name: test
 	//	data: undefined
 	```
 	*/
@@ -50,7 +53,7 @@ interface DebugOptions {
 	const emitter2 = new Emittery({debug: {name: 'emitter2'}});
 	emitter1.on('test', data => { // do something });
 	emitter2.on('test', data => { // do something });
-	//=> [emittery:subscribe][emitter1] Event Name: test
+	//=> [16:43:20.417][emittery:subscribe][emitter1] Event Name: test
 	//	data: undefined
 	```
 	*/
@@ -59,6 +62,22 @@ interface DebugOptions {
 	/**
 	Function that handles debug data
 
+	@default
+	```
+	(type, debugName, eventName, eventData) => {
+		if (typeof eventData === 'object') {
+			eventData = JSON.stringify(eventData);
+		}
+
+		if (typeof eventName === 'symbol') {
+			eventName = eventName.toString();
+		}
+
+		const currentTime = new Date();
+		const logTime = `${currentTime.getHours()}:${currentTime.getMinutes()}:${currentTime.getSeconds()}.${currentTime.getMilliseconds()}`;
+		console.log(`[${logTime}][emittery:${type}][${debugName}] Event Name: ${eventName}\n\tdata: ${eventData}`);
+	}
+	```
 	@example
 	```
 	const Emittery = require('emittery');
@@ -80,7 +99,7 @@ interface DebugOptions {
 }
 
 /**
-Configure the new instance of Emittery
+Configure a new instance of Emittery
 */
 interface Options {
 	debug?: DebugOptions;
@@ -131,10 +150,14 @@ declare class Emittery<
 	const Emittery = require('emittery');
 	Emittery.isDebug = true;
 
-	const emitter = new Emittery({debugName: 'myEmitter'});
-	emitter.on('test', data => { // do something });
+	const emitter1 = new Emittery({debug: {name: 'myEmitter1'}});
+	const emitter2 = new Emittery({debug: {name: 'myEmitter2'}});
+	emitter1.on('test', data => { // do something });
+	emitter2.on('otherTest', data => { // do something });
 
-	//=> [emittery:subscribe][myEmitter] Event Name: test
+	//=> [16:43:20.417][emittery:subscribe][myEmitter1] Event Name: test
+	//	data: undefined
+	//=> [16:43:20.417][emittery:subscribe][myEmitter2] Event Name: otherTest
 	//	data: undefined
 	```
 	*/
@@ -221,7 +244,7 @@ declare class Emittery<
 	debug: DebugOptions;
 
 	/**
-	Create a new Emittery instance with the specified opitons
+	Create a new Emittery instance with the specified options
 
 	@returns An instance of Emittery that you can use to listen for and emit events
 	*/

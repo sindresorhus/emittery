@@ -45,7 +45,7 @@ Emittery accepts strings and symbols as event names.
 Symbol event names can be used to avoid name collisions when your classes are extended, especially for internal events.
 
 ### isDebug
-Controls debug mode for all instances
+Enables/Disables debug mode for all instances
 
 Default: Returns true if the DEBUG environment variable is set to 'emittery' or '*', otherwise false.
 
@@ -54,38 +54,34 @@ Example:
 const Emittery = require('emittery');
 Emittery.isDebug = true;
 
-const emitter = new Emittery({debugName: 'myEmitter'});
-emitter.on('test', data => { // do something });
+const emitter1 = new Emittery({debug: {name: 'myEmitter1'}});
+const emitter2 = new Emittery({debug: {name: 'myEmitter2'}});
+emitter1.on('test', data => { // do something });
+emitter2.on('otherTest', data => { // do something });
 
-//=> [emittery:subscribe][myEmitter] Event Name: test
+//=> [16:43:20.417][emittery:subscribe][myEmitter1] Event Name: test
+//	data: undefined
+//=> [16:43:20.417][emittery:subscribe][myEmitter2] Event Name: otherTest
 //	data: undefined
 ```
 
-### debugLogger(type, debugName, eventName, eventData)
-Handles debug data.
+### emitter = new Emittery(?options)
 
-Default: Prints the type, debugName, eventName and eventData to the console.
+Create a new instance of Emittery
 
-Example:
-```js
-const Emittery = require('emittery');
-Emittery.isDebug = true;
-Emittery.debugLogger = (type, debugName, eventName, eventData) => console.log(`[${type}]: ${eventName}`);
+#### ?options
 
-const emitter = new Emittery();
-emitter.on('test', data => { // do something });
-
-//=> [subscribe]: test
-```
-
-### emitter = new Emittery(options)
-#### options
 Configure the new instance of Emittery
 
-##### debugName
+##### ?debug
+
+Configure the debugging options for this instance
+
+###### name
+
 Type: `string`
 
-Default: `undefined`
+Default: `Empty string`
 
 Define a name for the instance of Emittery to use when outputting debug data.
 
@@ -93,13 +89,72 @@ Example:
 ```js
 const Emittery = require('emittery');
 Emittery.isDebug = true;
-
-const emitter = new Emittery({debugName: "myEmitter"});
+const emitter = new Emittery({debug: {name: 'myEmitter'}});
 emitter.on('test', data => { // do something });
-
-//=> [emittery:subscribe][myEmitter] Event Name: test
+//=> [16:43:20.417][emittery:subscribe][myEmitter] Event Name: test
 //	data: undefined
 ```
+
+###### enabled?
+
+Type: `boolean`
+
+Default: `false`
+
+Enable/Disable debug logging just for this instance
+
+Example:
+```js
+const Emittery = require('emittery');
+const emitter1 = new Emittery({debug: {name: 'emitter1', enabled: true}});
+const emitter2 = new Emittery({debug: {name: 'emitter2'}});
+emitter1.on('test', data => { // do something });
+emitter2.on('test', data => { // do something });
+//=> [16:43:20.417][emittery:subscribe][emitter1] Event Name: test
+//	data: undefined
+```
+
+###### logger?
+
+Type: `Function(string, string, EventName?, Record<string, any>?) => void`
+
+Default:
+```js
+(type, debugName, eventName, eventData) => {
+	if (typeof eventData === 'object') {
+		eventData = JSON.stringify(eventData);
+	}
+
+	if (typeof eventName === 'symbol') {
+		eventName = eventName.toString();
+	}
+
+	const currentTime = new Date();
+	const logTime = `${currentTime.getHours()}:${currentTime.getMinutes()}:${currentTime.getSeconds()}.${currentTime.getMilliseconds()}`;
+	console.log(`[${logTime}][emittery:${type}][${debugName}] Event Name: ${eventName}\n\tdata: ${eventData}`);
+}
+```
+
+Function that handles debug data
+
+Example:
+```js
+const Emittery = require('emittery');
+const myLogger = (type, debugName, eventName, eventData) => console.log(`[${type}]: ${eventName}`);
+
+const emitter = new Emittery({
+	debug: {
+		name: 'myEmitter',
+		enabled: true,
+		logger: myLogger
+	}
+});
+emitter.on('test', data => { // do something });
+
+//=> [subscribe]: test
+```
+*/
+
 
 #### on(eventName | eventName[], listener)
 
@@ -370,25 +425,6 @@ new Emittery().bindMethods(object);
 object.emit('event');
 ```
 
-#### isDebug
-Type: `boolean`
-
-Default: `false`
-
-Enables debug output for this instance of Emittery.
-
-Example:
-```js
-const Emittery = require('emittery');
-
-const emitter = new Emittery({debugName: 'myEmitter'});
-emitter.isDebug = true;
-emitter.on('test', data => { // do something });
-
-//=> [emittery:subscribe][myEmitter] Event Name: test
-//	data: undefined
-```
-
 ## TypeScript
 
 The default `Emittery` class has generic types that can be provided by TypeScript users to strongly type the list of events and the data passed to their event listeners.
@@ -438,6 +474,14 @@ instance.emit('event');
 Listeners are not invoked for events emitted *before* the listener was added. Removing a listener will prevent that listener from being invoked, even if events are in the process of being (asynchronously!) emitted. This also applies to `.clearListeners()`, which removes all listeners. Listeners will be called in the order they were added. So-called *any* listeners are called *after* event-specific listeners.
 
 Note that when using `.emitSerial()`, a slow listener will delay invocation of subsequent listeners. It's possible for newer events to overtake older ones.
+
+## Debugging
+
+Emittery can collect and log debug information.
+
+To enable this feature set the DEBUG environment variable to 'emittery' or '*'. Additionally you can set the static `isDebug` variable to true on the Emittery class, or `myEmitter.debug.enabled` on an instance of it for debugging a single instance.
+
+See [API](#api) for more details on how debugging works.
 
 ## FAQ
 
