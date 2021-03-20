@@ -105,10 +105,15 @@ test('off() - listenerAdded', t => {
 test('off() - isDebug logs output', t => {
 	const eventStore = [];
 
-	const emitter = new Emittery({debug: {name: 'testEmitter', enabled: true}});
-	emitter.debugLogger = (type, debugName, eventName, eventData) => {
-		eventStore.push({type, debugName, eventName, eventData});
-	};
+	const emitter = new Emittery({
+		debug: {
+			name: 'testEmitter',
+			enabled: true,
+			logger: (type, debugName, eventName, eventData) => {
+				eventStore.push({type, debugName, eventName, eventData});
+			}
+		}
+	});
 
 	const off = emitter.on('test', () => {});
 	off();
@@ -181,10 +186,15 @@ test('on() - isDebug logs output', t => {
 	const eventStore = [];
 	const calls = [];
 
-	const emitter = new Emittery({debug: {name: 'testEmitter', enabled: true}});
-	emitter.debugLogger = (type, debugName, eventName, eventData) => {
-		eventStore.push({type, debugName, eventName, eventData});
-	};
+	const emitter = new Emittery({
+		debug: {
+			name: 'testEmitter',
+			enabled: true,
+			logger: (type, debugName, eventName, eventData) => {
+				eventStore.push({type, debugName, eventName, eventData});
+			}
+		}
+	});
 
 	emitter.on('test', data => calls.push(data));
 	t.true(eventStore.length > 0);
@@ -506,10 +516,15 @@ test('emit() - calls listeners subscribed when emit() was invoked', async t => {
 test('emit() - isDebug logs output', async t => {
 	const eventStore = [];
 
-	const emitter = new Emittery({debug: {name: 'testEmitter', enabled: true}});
-	emitter.debugLogger = (type, debugName, eventName, eventData) => {
-		eventStore.push({type, debugName, eventName, eventData});
-	};
+	const emitter = new Emittery({
+		debug: {
+			name: 'testEmitter',
+			enabled: true,
+			logger: (type, debugName, eventName, eventData) => {
+				eventStore.push({type, debugName, eventName, eventData});
+			}
+		}
+	});
 
 	emitter.on('test', () => {});
 	await emitter.emit('test', 'data');
@@ -663,10 +678,15 @@ test('emitSerial() - calls listeners subscribed when emitSerial() was invoked', 
 test('emitSerial() - isDebug logs output', async t => {
 	const eventStore = [];
 
-	const emitter = new Emittery({debug: {name: 'testEmitter', enabled: true}});
-	emitter.debugLogger = (type, debugName, eventName, eventData) => {
-		eventStore.push({type, debugName, eventName, eventData});
-	};
+	const emitter = new Emittery({
+		debug: {
+			name: 'testEmitter',
+			enabled: true,
+			logger: (type, debugName, eventName, eventData) => {
+				eventStore.push({type, debugName, eventName, eventData});
+			}
+		}
+	});
 
 	emitter.on('test', () => {});
 	await emitter.emitSerial('test', 'data');
@@ -894,10 +914,15 @@ test('clearListeners() - with event name - clears iterators for that event', asy
 test('clearListeners() - isDebug logs output', t => {
 	const eventStore = [];
 
-	const emitter = new Emittery({debug: {name: 'testEmitter', enabled: true}});
-	emitter.debugLogger = (type, debugName, eventName, eventData) => {
-		eventStore.push({type, debugName, eventName, eventData});
-	};
+	const emitter = new Emittery({
+		debug: {
+			name: 'testEmitter',
+			enabled: true,
+			logger: (type, debugName, eventName, eventData) => {
+				eventStore.push({type, debugName, eventName, eventData});
+			}
+		}
+	});
 
 	emitter.on('test', () => {});
 	emitter.clearListeners('test');
@@ -910,10 +935,15 @@ test('clearListeners() - isDebug logs output', t => {
 test('onAny() - isDebug logs output', t => {
 	const eventStore = [];
 
-	const emitter = new Emittery({debug: {name: 'testEmitter', enabled: true}});
-	emitter.debugLogger = (type, debugName, eventName, eventData) => {
-		eventStore.push({type, debugName, eventName, eventData});
-	};
+	const emitter = new Emittery({
+		debug: {
+			name: 'testEmitter',
+			enabled: true,
+			logger: (type, debugName, eventName, eventData) => {
+				eventStore.push({type, debugName, eventName, eventData});
+			}
+		}
+	});
 
 	emitter.onAny(() => {});
 	t.true(eventStore.length > 0);
@@ -925,10 +955,15 @@ test('onAny() - isDebug logs output', t => {
 test('offAny() - isDebug logs output', t => {
 	const eventStore = [];
 
-	const emitter = new Emittery({debug: {name: 'testEmitter', enabled: true}});
-	emitter.debugLogger = (type, debugName, eventName, eventData) => {
-		eventStore.push({type, debugName, eventName, eventData});
-	};
+	const emitter = new Emittery({
+		debug: {
+			name: 'testEmitter',
+			enabled: true,
+			logger: (type, debugName, eventName, eventData) => {
+				eventStore.push({type, debugName, eventName, eventData});
+			}
+		}
+	});
 
 	const off = emitter.onAny(() => {});
 	off();
@@ -1024,7 +1059,7 @@ test('bindMethods() - methodNames must be array of strings or undefined', t => {
 });
 
 test('bindMethods() - must bind all methods if no array supplied', t => {
-	const methodsExpected = ['on', 'off', 'once', 'events', 'emit', 'emitSerial', 'onAny', 'anyEvent', 'offAny', 'clearListeners', 'listenerCount', 'bindMethods', 'debugLogger'];
+	const methodsExpected = ['on', 'off', 'once', 'events', 'emit', 'emitSerial', 'onAny', 'anyEvent', 'offAny', 'clearListeners', 'listenerCount', 'bindMethods'];
 
 	const emitter = new Emittery();
 	const target = {};
@@ -1091,7 +1126,7 @@ test('mixin() - methodNames must be array of strings or undefined', t => {
 });
 
 test('mixin() - must mixin all methods if no array supplied', t => {
-	const methodsExpected = ['on', 'off', 'once', 'events', 'emit', 'emitSerial', 'onAny', 'anyEvent', 'offAny', 'clearListeners', 'listenerCount', 'bindMethods', 'debugLogger'];
+	const methodsExpected = ['on', 'off', 'once', 'events', 'emit', 'emitSerial', 'onAny', 'anyEvent', 'offAny', 'clearListeners', 'listenerCount', 'bindMethods'];
 
 	class TestClass {}
 
@@ -1133,10 +1168,15 @@ test('isDebug can be turned on globally during runtime', t => {
 	Emittery.isDebug = true;
 	const eventStore = [];
 
-	const emitter = new Emittery({debug: {name: 'testEmitter'}});
-	emitter.debugLogger = (type, debugName, eventName, eventData) => {
-		eventStore.push({type, debugName, eventName, eventData});
-	};
+	const emitter = new Emittery({
+		debug: {
+			name: 'testEmitter',
+			enabled: false,
+			logger: (type, debugName, eventName, eventData) => {
+				eventStore.push({type, debugName, eventName, eventData});
+			}
+		}
+	});
 
 	emitter.on('test', () => {});
 	emitter.emit('test', 'test data');
@@ -1151,11 +1191,16 @@ test('isDebug can be turned on globally during runtime', t => {
 test('isDebug can be turned on for and instance without using the constructor', t => {
 	const eventStore = [];
 
-	const emitter = new Emittery({debug: {name: 'testEmitter'}});
+	const emitter = new Emittery({
+		debug: {
+			name: 'testEmitter',
+			enabled: false,
+			logger: (type, debugName, eventName, eventData) => {
+				eventStore.push({type, debugName, eventName, eventData});
+			}
+		}
+	});
 	emitter.debug.enabled = true;
-	emitter.debugLogger = (type, debugName, eventName, eventData) => {
-		eventStore.push({type, debugName, eventName, eventData});
-	};
 
 	emitter.on('test', () => {});
 	emitter.emit('test', 'test data');
