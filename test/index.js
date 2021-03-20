@@ -274,7 +274,9 @@ test('events() - discarded iterators should stop receiving events', async t => {
 		emitter.emit('🦄', '🌟');
 	}, 10);
 
-	await new Promise(resolve => setTimeout(resolve, 20));
+	await new Promise(resolve => {
+		setTimeout(resolve, 20);
+	});
 
 	t.deepEqual(await iterator.next(), {done: true});
 });
@@ -419,6 +421,21 @@ test.cb('emit() - is async', t => {
 	emitter.emit('🦄');
 
 	t.false(unicorn);
+});
+
+test('emit() - awaits async listeners', async t => {
+	const emitter = new Emittery();
+	let unicorn = false;
+
+	emitter.on('🦄', async () => {
+		await Promise.resolve();
+		unicorn = true;
+	});
+
+	const promise = emitter.emit('🦄');
+	t.false(unicorn);
+	await promise;
+	t.true(unicorn);
 });
 
 test('emit() - calls listeners subscribed when emit() was invoked', async t => {
@@ -730,7 +747,9 @@ test('anyEvents() - discarded iterators should stop receiving events', async t =
 		emitter.emit('🦄', '🌟');
 	}, 10);
 
-	await new Promise(resolve => setTimeout(resolve, 20));
+	await new Promise(resolve => {
+		setTimeout(resolve, 20);
+	});
 
 	t.deepEqual(await iterator.next(), {done: true});
 });

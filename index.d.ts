@@ -5,10 +5,14 @@ Symbol event names can be used to avoid name collisions when your classes are ex
 */
 type EventName = string | symbol;
 
-/**
-Emittery also accepts an array of strings and symbols as event names.
-*/
-type EventNames = EventName | readonly EventName[];
+// Helper type for turning the passed `EventData` type map into a list of string keys that don't require data alongside the event name when emitting. Uses the same trick that `Omit` does internally to filter keys by building a map of keys to keys we want to keep, and then accessing all the keys to return just the list of keys we want to keep.
+type DatalessEventNames<EventData> = {
+	[Key in keyof EventData]: EventData[Key] extends undefined ? Key : never;
+}[keyof EventData];
+
+declare const listenerAdded: unique symbol;
+declare const listenerRemoved: unique symbol;
+type OmnipresentEventData = {[listenerAdded]: Emittery.ListenerChangedData; [listenerRemoved]: Emittery.ListenerChangedData};
 
 /**
 Emittery can log debug output to console, this function takes care of outputting log data.
@@ -36,24 +40,42 @@ interface Options {
 	readonly debugName?: string;
 }
 
-declare class Emittery {
-	/**
-	In TypeScript, it returns a decorator which mixins `Emittery` as property `emitteryPropertyName` and `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the target class.
+/**
+Emittery is a strictly typed, fully async EventEmitter implementation. Event listeners can be registered with `on` or `once`, and events can be emitted with `emit`.
 
-	@example
-	```
-	import Emittery = require('emittery');
+`Emittery` has a generic `EventData` type that can be provided by users to strongly type the list of events and the data passed to the listeners for those events. Pass an interface of {[eventName]: undefined | <eventArg>}, with all the event names as the keys and the values as the type of the argument passed to listeners if there is one, or `undefined` if there isn't.
 
-	@Emittery.mixin('emittery')
-	class MyClass {}
+@example
+```
+import Emittery = require('emittery');
 
-	const instance = new MyClass();
+const emitter = new Emittery<
+	// Pass `{[eventName: <string | symbol>]: undefined | <eventArg>}` as the first type argument for events that pass data to their listeners.
+	// A value of `undefined` in this map means the event listeners should expect no data, and a type other than `undefined` means the listeners will receive one argument of that type.
+	{
+		open: string,
+		close: undefined
+	}
+>();
 
-	instance.emit('event');
-	```
-	*/
-	static mixin(emitteryPropertyName: string, methodNames?: readonly string[]): Function;
+// Typechecks just fine because the data type for the `open` event is `string`.
+emitter.emit('open', 'foo\n');
 
+// Typechecks just fine because `close` is present but points to undefined in the event data type map.
+emitter.emit('close');
+
+// TS compilation error because `1` isn't assignable to `string`.
+emitter.emit('open', 1);
+
+// TS compilation error because `other` isn't defined in the event data type map.
+emitter.emit('other');
+```
+*/
+declare class Emittery<
+	EventData = Record<string, any>, // When https://github.com/microsoft/TypeScript/issues/1863 ships, we can switch this to have an index signature including Symbols. If you want to use symbol keys right now, you need to pass an interface with those symbol keys explicitly listed.
+	AllEventData = EventData & OmnipresentEventData,
+	DatalessEvents = DatalessEventNames<EventData>
+> {
 	/**
 	Fires when an event listener was added.
 
@@ -78,7 +100,7 @@ declare class Emittery {
 	});
 	```
 	*/
-	static readonly listenerAdded: unique symbol;
+	static readonly listenerAdded: typeof listenerAdded;
 
 	/**
 	Fires when an event listener was removed.
@@ -106,7 +128,27 @@ declare class Emittery {
 	off();
 	```
 	*/
-	static readonly listenerRemoved: unique symbol;
+	static readonly listenerRemoved: typeof listenerRemoved;
+
+	/**
+	In TypeScript, it returns a decorator which mixins `Emittery` as property `emitteryPropertyName` and `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the target class.
+
+	@example
+	```
+	import Emittery = require('emittery');
+
+	@Emittery.mixin('emittery')
+	class MyClass {}
+
+	const instance = new MyClass();
+
+	instance.emit('event');
+	```
+	*/
+	static mixin(
+		emitteryPropertyName: string | symbol,
+		methodNames?: readonly string[]
+	): <T extends { new (): any }>(klass: T) => T; // eslint-disable-line @typescript-eslint/prefer-function-type
 
 	/**
 	Handles debug data, by default it prints it to the console.
@@ -175,8 +217,10 @@ declare class Emittery {
 	emitter.emit('🐶', '🍖'); // log => '🍖'
 	```
 	*/
-	on(eventName: typeof Emittery.listenerAdded | typeof Emittery.listenerRemoved, listener: (eventData: Emittery.ListenerChangedData) => void): Emittery.UnsubscribeFn
-	on(eventName: EventNames, listener: (eventData?: unknown) => void): Emittery.UnsubscribeFn;
+	on<Name extends keyof AllEventData>(
+		eventName: Name,
+		listener: (eventData: AllEventData[Name]) => void | Promise<void>
+	): Emittery.UnsubscribeFn;
 
 	/**
 	Get an async iterator which buffers data each time an event is emitted.
@@ -261,7 +305,9 @@ declare class Emittery {
 		});
 	```
 	*/
-	events(eventName: EventNames): AsyncIterableIterator<unknown>
+	events<Name extends keyof EventData>(
+		eventName: Name | Name[]
+	): AsyncIterableIterator<EventData[Name]>;
 
 	/**
 	Remove one or more event subscriptions.
@@ -286,7 +332,10 @@ declare class Emittery {
 	})();
 	```
 	*/
-	off(eventName: EventNames, listener: (eventData?: unknown) => void): void;
+	off<Name extends keyof AllEventData>(
+		eventName: Name,
+		listener: (eventData: AllEventData[Name]) => void | Promise<void>
+	): void;
 
 	/**
 	Subscribe to one or more events only once. It will be unsubscribed after the first
@@ -312,15 +361,18 @@ declare class Emittery {
 	emitter.emit('🐶', '🍖'); // Nothing happens
 	```
 	*/
-	once(eventName: typeof Emittery.listenerAdded | typeof Emittery.listenerRemoved): Promise<Emittery.ListenerChangedData>
-	once(eventName: EventNames): Promise<unknown>;
+	once<Name extends keyof AllEventData>(eventName: Name): Promise<AllEventData[Name]>;
 
 	/**
 	Trigger an event asynchronously, optionally with some data. Listeners are called in the order they were added, but executed concurrently.
 
 	@returns A promise that resolves when all the event listeners are done. *Done* meaning executed if synchronous or resolved when an async/promise-returning function. You usually wouldn't want to wait for this, but you could for example catch possible errors. If any of the listeners throw/reject, the returned promise will be rejected with the error, but the other listeners will not be affected.
 	*/
-	emit(eventName: EventName, eventData?: unknown): Promise<void>;
+	emit<Name extends DatalessEvents>(eventName: Name): Promise<void>;
+	emit<Name extends keyof EventData>(
+		eventName: Name,
+		eventData: EventData[Name]
+	): Promise<void>;
 
 	/**
 	Same as `emit()`, but it waits for each listener to resolve before triggering the next one. This can be useful if your events depend on each other. Although ideally they should not. Prefer `emit()` whenever possible.
@@ -329,14 +381,23 @@ declare class Emittery {
 
 	@returns A promise that resolves when all the event listeners are done.
 	*/
-	emitSerial(eventName: EventName, eventData?: unknown): Promise<void>;
+	emitSerial<Name extends DatalessEvents>(eventName: Name): Promise<void>;
+	emitSerial<Name extends keyof EventData>(
+		eventName: Name,
+		eventData: EventData[Name]
+	): Promise<void>;
 
 	/**
 	Subscribe to be notified about any event.
 
 	@returns A method to unsubscribe.
 	*/
-	onAny(listener: (eventName: EventName, eventData?: unknown) => unknown): Emittery.UnsubscribeFn;
+	onAny(
+		listener: (
+			eventName: keyof EventData,
+			eventData: EventData[keyof EventData]
+		) => void | Promise<void>
+	): Emittery.UnsubscribeFn;
 
 	/**
 	Get an async iterator which buffers a tuple of an event name and data each time an event is emitted.
@@ -372,24 +433,31 @@ declare class Emittery {
 		});
 	```
 	*/
-	anyEvent(): AsyncIterableIterator<unknown>
+	anyEvent(): AsyncIterableIterator<
+	[keyof EventData, EventData[keyof EventData]]
+	>;
 
 	/**
 	Remove an `onAny` subscription.
 	*/
-	offAny(listener: (eventName: EventName, eventData?: unknown) => void): void;
+	offAny(
+		listener: (
+			eventName: keyof EventData,
+			eventData: EventData[keyof EventData]
+		) => void | Promise<void>
+	): void;
 
 	/**
 	Clear all event listeners on the instance.
 
 	If `eventName` is given, only the listeners for that event are cleared.
 	*/
-	clearListeners(eventName?: EventNames): void;
+	clearListeners(eventName?: keyof EventData): void;
 
 	/**
 	The number of listeners for the `eventName` or all events if not specified.
 	*/
-	listenerCount(eventName?: EventNames): number;
+	listenerCount(eventName?: keyof EventData): number;
 
 	/**
 	Bind the given `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the `target` object.
@@ -405,7 +473,7 @@ declare class Emittery {
 	object.emit('event');
 	```
 	*/
-	bindMethods(target: object, methodNames?: readonly string[]): void;
+	bindMethods(target: Record<string, unknown>, methodNames?: readonly string[]): void;
 
 	/**
 	Enables debug output for this instance of Emittery
@@ -431,15 +499,6 @@ declare namespace Emittery {
 	Removes an event subscription.
 	*/
 	type UnsubscribeFn = () => void;
-	type EventNameFromDataMap<EventDataMap> = Extract<keyof EventDataMap, EventName>;
-
-	/**
-	Maps event names to their emitted data type.
-	*/
-	interface Events {
-		// Blocked by https://github.com/microsoft/TypeScript/issues/1863, should be
-		// `[eventName: EventName]: unknown;`
-	}
 
 	/**
 	The data provided as `eventData` when listening for `Emittery.listenerAdded` or `Emittery.listenerRemoved`.
@@ -448,53 +507,12 @@ declare namespace Emittery {
 		/**
 		The listener that was added or removed.
 		*/
-		listener: (eventData?: unknown) => void;
+		listener: (eventData?: unknown) => void | Promise<void>;
 
 		/**
 		The name of the event that was added or removed if `.on()` or `.off()` was used, or `undefined` if `.onAny()` or `.offAny()` was used.
 		*/
 		eventName?: EventName;
-	}
-
-	/**
-	Async event emitter.
-
-	You must list supported events and the data type they emit, if any.
-
-	@example
-	```
-	import Emittery = require('emittery');
-
-	const emitter = new Emittery.Typed<{value: string}, 'open' | 'close'>();
-
-	emitter.emit('open');
-	emitter.emit('value', 'foo\n');
-	emitter.emit('value', 1); // TS compilation error
-	emitter.emit('end'); // TS compilation error
-	```
-	*/
-	class Typed<EventDataMap extends Events, EmptyEvents extends EventName = never> extends Emittery {
-		on<Name extends EventNameFromDataMap<EventDataMap>>(eventName: Name, listener: (eventData: EventDataMap[Name]) => void): Emittery.UnsubscribeFn;
-		on<Name extends EmptyEvents>(eventName: Name, listener: () => void): Emittery.UnsubscribeFn;
-
-		events<Name extends EventNameFromDataMap<EventDataMap>>(eventName: Name): AsyncIterableIterator<EventDataMap[Name]>;
-
-		once<Name extends EventNameFromDataMap<EventDataMap>>(eventName: Name): Promise<EventDataMap[Name]>;
-		once<Name extends EmptyEvents>(eventName: Name): Promise<void>;
-
-		off<Name extends EventNameFromDataMap<EventDataMap>>(eventName: Name, listener: (eventData: EventDataMap[Name]) => void): void;
-		off<Name extends EmptyEvents>(eventName: Name, listener: () => void): void;
-
-		onAny(listener: (eventName: EventNameFromDataMap<EventDataMap> | EmptyEvents, eventData?: EventDataMap[EventNameFromDataMap<EventDataMap>]) => void): Emittery.UnsubscribeFn;
-		anyEvent(): AsyncIterableIterator<[EventNameFromDataMap<EventDataMap>, EventDataMap[EventNameFromDataMap<EventDataMap>]]>;
-
-		offAny(listener: (eventName: EventNameFromDataMap<EventDataMap> | EmptyEvents, eventData?: EventDataMap[EventNameFromDataMap<EventDataMap>]) => void): void;
-
-		emit<Name extends EventNameFromDataMap<EventDataMap>>(eventName: Name, eventData: EventDataMap[Name]): Promise<void>;
-		emit<Name extends EmptyEvents>(eventName: Name): Promise<void>;
-
-		emitSerial<Name extends EventNameFromDataMap<EventDataMap>>(eventName: Name, eventData: EventDataMap[Name]): Promise<void>;
-		emitSerial<Name extends EmptyEvents>(eventName: Name): Promise<void>;
 	}
 }
 
