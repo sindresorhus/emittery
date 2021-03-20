@@ -105,8 +105,7 @@ test('off() - listenerAdded', t => {
 test('off() - isDebug logs output', t => {
 	const eventStore = [];
 
-	const emitter = new Emittery({debug: {name: 'testEmitter'}});
-	emitter.isDebug = true;
+	const emitter = new Emittery({debug: {name: 'testEmitter', enabled: true}});
 	emitter.debugLogger = (type, debugName, eventName, eventData) => {
 		eventStore.push({type, debugName, eventName, eventData});
 	};
@@ -182,8 +181,7 @@ test('on() - isDebug logs output', t => {
 	const eventStore = [];
 	const calls = [];
 
-	const emitter = new Emittery({debug: {name: 'testEmitter'}});
-	emitter.isDebug = true;
+	const emitter = new Emittery({debug: {name: 'testEmitter', enabled: true}});
 	emitter.debugLogger = (type, debugName, eventName, eventData) => {
 		eventStore.push({type, debugName, eventName, eventData});
 	};
@@ -508,9 +506,7 @@ test('emit() - calls listeners subscribed when emit() was invoked', async t => {
 test('emit() - isDebug logs output', async t => {
 	const eventStore = [];
 
-	const emitter = new Emittery({debug: {name: 'testEmitter'}});
-	emitter.isDebug = true;
-
+	const emitter = new Emittery({debug: {name: 'testEmitter', enabled: true}});
 	emitter.debugLogger = (type, debugName, eventName, eventData) => {
 		eventStore.push({type, debugName, eventName, eventData});
 	};
@@ -667,8 +663,7 @@ test('emitSerial() - calls listeners subscribed when emitSerial() was invoked', 
 test('emitSerial() - isDebug logs output', async t => {
 	const eventStore = [];
 
-	const emitter = new Emittery({debug: {name: 'testEmitter'}});
-	emitter.isDebug = true;
+	const emitter = new Emittery({debug: {name: 'testEmitter', enabled: true}});
 	emitter.debugLogger = (type, debugName, eventName, eventData) => {
 		eventStore.push({type, debugName, eventName, eventData});
 	};
@@ -899,8 +894,7 @@ test('clearListeners() - with event name - clears iterators for that event', asy
 test('clearListeners() - isDebug logs output', t => {
 	const eventStore = [];
 
-	const emitter = new Emittery({debug: {name: 'testEmitter'}});
-	emitter.isDebug = true;
+	const emitter = new Emittery({debug: {name: 'testEmitter', enabled: true}});
 	emitter.debugLogger = (type, debugName, eventName, eventData) => {
 		eventStore.push({type, debugName, eventName, eventData});
 	};
@@ -916,8 +910,7 @@ test('clearListeners() - isDebug logs output', t => {
 test('onAny() - isDebug logs output', t => {
 	const eventStore = [];
 
-	const emitter = new Emittery({debug: {name: 'testEmitter'}});
-	emitter.isDebug = true;
+	const emitter = new Emittery({debug: {name: 'testEmitter', enabled: true}});
 	emitter.debugLogger = (type, debugName, eventName, eventData) => {
 		eventStore.push({type, debugName, eventName, eventData});
 	};
@@ -932,8 +925,7 @@ test('onAny() - isDebug logs output', t => {
 test('offAny() - isDebug logs output', t => {
 	const eventStore = [];
 
-	const emitter = new Emittery({debug: {name: 'testEmitter'}});
-	emitter.isDebug = true;
+	const emitter = new Emittery({debug: {name: 'testEmitter', enabled: true}});
 	emitter.debugLogger = (type, debugName, eventName, eventData) => {
 		eventStore.push({type, debugName, eventName, eventData});
 	};
@@ -1131,8 +1123,7 @@ test('mixin() - target must be function', t => {
 });
 
 test('isDebug default logger handles symbol event names and object for event data', async t => {
-	const emitter = new Emittery();
-	emitter.isDebug = true;
+	const emitter = new Emittery({debug: {name: 'testEmitter', enabled: true}});
 	const eventName = Symbol('test');
 	emitter.on(eventName, () => {});
 	await t.notThrowsAsync(emitter.emit(eventName, {complex: ['data', 'structure', 1]}));

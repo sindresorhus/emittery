@@ -17,27 +17,52 @@ type OmnipresentEventData = {[listenerAdded]: Emittery.ListenerChangedData; [lis
 /**
 Emittery can log debug output to console, this function takes care of outputting log data.
 
-To enable this feature set the DEBUG environment variable to 'emittery' or '*'. Additionally you can set the 'isDebug' option to true on the Emittery class, or on an instance of it for debugging a single instance.
+To enable this feature set the DEBUG environment variable to 'emittery' or '*'. Additionally you can set the 'isDebug' option to true on the Emittery class, or 'myEmitter.debug.enabled' on an instance of it for debugging a single instance.
 */
-type DebugLogger = (type: string, debugName: string, eventName?: EventName, eventData?: unknown) => void;
+type DebugLogger = (type: string, debugName: string, eventName?: EventName, eventData?: Record<string, any>) => void;
 
 /**
-Configure the new instance of Emittery
+Configure debug options of the instance
 */
-interface Options {
+interface DebugOptions {
 	/**
 	Define a name for the instance of Emittery to use when outputting debug data.
+
 	@example
 	```
 	const Emittery = require('emittery');
 	Emittery.isDebug = true;
-	const emitter = new Emittery({debugName: "myEmitter"});
+	const emitter = new Emittery({debug: {name: 'myEmitter'}});
 	emitter.on('test', data => { // do something });
 	//=> [emittery:subscribe][myEmitter] Event Name: test
 	//	data: undefined
 	```
 	*/
-	readonly debugName?: string;
+	name: string;
+
+	/**
+	Enable debug logging just for this instance
+
+	@default false - instance debug logging is not enabled by default
+	@example
+	```
+	const Emittery = require('emittery');
+	const emitter1 = new Emittery({debug: {name: 'emitter1', enabled: true}});
+	const emitter2 = new Emittery({debug: {name: 'emitter2'}});
+	emitter1.on('test', data => { // do something });
+	emitter2.on('test', data => { // do something });
+	//=> [emittery:subscribe][emitter1] Event Name: test
+	//	data: undefined
+	```
+	*/
+	enabled?: boolean;
+}
+
+/**
+Configure the new instance of Emittery
+*/
+interface Options {
+	debug?: DebugOptions;
 }
 
 /**
@@ -77,7 +102,7 @@ declare class Emittery<
 	DatalessEvents = DatalessEventNames<EventData>
 > {
 	/**
-	Controls debug mode for all instances
+	Enables/Disables debug mode for all instances
 
 	@default Returns true if the DEBUG environment variable is set to 'emittery' or '*', otherwise false
 	@example
@@ -151,7 +176,7 @@ declare class Emittery<
 	/**
 	Handles debug data, by default it prints it to the console.
 
-	@default Prints the type, debugName, eventName and eventData to the console
+	@default Prints the time(hh:mm:ss.mmm), type, debugName, eventName and eventData to the console
 	@example
 	```
 	const Emittery = require('emittery');
@@ -165,24 +190,6 @@ declare class Emittery<
 	```
 	*/
 	debugLogger: DebugLogger;
-
-	/**
-	Enables debug output for this instance of Emittery
-
-	@default false
-	@example
-	```
-	const Emittery = require('emittery');
-
-	const emitter = new Emittery({debugName: 'myEmitter'});
-	emitter.isDebug = true;
-	emitter.on('test', data => { // do something });
-
-	//=> [emittery:subscribe][myEmitter] Event Name: test
-	//	data: undefined
-	```
-	*/
-	isDebug: boolean;
 
 	/**
 	Create a new Emittery instance with the specified opitons

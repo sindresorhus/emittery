@@ -217,8 +217,7 @@ class Emittery {
 		anyMap.set(this, new Set());
 		eventsMap.set(this, new Map());
 		producersMap.set(this, new Map());
-		this.debug = options.debug || {name: ''};
-		this.isDebug = false;
+		this.debug = options.debug || {name: '', enabled: false};
 	}
 
 	on(eventNames, listener) {
@@ -229,7 +228,7 @@ class Emittery {
 			assertEventName(eventName);
 			getListeners(this, eventName).add(listener);
 
-			if (Emittery.isDebug || this.isDebug) {
+			if (Emittery.isDebug || this.debug.enabled) {
 				this.debugLogger('subscribe', this.debug.name, eventName, undefined);
 			}
 
@@ -249,7 +248,7 @@ class Emittery {
 			assertEventName(eventName);
 			getListeners(this, eventName).delete(listener);
 
-			if (Emittery.isDebug || this.isDebug) {
+			if (Emittery.isDebug || this.debug.enabled) {
 				this.debugLogger('unsubscribe', this.debug.name, eventName, undefined);
 			}
 
@@ -280,7 +279,7 @@ class Emittery {
 	async emit(eventName, eventData) {
 		assertEventName(eventName);
 
-		if (Emittery.isDebug || this.isDebug) {
+		if (Emittery.isDebug || this.debug.enabled) {
 			this.debugLogger('emit', this.debug.name, eventName, eventData);
 		}
 
@@ -309,7 +308,7 @@ class Emittery {
 	async emitSerial(eventName, eventData) {
 		assertEventName(eventName);
 
-		if (Emittery.isDebug || this.isDebug) {
+		if (Emittery.isDebug || this.debug.enabled) {
 			this.debugLogger('emitSerial', this.debug.name, eventName, eventData);
 		}
 
@@ -336,7 +335,7 @@ class Emittery {
 
 	onAny(listener) {
 		assertListener(listener);
-		if (Emittery.isDebug || this.isDebug) {
+		if (Emittery.isDebug || this.debug.enabled) {
 			this.debugLogger('subscribeAny', this.debug.name, undefined, undefined);
 		}
 
@@ -351,7 +350,7 @@ class Emittery {
 
 	offAny(listener) {
 		assertListener(listener);
-		if (Emittery.isDebug || this.isDebug) {
+		if (Emittery.isDebug || this.debug.enabled) {
 			this.debugLogger('unsubscribeAny', this.debug.name, undefined, undefined);
 		}
 
@@ -363,7 +362,7 @@ class Emittery {
 		eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
 
 		for (const eventName of eventNames) {
-			if (Emittery.isDebug || this.isDebug) {
+			if (Emittery.isDebug || this.debug.enabled) {
 				this.debugLogger('clear', this.debug.name, eventName, undefined);
 			}
 

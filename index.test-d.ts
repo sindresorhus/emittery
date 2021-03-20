@@ -73,7 +73,7 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 	expectNotAssignable<() => undefined>(ee.debugLogger);
 	expectNotAssignable<(data: unknown) => undefined>(ee.debugLogger);
 	expectNotAssignable<(type: string, debugName: string) => undefined>(ee.debugLogger);
-	expectAssignable<(type: string, debugName: string, eventName?: string | symbol, eventData?: unknown) => void>(ee.debugLogger);
+	expectAssignable<(type: string, debugName: string, eventName?: string | symbol, eventData?: Record<string, any>) => void>(ee.debugLogger);
 }
 
 // Userland can't emit the meta events
