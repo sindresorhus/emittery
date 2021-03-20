@@ -1147,3 +1147,21 @@ test('isDebug can be turned on globally during runtime', t => {
 	t.is(eventStore[2].debugName, 'testEmitter');
 	t.is(eventStore[2].eventData, 'test data');
 });
+
+test('isDebug can be turned on for and instance without using the constructor', t => {
+	const eventStore = [];
+
+	const emitter = new Emittery({debug: {name: 'testEmitter'}});
+	emitter.debug.enabled = true;
+	emitter.debugLogger = (type, debugName, eventName, eventData) => {
+		eventStore.push({type, debugName, eventName, eventData});
+	};
+
+	emitter.on('test', () => {});
+	emitter.emit('test', 'test data');
+	t.true(eventStore.length > 0);
+	t.is(eventStore[2].type, 'emit');
+	t.is(eventStore[2].eventName, 'test');
+	t.is(eventStore[2].debugName, 'testEmitter');
+	t.is(eventStore[2].eventData, 'test data');
+});
