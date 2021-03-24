@@ -149,7 +149,7 @@ declare class Emittery<
 	```
 	*/
 	on<Name extends keyof AllEventData>(
-		eventName: Name,
+		eventName: Name | Name[],
 		listener: (eventData: AllEventData[Name]) => void | Promise<void>
 	): Emittery.UnsubscribeFn;
 
@@ -264,7 +264,7 @@ declare class Emittery<
 	```
 	*/
 	off<Name extends keyof AllEventData>(
-		eventName: Name,
+		eventName: Name | Name[],
 		listener: (eventData: AllEventData[Name]) => void | Promise<void>
 	): void;
 
@@ -292,7 +292,9 @@ declare class Emittery<
 	emitter.emit('🐶', '🍖'); // Nothing happens
 	```
 	*/
-	once<Name extends keyof AllEventData>(eventName: Name): Promise<AllEventData[Name]>;
+	once<Name extends keyof AllEventData>(
+		eventName: Name | Name[]
+	): Promise<AllEventData[Name]>;
 
 	/**
 	Trigger an event asynchronously, optionally with some data. Listeners are called in the order they were added, but executed concurrently.
