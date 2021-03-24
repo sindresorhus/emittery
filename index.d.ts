@@ -7,12 +7,15 @@ type EventName = string | symbol;
 
 // Helper type for turning the passed `EventData` type map into a list of string keys that don't require data alongside the event name when emitting. Uses the same trick that `Omit` does internally to filter keys by building a map of keys to keys we want to keep, and then accessing all the keys to return just the list of keys we want to keep.
 type DatalessEventNames<EventData> = {
-	[Key in keyof EventData]: EventData[Key] extends undefined ? Key : never;
+  [Key in keyof EventData]: EventData[Key] extends undefined ? Key : never;
 }[keyof EventData];
 
 declare const listenerAdded: unique symbol;
 declare const listenerRemoved: unique symbol;
-type OmnipresentEventData = {[listenerAdded]: Emittery.ListenerChangedData; [listenerRemoved]: Emittery.ListenerChangedData};
+type OmnipresentEventData = {
+  [listenerAdded]: Emittery.ListenerChangedData;
+  [listenerRemoved]: Emittery.ListenerChangedData;
+};
 
 /**
 Emittery is a strictly typed, fully async EventEmitter implementation. Event listeners can be registered with `on` or `once`, and events can be emitted with `emit`.
@@ -46,11 +49,11 @@ emitter.emit('other');
 ```
 */
 declare class Emittery<
-	EventData = Record<string, any>, // When https://github.com/microsoft/TypeScript/issues/1863 ships, we can switch this to have an index signature including Symbols. If you want to use symbol keys right now, you need to pass an interface with those symbol keys explicitly listed.
-	AllEventData = EventData & OmnipresentEventData,
-	DatalessEvents = DatalessEventNames<EventData>
+  EventData = Record<string, any>, // When https://github.com/microsoft/TypeScript/issues/1863 ships, we can switch this to have an index signature including Symbols. If you want to use symbol keys right now, you need to pass an interface with those symbol keys explicitly listed.
+  AllEventData = EventData & OmnipresentEventData,
+  DatalessEvents = DatalessEventNames<EventData>
 > {
-	/**
+  /**
 	Fires when an event listener was added.
 
 	An object with `listener` and `eventName` (if `on` or `off` was used) is provided as event data.
@@ -74,9 +77,9 @@ declare class Emittery<
 	});
 	```
 	*/
-	static readonly listenerAdded: typeof listenerAdded;
+  static readonly listenerAdded: typeof listenerAdded;
 
-	/**
+  /**
 	Fires when an event listener was removed.
 
 	An object with `listener` and `eventName` (if `on` or `off` was used) is provided as event data.
@@ -102,9 +105,9 @@ declare class Emittery<
 	off();
 	```
 	*/
-	static readonly listenerRemoved: typeof listenerRemoved;
+  static readonly listenerRemoved: typeof listenerRemoved;
 
-	/**
+  /**
 	In TypeScript, it returns a decorator which mixins `Emittery` as property `emitteryPropertyName` and `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the target class.
 
 	@example
@@ -119,12 +122,12 @@ declare class Emittery<
 	instance.emit('event');
 	```
 	*/
-	static mixin(
-		emitteryPropertyName: string | symbol,
-		methodNames?: readonly string[]
-	): <T extends { new (): any }>(klass: T) => T; // eslint-disable-line @typescript-eslint/prefer-function-type
+  static mixin(
+    emitteryPropertyName: string | symbol,
+    methodNames?: readonly string[]
+  ): <T extends { new (): any }>(klass: T) => T; // eslint-disable-line @typescript-eslint/prefer-function-type
 
-	/**
+  /**
 	Subscribe to one or more events.
 
 	Using the same listener multiple times for the same event will result in only one method call per emitted event.
@@ -148,12 +151,12 @@ declare class Emittery<
 	emitter.emit('🐶', '🍖'); // log => '🍖'
 	```
 	*/
-	on<Name extends keyof AllEventData>(
-		eventName: Name,
-		listener: (eventData: AllEventData[Name]) => void | Promise<void>
-	): Emittery.UnsubscribeFn;
+  on<Name extends keyof AllEventData>(
+    eventName: Name | Name[],
+    listener: (eventData: AllEventData[Name]) => void | Promise<void>
+  ): Emittery.UnsubscribeFn;
 
-	/**
+  /**
 	Get an async iterator which buffers data each time an event is emitted.
 
 	Call `return()` on the iterator to remove the subscription.
@@ -236,11 +239,11 @@ declare class Emittery<
 		});
 	```
 	*/
-	events<Name extends keyof EventData>(
-		eventName: Name | Name[]
-	): AsyncIterableIterator<EventData[Name]>;
+  events<Name extends keyof EventData>(
+    eventName: Name | Name[]
+  ): AsyncIterableIterator<EventData[Name]>;
 
-	/**
+  /**
 	Remove one or more event subscriptions.
 
 	@example
@@ -263,12 +266,12 @@ declare class Emittery<
 	})();
 	```
 	*/
-	off<Name extends keyof AllEventData>(
-		eventName: Name,
-		listener: (eventData: AllEventData[Name]) => void | Promise<void>
-	): void;
+  off<Name extends keyof AllEventData>(
+    eventName: Name | Name[],
+    listener: (eventData: AllEventData[Name]) => void | Promise<void>
+  ): void;
 
-	/**
+  /**
 	Subscribe to one or more events only once. It will be unsubscribed after the first
 	event.
 
@@ -292,45 +295,47 @@ declare class Emittery<
 	emitter.emit('🐶', '🍖'); // Nothing happens
 	```
 	*/
-	once<Name extends keyof AllEventData>(eventName: Name): Promise<AllEventData[Name]>;
+  once<Name extends keyof AllEventData>(
+    eventName: Name | Name[]
+  ): Promise<AllEventData[Name]>;
 
-	/**
+  /**
 	Trigger an event asynchronously, optionally with some data. Listeners are called in the order they were added, but executed concurrently.
 
 	@returns A promise that resolves when all the event listeners are done. *Done* meaning executed if synchronous or resolved when an async/promise-returning function. You usually wouldn't want to wait for this, but you could for example catch possible errors. If any of the listeners throw/reject, the returned promise will be rejected with the error, but the other listeners will not be affected.
 	*/
-	emit<Name extends DatalessEvents>(eventName: Name): Promise<void>;
-	emit<Name extends keyof EventData>(
-		eventName: Name,
-		eventData: EventData[Name]
-	): Promise<void>;
+  emit<Name extends DatalessEvents>(eventName: Name): Promise<void>;
+  emit<Name extends keyof EventData>(
+    eventName: Name,
+    eventData: EventData[Name]
+  ): Promise<void>;
 
-	/**
+  /**
 	Same as `emit()`, but it waits for each listener to resolve before triggering the next one. This can be useful if your events depend on each other. Although ideally they should not. Prefer `emit()` whenever possible.
 
 	If any of the listeners throw/reject, the returned promise will be rejected with the error and the remaining listeners will *not* be called.
 
 	@returns A promise that resolves when all the event listeners are done.
 	*/
-	emitSerial<Name extends DatalessEvents>(eventName: Name): Promise<void>;
-	emitSerial<Name extends keyof EventData>(
-		eventName: Name,
-		eventData: EventData[Name]
-	): Promise<void>;
+  emitSerial<Name extends DatalessEvents>(eventName: Name): Promise<void>;
+  emitSerial<Name extends keyof EventData>(
+    eventName: Name,
+    eventData: EventData[Name]
+  ): Promise<void>;
 
-	/**
+  /**
 	Subscribe to be notified about any event.
 
 	@returns A method to unsubscribe.
 	*/
-	onAny(
-		listener: (
-			eventName: keyof EventData,
-			eventData: EventData[keyof EventData]
-		) => void | Promise<void>
-	): Emittery.UnsubscribeFn;
+  onAny(
+    listener: (
+      eventName: keyof EventData,
+      eventData: EventData[keyof EventData]
+    ) => void | Promise<void>
+  ): Emittery.UnsubscribeFn;
 
-	/**
+  /**
 	Get an async iterator which buffers a tuple of an event name and data each time an event is emitted.
 
 	Call `return()` on the iterator to remove the subscription.
@@ -364,33 +369,33 @@ declare class Emittery<
 		});
 	```
 	*/
-	anyEvent(): AsyncIterableIterator<
-	[keyof EventData, EventData[keyof EventData]]
-	>;
+  anyEvent(): AsyncIterableIterator<
+    [keyof EventData, EventData[keyof EventData]]
+  >;
 
-	/**
+  /**
 	Remove an `onAny` subscription.
 	*/
-	offAny(
-		listener: (
-			eventName: keyof EventData,
-			eventData: EventData[keyof EventData]
-		) => void | Promise<void>
-	): void;
+  offAny(
+    listener: (
+      eventName: keyof EventData,
+      eventData: EventData[keyof EventData]
+    ) => void | Promise<void>
+  ): void;
 
-	/**
+  /**
 	Clear all event listeners on the instance.
 
 	If `eventName` is given, only the listeners for that event are cleared.
 	*/
-	clearListeners(eventName?: keyof EventData): void;
+  clearListeners(eventName?: keyof EventData): void;
 
-	/**
+  /**
 	The number of listeners for the `eventName` or all events if not specified.
 	*/
-	listenerCount(eventName?: keyof EventData): number;
+  listenerCount(eventName?: keyof EventData): number;
 
-	/**
+  /**
 	Bind the given `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the `target` object.
 
 	@example
@@ -404,29 +409,32 @@ declare class Emittery<
 	object.emit('event');
 	```
 	*/
-	bindMethods(target: Record<string, unknown>, methodNames?: readonly string[]): void;
+  bindMethods(
+    target: Record<string, unknown>,
+    methodNames?: readonly string[]
+  ): void;
 }
 
 declare namespace Emittery {
-	/**
+  /**
 	Removes an event subscription.
 	*/
-	type UnsubscribeFn = () => void;
+  type UnsubscribeFn = () => void;
 
-	/**
+  /**
 	The data provided as `eventData` when listening for `Emittery.listenerAdded` or `Emittery.listenerRemoved`.
 	*/
-	interface ListenerChangedData {
-		/**
+  interface ListenerChangedData {
+    /**
 		The listener that was added or removed.
 		*/
-		listener: (eventData?: unknown) => void | Promise<void>;
+    listener: (eventData?: unknown) => void | Promise<void>;
 
-		/**
+    /**
 		The name of the event that was added or removed if `.on()` or `.off()` was used, or `undefined` if `.onAny()` or `.offAny()` was used.
 		*/
-		eventName?: EventName;
-	}
+    eventName?: EventName;
+  }
 }
 
 export = Emittery;
