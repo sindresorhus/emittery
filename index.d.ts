@@ -385,12 +385,12 @@ declare class Emittery<
 
 	If `eventName` is given, only the listeners for that event are cleared.
 	*/
-	clearListeners(eventName?: keyof EventData): void;
+	clearListeners<Name extends keyof EventData>(eventName?: Name | Name[]): void;
 
 	/**
 	The number of listeners for the `eventName` or all events if not specified.
 	*/
-	listenerCount(eventName?: keyof EventData): number;
+	listenerCount<Name extends keyof EventData>(eventName?: Name | Name[]): number;
 
 	/**
 	Bind the given `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the `target` object.
