@@ -19,6 +19,7 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 	ee.on('anEvent', async () => Promise.resolve());
 	ee.on('anEvent', data => undefined);
 	ee.on('anEvent', async data => Promise.resolve());
+	ee.on(['anEvent', 'anotherEvent'], async data => undefined);
 	ee.on(Emittery.listenerAdded, ({eventName, listener}) => {
 		expectType<string | symbol | undefined>(eventName);
 		expectType<AnyListener>(listener);
