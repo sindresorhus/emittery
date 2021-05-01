@@ -12,10 +12,7 @@ type DatalessEventNames<EventData> = {
 
 declare const listenerAdded: unique symbol;
 declare const listenerRemoved: unique symbol;
-type OmnipresentEventData = {
-	[listenerAdded]: Emittery.ListenerChangedData;
-	[listenerRemoved]: Emittery.ListenerChangedData;
-};
+type OmnipresentEventData = {[listenerAdded]: Emittery.ListenerChangedData; [listenerRemoved]: Emittery.ListenerChangedData};
 
 /**
 Emittery is a strictly typed, fully async EventEmitter implementation. Event listeners can be registered with `on` or `once`, and events can be emitted with `emit`.
@@ -295,9 +292,7 @@ declare class Emittery<
 	emitter.emit('🐶', '🍖'); // Nothing happens
 	```
 	*/
-	once<Name extends keyof AllEventData>(
-		eventName: Name
-	): Promise<AllEventData[Name]>;
+	once<Name extends keyof AllEventData>(eventName: Name): Promise<AllEventData[Name]>;
 
 	/**
 	Trigger an event asynchronously, optionally with some data. Listeners are called in the order they were added, but executed concurrently.
@@ -409,10 +404,7 @@ declare class Emittery<
 	object.emit('event');
 	```
 	*/
-	bindMethods(
-		target: Record<string, unknown>,
-		methodNames?: readonly string[]
-	): void;
+	bindMethods(target: Record<string, unknown>, methodNames?: readonly string[]): void;
 }
 
 declare namespace Emittery {
