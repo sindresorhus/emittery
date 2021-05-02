@@ -100,7 +100,7 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 	ee.on('open', argument => {
 		expectType<undefined>(argument);
 	});
-	
+
 	ee.on('value', () => {});
 	ee.on('value', argument => {
 		expectType<string>(argument);
