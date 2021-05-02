@@ -264,7 +264,7 @@ declare class Emittery<
 	```
 	*/
 	off<Name extends keyof AllEventData>(
-		eventName: Name,
+		eventName: Name | Name[],
 		listener: (eventData: AllEventData[Name]) => void | Promise<void>
 	): void;
 
@@ -292,7 +292,7 @@ declare class Emittery<
 	emitter.emit('🐶', '🍖'); // Nothing happens
 	```
 	*/
-	once<Name extends keyof AllEventData>(eventName: Name): Promise<AllEventData[Name]>;
+	once<Name extends keyof AllEventData>(eventName: Name | Name[]): Promise<AllEventData[Name]>;
 
 	/**
 	Trigger an event asynchronously, optionally with some data. Listeners are called in the order they were added, but executed concurrently.
@@ -383,12 +383,12 @@ declare class Emittery<
 
 	If `eventName` is given, only the listeners for that event are cleared.
 	*/
-	clearListeners(eventName?: keyof EventData): void;
+	clearListeners<Name extends keyof EventData>(eventName?: Name | Name[]): void;
 
 	/**
 	The number of listeners for the `eventName` or all events if not specified.
 	*/
-	listenerCount(eventName?: keyof EventData): number;
+	listenerCount<Name extends keyof EventData>(eventName?: Name | Name[]): number;
 
 	/**
 	Bind the given `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the `target` object.
