@@ -107,7 +107,7 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 	});
 	ee.on(['value', 'other'], () => {
 		expectType<string | number>(argument);
-	})
+	});
 	const listener = (value: string) => undefined;
 	ee.on('value', listener);
 	ee.off('value', listener);
@@ -207,6 +207,7 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 		for await (const event of ee.events('value')) {
 			expectType<string>(event);
 		}
+		
 		for await (const event of ee.events(['value', 'other'])) {
 			expectType<string | number>(event);
 		}
