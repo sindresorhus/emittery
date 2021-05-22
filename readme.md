@@ -44,7 +44,7 @@ Emittery accepts strings and symbols as event names.
 
 Symbol event names can be used to avoid name collisions when your classes are extended, especially for internal events.
 
-### isDebug
+### isDebugEnabled
 
 Toggle debug mode for all instances.
 
@@ -53,7 +53,7 @@ Default: Returns true if the DEBUG environment variable is set to 'emittery' or 
 Example:
 ```js
 const Emittery = require('emittery');
-Emittery.isDebug = true;
+Emittery.isDebugEnabled = true;
 
 const emitter1 = new Emittery({debug: {name: 'myEmitter1'}});
 const emitter2 = new Emittery({debug: {name: 'myEmitter2'}});
@@ -94,7 +94,7 @@ Define a name for the instance of Emittery to use when outputting debug data.
 Example:
 ```js
 const Emittery = require('emittery');
-Emittery.isDebug = true;
+Emittery.isDebugEnabled = true;
 
 const emitter = new Emittery({debug: {name: 'myEmitter'}});
 emitter.on('test', data => { // do something });
@@ -496,7 +496,7 @@ Note that when using `.emitSerial()`, a slow listener will delay invocation of s
 
 Emittery can collect and log debug information.
 
-To enable this feature set the DEBUG environment variable to 'emittery' or '*'. Additionally you can set the static `isDebug` variable to true on the Emittery class, or `myEmitter.debug.enabled` on an instance of it for debugging a single instance.
+To enable this feature set the DEBUG environment variable to 'emittery' or '*'. Additionally you can set the static `isDebugEnabled` variable to true on the Emittery class, or `myEmitter.debug.enabled` on an instance of it for debugging a single instance.
 
 See [API](#api) for more details on how debugging works.
 

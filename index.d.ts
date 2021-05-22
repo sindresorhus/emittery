@@ -17,7 +17,7 @@ type OmnipresentEventData = {[listenerAdded]: Emittery.ListenerChangedData; [lis
 /**
 Emittery can collect and log debug information.
 
-To enable this feature set the DEBUG environment variable to 'emittery' or '*'. Additionally you can set the static `isDebug` variable to true on the Emittery class, or `myEmitter.debug.enabled` on an instance of it for debugging a single instance.
+To enable this feature set the DEBUG environment variable to 'emittery' or '*'. Additionally you can set the static `isDebugEnabled` variable to true on the Emittery class, or `myEmitter.debug.enabled` on an instance of it for debugging a single instance.
 
 See API for more information on how debugging works.
 */
@@ -35,7 +35,7 @@ interface DebugOptions<EventData> {
 	@example
 	```
 	const Emittery = require('emittery');
-	Emittery.isDebug = true;
+	Emittery.isDebugEnabled = true;
 
 	const emitter = new Emittery({debug: {name: 'myEmitter'}});
 	emitter.on('test', data => { // do something });
@@ -46,7 +46,7 @@ interface DebugOptions<EventData> {
 	//	data: undefined
 	```
 	*/
-	readonly name: string;
+	readonly name: string | null;
 
 	/**
 	Toggle debug logging just for this instance.
@@ -76,9 +76,7 @@ interface DebugOptions<EventData> {
 	@default
 	```
 	(type, debugName, eventName, eventData) => {
-		if (typeof eventData === 'object') {
-			eventData = JSON.stringify(eventData);
-		}
+		eventData = JSON.stringify(eventData);
 
 		if (typeof eventName === 'symbol') {
 			eventName = eventName.toString();
@@ -162,7 +160,7 @@ declare class Emittery<
 	@example
 	```
 	const Emittery = require('emittery');
-	Emittery.isDebug = true;
+	Emittery.isDebugEnabled = true;
 
 	const emitter1 = new Emittery({debug: {name: 'myEmitter1'}});
 	const emitter2 = new Emittery({debug: {name: 'myEmitter2'}});
@@ -180,7 +178,7 @@ declare class Emittery<
 	//	data: undefined
 	```
 	*/
-	static isDebug: boolean;
+	static isDebugEnabled: boolean;
 
 	/**
 	Fires when an event listener was added.
