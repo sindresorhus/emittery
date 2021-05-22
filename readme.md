@@ -87,8 +87,6 @@ Configure the debugging options for this instance.
 
 Type: `string`
 
-Default: `null`
-
 Define a name for the instance of Emittery to use when outputting debug data.
 
 Example:

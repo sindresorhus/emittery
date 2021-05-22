@@ -69,7 +69,7 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 // IsDebug
 {
 	const ee = new Emittery();
-	expectAssignable<boolean>(Emittery.isDebug);
+	expectAssignable<boolean>(Emittery.isDebugEnabled);
 	expectAssignable<boolean | undefined>(ee.debug.enabled);
 	expectAssignable<string>(ee.debug.name);
 	expectNotAssignable<() => undefined>(ee.debug.logger);
