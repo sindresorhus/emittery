@@ -1059,7 +1059,7 @@ test('bindMethods() - methodNames must be array of strings or undefined', t => {
 });
 
 test('bindMethods() - must bind all methods if no array supplied', t => {
-	const methodsExpected = ['on', 'off', 'once', 'events', 'emit', 'emitSerial', 'onAny', 'anyEvent', 'offAny', 'clearListeners', 'listenerCount', 'bindMethods'];
+	const methodsExpected = ['on', 'off', 'once', 'events', 'emit', 'emitSerial', 'onAny', 'anyEvent', 'offAny', 'clearListeners', 'listenerCount', 'bindMethods', 'logIfDebugEnabled'];
 
 	const emitter = new Emittery();
 	const target = {};
@@ -1126,7 +1126,7 @@ test('mixin() - methodNames must be array of strings or undefined', t => {
 });
 
 test('mixin() - must mixin all methods if no array supplied', t => {
-	const methodsExpected = ['on', 'off', 'once', 'events', 'emit', 'emitSerial', 'onAny', 'anyEvent', 'offAny', 'clearListeners', 'listenerCount', 'bindMethods'];
+	const methodsExpected = ['on', 'off', 'once', 'events', 'emit', 'emitSerial', 'onAny', 'anyEvent', 'offAny', 'clearListeners', 'listenerCount', 'bindMethods', 'logIfDebugEnabled'];
 
 	class TestClass {}
 
@@ -1165,7 +1165,7 @@ test('isDebug default logger handles symbol event names and object for event dat
 });
 
 test('isDebug can be turned on globally during runtime', t => {
-	Emittery.isDebug = true;
+	Emittery.isDebugEnabled = true;
 	const eventStore = [];
 
 	const emitter = new Emittery({
@@ -1180,7 +1180,7 @@ test('isDebug can be turned on globally during runtime', t => {
 
 	emitter.on('test', () => {});
 	emitter.emit('test', 'test data');
-	Emittery.isDebug = false;
+	Emittery.isDebugEnabled = false;
 	t.true(eventStore.length > 0);
 	t.is(eventStore[2].type, 'emit');
 	t.is(eventStore[2].eventName, 'test');
