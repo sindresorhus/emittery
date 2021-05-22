@@ -45,7 +45,8 @@ Emittery accepts strings and symbols as event names.
 Symbol event names can be used to avoid name collisions when your classes are extended, especially for internal events.
 
 ### isDebug
-Enables/Disables debug mode for all instances
+
+Toggle debug mode for all instances.
 
 Default: Returns true if the DEBUG environment variable is set to 'emittery' or '*', otherwise false.
 
@@ -56,32 +57,37 @@ Emittery.isDebug = true;
 
 const emitter1 = new Emittery({debug: {name: 'myEmitter1'}});
 const emitter2 = new Emittery({debug: {name: 'myEmitter2'}});
+
 emitter1.on('test', data => { // do something });
 emitter2.on('otherTest', data => { // do something });
 
+emitter1.emit('test');
+emitter2.emit('otherTest');
+
 //=> [16:43:20.417][emittery:subscribe][myEmitter1] Event Name: test
 //	data: undefined
+
 //=> [16:43:20.417][emittery:subscribe][myEmitter2] Event Name: otherTest
 //	data: undefined
 ```
 
 ### emitter = new Emittery(options?)
 
-Create a new instance of Emittery
+Create a new instance of Emittery.
 
 #### options?
 
-Configure the new instance of Emittery
+Configure the new instance of Emittery.
 
 ##### debug?
 
-Configure the debugging options for this instance
+Configure the debugging options for this instance.
 
 ###### name
 
 Type: `string`
 
-Default: `Empty string`
+Default: `null`
 
 Define a name for the instance of Emittery to use when outputting debug data.
 
@@ -89,8 +95,12 @@ Example:
 ```js
 const Emittery = require('emittery');
 Emittery.isDebug = true;
+
 const emitter = new Emittery({debug: {name: 'myEmitter'}});
 emitter.on('test', data => { // do something });
+
+emitter.emit('test');
+
 //=> [16:43:20.417][emittery:subscribe][myEmitter] Event Name: test
 //	data: undefined
 ```
@@ -101,15 +111,21 @@ Type: `boolean`
 
 Default: `false`
 
-Enable/Disable debug logging just for this instance
+Toggle debug logging just for this instance.
 
 Example:
 ```js
 const Emittery = require('emittery');
+
 const emitter1 = new Emittery({debug: {name: 'emitter1', enabled: true}});
 const emitter2 = new Emittery({debug: {name: 'emitter2'}});
+
 emitter1.on('test', data => { // do something });
 emitter2.on('test', data => { // do something });
+
+emitter1.emit('test');
+emitter2.emit('test');
+
 //=> [16:43:20.417][emittery:subscribe][emitter1] Event Name: test
 //	data: undefined
 ```
@@ -135,7 +151,7 @@ Default:
 }
 ```
 
-Function that handles debug data
+Function that handles debug data.
 
 Example:
 ```js
@@ -149,7 +165,9 @@ const emitter = new Emittery({
 		logger: myLogger
 	}
 });
+
 emitter.on('test', data => { // do something });
+emitter.emit('test');
 
 //=> [subscribe]: test
 ```
