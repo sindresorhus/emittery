@@ -30,6 +30,8 @@ interface DebugOptions<EventData> {
 	/**
 	Define a name for the instance of Emittery to use when outputting debug data.
 
+	@default undefined
+
 	@example
 	```
 	const Emittery = require('emittery');
@@ -48,6 +50,8 @@ interface DebugOptions<EventData> {
 
 	/**
 	Toggle debug logging just for this instance.
+
+	@default false
 
 	@example
 	```

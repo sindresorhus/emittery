@@ -204,9 +204,6 @@ class Emittery {
 		eventsMap.set(this, new Map());
 		producersMap.set(this, new Map());
 		this.debug = options.debug || {};
-		if (!this.debug.name) {
-			this.debug.name = '';
-		}
 
 		if (this.debug.enabled === undefined) {
 			this.debug.enabled = false;
