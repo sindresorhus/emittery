@@ -51,8 +51,10 @@ Toggle debug mode for all instances.
 Default: Returns true if the DEBUG environment variable is set to 'emittery' or '*', otherwise false.
 
 Example:
+
 ```js
 const Emittery = require('emittery');
+
 Emittery.isDebugEnabled = true;
 
 const emitter1 = new Emittery({debug: {name: 'myEmitter1'}});
@@ -85,15 +87,16 @@ Configure the debugging options for this instance.
 
 ###### name
 
-Type: `string`
-
+Type: `string`\
 Default: `undefined`
 
 Define a name for the instance of Emittery to use when outputting debug data.
 
 Example:
+
 ```js
 const Emittery = require('emittery');
+
 Emittery.isDebugEnabled = true;
 
 const emitter = new Emittery({debug: {name: 'myEmitter'}});
@@ -114,6 +117,7 @@ Default: `false`
 Toggle debug logging just for this instance.
 
 Example:
+
 ```js
 const Emittery = require('emittery');
 
@@ -135,6 +139,7 @@ emitter2.emit('test');
 Type: `Function(string, string, EventName?, Record<string, any>?) => void`
 
 Default:
+
 ```js
 (type, debugName, eventName, eventData) => {
 	if (typeof eventData === 'object') {
@@ -154,8 +159,10 @@ Default:
 Function that handles debug data.
 
 Example:
+
 ```js
 const Emittery = require('emittery');
+
 const myLogger = (type, debugName, eventName, eventData) => console.log(`[${type}]: ${eventName}`);
 
 const emitter = new Emittery({
@@ -172,7 +179,6 @@ emitter.emit('test');
 
 //=> [subscribe]: test
 ```
-
 
 #### on(eventName | eventName[], listener)
 
