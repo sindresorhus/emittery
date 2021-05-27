@@ -105,6 +105,8 @@ interface DebugOptions<EventData> {
 
 	emitter.on('test', data => { // do something });
 
+	emitter.emit('test');
+
 	//=> [subscribe]: test
 	```
 	*/
