@@ -68,14 +68,37 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 
 // IsDebug
 {
-	const ee = new Emittery();
+	type MyEventData = {
+		value: string;
+		open: undefined;
+		close: boolean;
+	};
+
+	const ee = new Emittery<MyEventData>();
+
+	const myLogger = (type: string, debugName: string, eventName?: keyof MyEventData, eventData?: MyEventData[keyof MyEventData]): void => {
+		expectAssignable<string>(type);
+		expectAssignable<string>(debugName);
+		expectAssignable<string | undefined>(eventName);
+		expectAssignable<MyEventData[keyof MyEventData]>(eventData);
+	};
+
+	const debugOptions = {name: 'test', enabled: true, logger: myLogger};
+
+	// Global debug flag
 	expectAssignable<boolean>(Emittery.isDebugEnabled);
-	expectAssignable<boolean | undefined>(ee.debug.enabled);
+
+	// General debug options
+	expectAssignable<typeof ee.debug>(debugOptions);
 	expectAssignable<string>(ee.debug.name);
+	expectAssignable<boolean | undefined>(ee.debug.enabled);
+
+	// Debug logger
 	expectNotAssignable<() => undefined>(ee.debug.logger);
 	expectNotAssignable<(data: unknown) => undefined>(ee.debug.logger);
 	expectNotAssignable<(type: string, debugName: string) => undefined>(ee.debug.logger);
-	expectAssignable<((type: string, debugName: string, eventName?: string, eventData?: Record<string, any>) => void) | undefined>(ee.debug.logger);
+	expectNotAssignable<((type: string, debugName: string, eventName?: string, eventData?: Record<string, any>) => void) | undefined>(ee.debug.logger);
+	expectAssignable<typeof ee.debug.logger>(myLogger);
 }
 
 // Userland can't emit the meta events
