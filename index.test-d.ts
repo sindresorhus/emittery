@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
-import {expectType, expectError} from 'tsd';
+import {expectType, expectError, expectNotAssignable, expectAssignable} from 'tsd';
 import pEvent = require('p-event');
 import Emittery = require('.');
 
@@ -64,6 +64,41 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 {
 	const ee = new Emittery();
 	expectError(ee.on('anEvent', (data: any, more: any) => undefined));
+}
+
+// IsDebug
+{
+	type MyEventData = {
+		value: string;
+		open: undefined;
+		close: boolean;
+	};
+
+	const ee = new Emittery<MyEventData>();
+
+	const myLogger = (type: string, debugName: string, eventName?: keyof MyEventData, eventData?: MyEventData[keyof MyEventData]): void => {
+		expectAssignable<string>(type);
+		expectAssignable<string>(debugName);
+		expectAssignable<string | undefined>(eventName);
+		expectAssignable<MyEventData[keyof MyEventData]>(eventData);
+	};
+
+	const debugOptions = {name: 'test', enabled: true, logger: myLogger};
+
+	// Global debug flag
+	expectAssignable<boolean>(Emittery.isDebugEnabled);
+
+	// General debug options
+	expectAssignable<typeof ee.debug>(debugOptions);
+	expectAssignable<string>(ee.debug.name);
+	expectAssignable<boolean | undefined>(ee.debug.enabled);
+
+	// Debug logger
+	expectNotAssignable<() => undefined>(ee.debug.logger);
+	expectNotAssignable<(data: unknown) => undefined>(ee.debug.logger);
+	expectNotAssignable<(type: string, debugName: string) => undefined>(ee.debug.logger);
+	expectNotAssignable<((type: string, debugName: string, eventName?: string, eventData?: Record<string, any>) => void) | undefined>(ee.debug.logger);
+	expectAssignable<typeof ee.debug.logger>(myLogger);
 }
 
 // Userland can't emit the meta events

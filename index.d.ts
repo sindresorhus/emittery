@@ -15,6 +15,112 @@ declare const listenerRemoved: unique symbol;
 type OmnipresentEventData = {[listenerAdded]: Emittery.ListenerChangedData; [listenerRemoved]: Emittery.ListenerChangedData};
 
 /**
+Emittery can collect and log debug information.
+
+To enable this feature set the DEBUG environment variable to 'emittery' or '*'. Additionally you can set the static `isDebugEnabled` variable to true on the Emittery class, or `myEmitter.debug.enabled` on an instance of it for debugging a single instance.
+
+See API for more information on how debugging works.
+*/
+type DebugLogger<EventData, Name extends keyof EventData> = (type: string, debugName: string, eventName?: Name, eventData?: EventData[Name]) => void;
+
+/**
+Configure debug options of an instance.
+*/
+interface DebugOptions<EventData> {
+	/**
+	Define a name for the instance of Emittery to use when outputting debug data.
+
+	@default undefined
+
+	@example
+	```
+	const Emittery = require('emittery');
+	Emittery.isDebugEnabled = true;
+
+	const emitter = new Emittery({debug: {name: 'myEmitter'}});
+	emitter.on('test', data => { // do something });
+
+	emitter.emit('test');
+
+	//=> [16:43:20.417][emittery:subscribe][myEmitter] Event Name: test
+	//	data: undefined
+	```
+	*/
+	readonly name: string;
+
+	/**
+	Toggle debug logging just for this instance.
+
+	@default false
+
+	@example
+	```
+	const Emittery = require('emittery');
+
+	const emitter1 = new Emittery({debug: {name: 'emitter1', enabled: true}});
+	const emitter2 = new Emittery({debug: {name: 'emitter2'}});
+
+	emitter1.on('test', data => { // do something });
+	emitter2.on('test', data => { // do something });
+
+	emitter1.emit('test');
+	emitter2.emit('test');
+
+	//=> [16:43:20.417][emittery:subscribe][emitter1] Event Name: test
+	//	data: undefined
+	```
+	*/
+	enabled?: boolean;
+
+	/**
+	Function that handles debug data.
+
+	@default
+	```
+	(type, debugName, eventName, eventData) => {
+		eventData = JSON.stringify(eventData);
+
+		if (typeof eventName === 'symbol') {
+			eventName = eventName.toString();
+		}
+
+		const currentTime = new Date();
+		const logTime = `${currentTime.getHours()}:${currentTime.getMinutes()}:${currentTime.getSeconds()}.${currentTime.getMilliseconds()}`;
+		console.log(`[${logTime}][emittery:${type}][${debugName}] Event Name: ${eventName}\n\tdata: ${eventData}`);
+	}
+	```
+
+	@example
+	```
+	const Emittery = require('emittery');
+	const myLogger = (type, debugName, eventName, eventData) => console.log(`[${type}]: ${eventName}`);
+
+	const emitter = new Emittery({
+		debug: {
+			name: 'myEmitter',
+			enabled: true,
+			logger: myLogger
+		}
+	});
+
+	emitter.on('test', data => { // do something });
+
+	emitter.emit('test');
+
+	//=> [subscribe]: test
+	```
+	*/
+	logger?: DebugLogger<EventData, keyof EventData>;
+}
+
+/**
+Configuration options for Emittery.
+*/
+interface Options<EventData> {
+	debug?: DebugOptions<EventData>;
+}
+
+/**
 Emittery is a strictly typed, fully async EventEmitter implementation. Event listeners can be registered with `on` or `once`, and events can be emitted with `emit`.
 
 `Emittery` has a generic `EventData` type that can be provided by users to strongly type the list of events and the data passed to the listeners for those events. Pass an interface of {[eventName]: undefined | <eventArg>}, with all the event names as the keys and the values as the type of the argument passed to listeners if there is one, or `undefined` if there isn't.
@@ -50,6 +156,34 @@ declare class Emittery<
 	AllEventData = EventData & OmnipresentEventData,
 	DatalessEvents = DatalessEventNames<EventData>
 > {
+	/**
+	Toggle debug mode for all instances.
+
+	@default Returns true if the DEBUG environment variable is set to 'emittery' or '*', otherwise false.
+
+	@example
+	```
+	const Emittery = require('emittery');
+	Emittery.isDebugEnabled = true;
+
+	const emitter1 = new Emittery({debug: {name: 'myEmitter1'}});
+	const emitter2 = new Emittery({debug: {name: 'myEmitter2'}});
+
+	emitter1.on('test', data => { // do something });
+	emitter2.on('otherTest', data => { // do something });
+
+	emitter1.emit('test');
+	emitter2.emit('otherTest');
+
+	//=> [16:43:20.417][emittery:subscribe][myEmitter1] Event Name: test
+	//	data: undefined
+
+	//=> [16:43:20.417][emittery:subscribe][myEmitter2] Event Name: otherTest
+	//	data: undefined
+	```
+	*/
+	static isDebugEnabled: boolean;
+
 	/**
 	Fires when an event listener was added.
 
@@ -103,6 +237,18 @@ declare class Emittery<
 	```
 	*/
 	static readonly listenerRemoved: typeof listenerRemoved;
+
+	/**
+	Debugging options for the current instance.
+	*/
+	debug: DebugOptions<EventData>;
+
+	/**
+	Create a new Emittery instance with the specified options.
+
+	@returns An instance of Emittery that you can use to listen for and emit events.
+	*/
+	constructor(options?: Options<EventData>);
 
 	/**
 	In TypeScript, it returns a decorator which mixins `Emittery` as property `emitteryPropertyName` and `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the target class.
