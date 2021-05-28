@@ -1,3 +1,5 @@
+/* eslint-disable no-redeclare */
+
 /**
 Emittery accepts strings and symbols as event names.
 
@@ -17,7 +19,7 @@ type OmnipresentEventData = {[listenerAdded]: Emittery.ListenerChangedData; [lis
 /**
 Emittery can collect and log debug information.
 
-To enable this feature set the DEBUG environment variable to 'emittery' or '*'. Additionally you can set the static `isDebugEnabled` variable to true on the Emittery class, or `myEmitter.debug.enabled` on an instance of it for debugging a single instance.
+To enable this feature set the `DEBUG` environment variable to `emittery` or `*`. Additionally, you can set the static `isDebugEnabled` variable to true on the Emittery class, or `myEmitter.debug.enabled` on an instance of it for debugging a single instance.
 
 See API for more information on how debugging works.
 */
@@ -34,14 +36,17 @@ interface DebugOptions<EventData> {
 
 	@example
 	```
-	const Emittery = require('emittery');
+	import Emittery = require('emittery');
+
 	Emittery.isDebugEnabled = true;
 
 	const emitter = new Emittery({debug: {name: 'myEmitter'}});
-	emitter.on('test', data => { // do something });
+
+	emitter.on('test', data => {
+		// …
+	});
 
 	emitter.emit('test');
-
 	//=> [16:43:20.417][emittery:subscribe][myEmitter] Event Name: test
 	//	data: undefined
 	```
@@ -55,19 +60,24 @@ interface DebugOptions<EventData> {
 
 	@example
 	```
-	const Emittery = require('emittery');
+	import Emittery = require('emittery');
 
 	const emitter1 = new Emittery({debug: {name: 'emitter1', enabled: true}});
 	const emitter2 = new Emittery({debug: {name: 'emitter2'}});
 
-	emitter1.on('test', data => { // do something });
-	emitter2.on('test', data => { // do something });
+	emitter1.on('test', data => {
+		// …
+	});
+
+	emitter2.on('test', data => {
+		// …
+	});
 
 	emitter1.emit('test');
-	emitter2.emit('test');
-
 	//=> [16:43:20.417][emittery:subscribe][emitter1] Event Name: test
 	//	data: undefined
+
+	emitter2.emit('test');
 	```
 	*/
 	enabled?: boolean;
@@ -92,7 +102,8 @@ interface DebugOptions<EventData> {
 
 	@example
 	```
-	const Emittery = require('emittery');
+	import Emittery = require('emittery');
+
 	const myLogger = (type, debugName, eventName, eventData) => console.log(`[${type}]: ${eventName}`);
 
 	const emitter = new Emittery({
@@ -103,10 +114,11 @@ interface DebugOptions<EventData> {
 		}
 	});
 
-	emitter.on('test', data => { // do something });
+	emitter.on('test', data => {
+		// …
+	});
 
 	emitter.emit('test');
-
 	//=> [subscribe]: test
 	```
 	*/
@@ -159,25 +171,30 @@ declare class Emittery<
 	/**
 	Toggle debug mode for all instances.
 
-	@default Returns true if the DEBUG environment variable is set to 'emittery' or '*', otherwise false.
+	Default: `true` if the `DEBUG` environment variable is set to `emittery` or `*`, otherwise `false`.
 
 	@example
 	```
-	const Emittery = require('emittery');
+	import Emittery = require('emittery');
+
 	Emittery.isDebugEnabled = true;
 
 	const emitter1 = new Emittery({debug: {name: 'myEmitter1'}});
 	const emitter2 = new Emittery({debug: {name: 'myEmitter2'}});
 
-	emitter1.on('test', data => { // do something });
-	emitter2.on('otherTest', data => { // do something });
+	emitter1.on('test', data => {
+		// …
+	});
+
+	emitter2.on('otherTest', data => {
+		// …
+	});
 
 	emitter1.emit('test');
-	emitter2.emit('otherTest');
-
 	//=> [16:43:20.417][emittery:subscribe][myEmitter1] Event Name: test
 	//	data: undefined
 
+	emitter2.emit('otherTest');
 	//=> [16:43:20.417][emittery:subscribe][myEmitter2] Event Name: otherTest
 	//	data: undefined
 	```
@@ -268,7 +285,7 @@ declare class Emittery<
 	static mixin(
 		emitteryPropertyName: string | symbol,
 		methodNames?: readonly string[]
-	): <T extends { new (): any }>(klass: T) => T; // eslint-disable-line @typescript-eslint/prefer-function-type
+	): <T extends {new (): any}>(klass: T) => T; // eslint-disable-line @typescript-eslint/prefer-function-type
 
 	/**
 	Subscribe to one or more events.
@@ -286,6 +303,7 @@ declare class Emittery<
 	emitter.on('🦄', data => {
 		console.log(data);
 	});
+
 	emitter.on(['🦄', '🐶'], data => {
 		console.log(data);
 	});
@@ -430,6 +448,7 @@ declare class Emittery<
 		console.log(data);
 		//=> '🌈'
 	});
+
 	emitter.once(['🦄', '🐶']).then(data => {
 		console.log(data);
 	});

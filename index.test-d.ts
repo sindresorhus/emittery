@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-empty-function */
+/* eslint-disable @typescript-eslint/no-empty-function, @typescript-eslint/no-unused-vars, @typescript-eslint/no-floating-promises */
 import {expectType, expectError, expectNotAssignable, expectAssignable} from 'tsd';
 import pEvent = require('p-event');
-import Emittery = require('.');
+import Emittery = require('./index.js');
 
 type AnyListener = (eventData?: unknown) => void | Promise<void>;
 

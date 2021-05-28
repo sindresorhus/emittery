@@ -53,9 +53,9 @@ function onTick({duration}) {
 	}
 }
 
-function onError(err) {
+function onError(error) {
 	process.exitCode = 1;
-	console.error(err);
+	console.error(error);
 	stop();
 }
 

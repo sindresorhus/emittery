@@ -66,9 +66,9 @@ function onTick({duration}: TickData) {
 	}
 }
 
-function onError(err: Error) {
+function onError(error: Error) {
 	process.exitCode = 1;
-	console.error(err);
+	console.error(error);
 	stop();
 }
 

@@ -1,7 +1,7 @@
 import test from 'ava';
 import delay from 'delay';
 import pEvent from 'p-event';
-import Emittery from '..';
+import Emittery from '../index.js';
 
 test('on()', async t => {
 	const emitter = new Emittery();
@@ -1023,7 +1023,7 @@ test('bindMethods()', t => {
 	const oldPropertyNames = Object.getOwnPropertyNames(target);
 	emitter.bindMethods(target, methodsToBind);
 
-	t.deepEqual(Object.getOwnPropertyNames(target).sort(), oldPropertyNames.concat(methodsToBind).sort());
+	t.deepEqual(Object.getOwnPropertyNames(target).sort(), [...oldPropertyNames, ...methodsToBind].sort());
 
 	for (const method of methodsToBind) {
 		t.is(typeof target[method], 'function');
@@ -1067,7 +1067,7 @@ test('bindMethods() - must bind all methods if no array supplied', t => {
 	const oldPropertyNames = Object.getOwnPropertyNames(target);
 	emitter.bindMethods(target);
 
-	t.deepEqual(Object.getOwnPropertyNames(target).sort(), oldPropertyNames.concat(methodsExpected).sort());
+	t.deepEqual(Object.getOwnPropertyNames(target).sort(), [...oldPropertyNames, ...methodsExpected].sort());
 
 	for (const method of methodsExpected) {
 		t.is(typeof target[method], 'function');
@@ -1132,7 +1132,7 @@ test('mixin() - must mixin all methods if no array supplied', t => {
 
 	const TestClassWithMixin = Emittery.mixin('emitter')(TestClass);
 
-	t.deepEqual(Object.getOwnPropertyNames(TestClassWithMixin.prototype).sort(), methodsExpected.concat(['constructor', 'emitter']).sort());
+	t.deepEqual(Object.getOwnPropertyNames(TestClassWithMixin.prototype).sort(), [...methodsExpected, 'constructor', 'emitter'].sort());
 });
 
 test('mixin() - methodNames must only include Emittery methods', t => {

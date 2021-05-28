@@ -48,7 +48,7 @@ Symbol event names can be used to avoid name collisions when your classes are ex
 
 Toggle debug mode for all instances.
 
-Default: Returns true if the DEBUG environment variable is set to 'emittery' or '*', otherwise false.
+Default: `true` if the `DEBUG` environment variable is set to `emittery` or `*`, otherwise `false`.
 
 Example:
 
@@ -60,15 +60,19 @@ Emittery.isDebugEnabled = true;
 const emitter1 = new Emittery({debug: {name: 'myEmitter1'}});
 const emitter2 = new Emittery({debug: {name: 'myEmitter2'}});
 
-emitter1.on('test', data => { // do something });
-emitter2.on('otherTest', data => { // do something });
+emitter1.on('test', data => {
+	// …
+});
+
+emitter2.on('otherTest', data => {
+	// …
+});
 
 emitter1.emit('test');
-emitter2.emit('otherTest');
-
 //=> [16:43:20.417][emittery:subscribe][myEmitter1] Event Name: test
 //	data: undefined
 
+emitter2.emit('otherTest');
 //=> [16:43:20.417][emittery:subscribe][myEmitter2] Event Name: otherTest
 //	data: undefined
 ```
@@ -79,9 +83,13 @@ Create a new instance of Emittery.
 
 #### options?
 
+Type: `object`
+
 Configure the new instance of Emittery.
 
 ##### debug?
+
+Type: `objcect`
 
 Configure the debugging options for this instance.
 
@@ -100,18 +108,19 @@ const Emittery = require('emittery');
 Emittery.isDebugEnabled = true;
 
 const emitter = new Emittery({debug: {name: 'myEmitter'}});
-emitter.on('test', data => { // do something });
+
+emitter.on('test', data => {
+	// …
+});
 
 emitter.emit('test');
-
 //=> [16:43:20.417][emittery:subscribe][myEmitter] Event Name: test
 //	data: undefined
 ```
 
 ###### enabled?
 
-Type: `boolean`
-
+Type: `boolean`\
 Default: `false`
 
 Toggle debug logging just for this instance.
@@ -124,14 +133,19 @@ const Emittery = require('emittery');
 const emitter1 = new Emittery({debug: {name: 'emitter1', enabled: true}});
 const emitter2 = new Emittery({debug: {name: 'emitter2'}});
 
-emitter1.on('test', data => { // do something });
-emitter2.on('test', data => { // do something });
+emitter1.on('test', data => {
+	// …
+});
+
+emitter2.on('test', data => {
+	// …
+});
 
 emitter1.emit('test');
-emitter2.emit('test');
-
 //=> [16:43:20.417][emittery:subscribe][emitter1] Event Name: test
 //	data: undefined
+
+emitter2.emit('test');
 ```
 
 ###### logger?
@@ -173,10 +187,11 @@ const emitter = new Emittery({
 	}
 });
 
-emitter.on('test', data => { // do something });
+emitter.on('test', data => {
+	// …
+});
 
 emitter.emit('test');
-
 //=> [subscribe]: test
 ```
 
@@ -196,6 +211,7 @@ const emitter = new Emittery();
 emitter.on('🦄', data => {
 	console.log(data);
 });
+
 emitter.on(['🦄', '🐶'], data => {
 	console.log(data);
 });
@@ -248,6 +264,7 @@ const Emittery = require('emittery');
 const emitter = new Emittery();
 
 const listener = data => console.log(data);
+
 (async () => {
 	emitter.on(['🦄', '🐶', '🦊'], listener);
 	await emitter.emit('🦄', 'a');
@@ -278,6 +295,7 @@ emitter.once('🦄').then(data => {
 	console.log(data);
 	//=> '🌈'
 });
+
 emitter.once(['🦄', '🐶']).then(data => {
 	console.log(data);
 });
