@@ -192,7 +192,8 @@ class Emittery {
 	}
 
 	static get isDebugEnabled() {
-		return process.env.DEBUG === 'emittery' || process.env.DEBUG === '*' || isGlobalDebugEnabled;
+		const {env} = process || {env: {}};
+		return env.DEBUG === 'emittery' || env.DEBUG === '*' || isGlobalDebugEnabled;
 	}
 
 	static set isDebugEnabled(newValue) {
