@@ -1,6 +1,6 @@
 {
 	"name": "emittery",
-	"version": "0.9.0",
+	"version": "0.9.1",
 	"description": "Simple and modern async event emitter",
 	"license": "MIT",
 	"repository": "sindresorhus/emittery",
