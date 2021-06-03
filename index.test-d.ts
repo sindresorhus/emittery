@@ -19,6 +19,7 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 	ee.on('anEvent', async () => Promise.resolve());
 	ee.on('anEvent', data => undefined);
 	ee.on('anEvent', async data => Promise.resolve());
+	ee.on(['anEvent', 'anotherEvent'], async data => undefined);
 	ee.on(Emittery.listenerAdded, ({eventName, listener}) => {
 		expectType<string | symbol | undefined>(eventName);
 		expectType<AnyListener>(listener);
@@ -128,6 +129,7 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 		value: string;
 		open: undefined;
 		close: undefined;
+		other: number;
 	}>();
 	ee.on('open', () => {});
 	ee.on('open', argument => {
@@ -138,13 +140,17 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 	ee.on('value', argument => {
 		expectType<string>(argument);
 	});
-
+	ee.on(['value', 'other'], () => {
+		expectType<string | number>(argument);
+	});
 	const listener = (value: string) => undefined;
 	ee.on('value', listener);
 	ee.off('value', listener);
 	const test = async () => {
 		const event = await ee.once('value');
 		expectType<string>(event);
+		const multiEvent = await ee.once(['value', 'other']);
+		expectType<string | number>(multiEvent);
 	};
 
 	expectError(ee.on('value', (value: number) => {}));
@@ -230,10 +236,15 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 			value: string;
 			open: undefined;
 			close: undefined;
+			other: number;
 		}>();
 
 		for await (const event of ee.events('value')) {
 			expectType<string>(event);
+		}
+
+		for await (const event of ee.events(['value', 'other'])) {
+			expectType<string | number>(event);
 		}
 
 		for await (const event of ee.events(['value', 'open'])) {
