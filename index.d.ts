@@ -14,7 +14,7 @@ type DatalessEventNames<EventData> = {
 
 declare const listenerAdded: unique symbol;
 declare const listenerRemoved: unique symbol;
-type OmnipresentEventData = {[listenerAdded]: Emittery.ListenerChangedData; [listenerRemoved]: Emittery.ListenerChangedData};
+export type OmnipresentEventData = {[listenerAdded]: Emittery.ListenerChangedData; [listenerRemoved]: Emittery.ListenerChangedData};
 
 /**
 Emittery can collect and log debug information.
