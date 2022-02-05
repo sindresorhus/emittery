@@ -14,7 +14,7 @@ type DatalessEventNames<EventData> = {
 
 declare const listenerAdded: unique symbol;
 declare const listenerRemoved: unique symbol;
-export type OmnipresentEventData = {[listenerAdded]: Emittery.ListenerChangedData; [listenerRemoved]: Emittery.ListenerChangedData};
+type _OmnipresentEventData = {[listenerAdded]: Emittery.ListenerChangedData; [listenerRemoved]: Emittery.ListenerChangedData};
 
 /**
 Emittery can collect and log debug information.
@@ -165,7 +165,7 @@ emitter.emit('other');
 */
 declare class Emittery<
 	EventData = Record<string, any>, // When https://github.com/microsoft/TypeScript/issues/1863 ships, we can switch this to have an index signature including Symbols. If you want to use symbol keys right now, you need to pass an interface with those symbol keys explicitly listed.
-	AllEventData = EventData & OmnipresentEventData,
+	AllEventData = EventData & _OmnipresentEventData,
 	DatalessEvents = DatalessEventNames<EventData>
 > {
 	/**
@@ -592,6 +592,8 @@ declare namespace Emittery {
 		*/
 		eventName?: EventName;
 	}
+
+	type OmnipresentEventData = _OmnipresentEventData;
 }
 
 export = Emittery;
