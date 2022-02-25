@@ -89,7 +89,7 @@ Configure the new instance of Emittery.
 
 ##### debug?
 
-Type: `objcect`
+Type: `object`
 
 Configure the debugging options for this instance.
 
