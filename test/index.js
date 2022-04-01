@@ -1210,3 +1210,17 @@ test('isDebug can be turned on for and instance without using the constructor', 
 	t.is(eventStore[2].debugName, 'testEmitter');
 	t.is(eventStore[2].eventData, 'test data');
 });
+
+test('debug mode - handles circular references in event data', async t => {
+	const emitter = new Emittery({
+		debug: {
+			name: 'testEmitter',
+			enabled: true
+		}
+	});
+
+	const data = {};
+	data.circular = data;
+
+	await t.notThrowsAsync(emitter.emit('test', data));
+});

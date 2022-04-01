@@ -216,7 +216,12 @@ class Emittery {
 
 		if (!this.debug.logger) {
 			this.debug.logger = (type, debugName, eventName, eventData) => {
-				eventData = JSON.stringify(eventData);
+				try {
+					// TODO: Use https://github.com/sindresorhus/safe-stringify when the package is more mature. Just copy-paste the code.
+					eventData = JSON.stringify(eventData);
+				} catch {
+					eventData = `Object with the following keys failed to stringify: ${Object.keys(eventData).join(',')}`;
+				}
 
 				if (typeof eventName === 'symbol') {
 					eventName = eventName.toString();
