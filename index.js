@@ -12,8 +12,8 @@ const listenerRemoved = Symbol('listenerRemoved');
 let isGlobalDebugEnabled = false;
 
 function assertEventName(eventName) {
-	if (typeof eventName !== 'string' && typeof eventName !== 'symbol') {
-		throw new TypeError('eventName must be a string or a symbol');
+	if (typeof eventName !== 'string' && typeof eventName !== 'symbol' && typeof eventName !== 'number') {
+		throw new TypeError('eventName must be a string, symbol, or number');
 	}
 }
 
@@ -33,7 +33,7 @@ function getListeners(instance, eventName) {
 }
 
 function getEventProducers(instance, eventName) {
-	const key = typeof eventName === 'string' || typeof eventName === 'symbol' ? eventName : anyProducer;
+	const key = typeof eventName === 'string' || typeof eventName === 'symbol' || typeof eventName === 'number' ? eventName : anyProducer;
 	const producers = producersMap.get(instance);
 	if (!producers.has(key)) {
 		producers.set(key, new Set());
@@ -223,7 +223,7 @@ class Emittery {
 					eventData = `Object with the following keys failed to stringify: ${Object.keys(eventData).join(',')}`;
 				}
 
-				if (typeof eventName === 'symbol') {
+				if (typeof eventName === 'symbol' || typeof eventName === 'number') {
 					eventName = eventName.toString();
 				}
 
@@ -374,7 +374,7 @@ class Emittery {
 		for (const eventName of eventNames) {
 			this.logIfDebugEnabled('clear', eventName, undefined);
 
-			if (typeof eventName === 'string' || typeof eventName === 'symbol') {
+			if (typeof eventName === 'string' || typeof eventName === 'symbol' || typeof eventName === 'number') {
 				getListeners(this, eventName).clear();
 
 				const producers = getEventProducers(this, eventName);
