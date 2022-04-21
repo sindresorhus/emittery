@@ -164,7 +164,7 @@ emitter.emit('other');
 ```
 */
 declare class Emittery<
-	EventData = Record<string, any>, // When https://github.com/microsoft/TypeScript/issues/1863 ships, we can switch this to have an index signature including Symbols. If you want to use symbol keys right now, you need to pass an interface with those symbol keys explicitly listed.
+	EventData = Record<EventName, any>,
 	AllEventData = EventData & _OmnipresentEventData,
 	DatalessEvents = DatalessEventNames<EventData>
 > {
