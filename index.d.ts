@@ -5,7 +5,7 @@ Emittery accepts strings, symbols, and numbers as event names.
 
 Symbol event names can be used to avoid name collisions when your classes are extended, especially for internal events.
 */
-type EventName = string | symbol | number;
+type EventName = PropertyKey;
 
 // Helper type for turning the passed `EventData` type map into a list of string keys that don't require data alongside the event name when emitting. Uses the same trick that `Omit` does internally to filter keys by building a map of keys to keys we want to keep, and then accessing all the keys to return just the list of keys we want to keep.
 type DatalessEventNames<EventData> = {
