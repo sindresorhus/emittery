@@ -3,7 +3,7 @@
 /**
 Emittery accepts strings, symbols, and numbers as event names.
 
-Symbol event names can be used to avoid name collisions when your classes are extended, especially for internal events.
+Symbol event names are preferred given that they can be used to avoid name collisions when your classes are extended, especially for internal events.
 */
 type EventName = PropertyKey;
 
