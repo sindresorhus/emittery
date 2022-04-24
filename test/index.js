@@ -420,6 +420,13 @@ test('emit() - eventName must be a string, symbol, or number', async t => {
 	await t.throwsAsync(emitter.emit(true), TypeError);
 });
 
+test('emit() - userland cannot emit the meta events', async t => {
+	const emitter = new Emittery();
+
+	await t.throwsAsync(emitter.emit(Emittery.listenerRemoved), TypeError);
+	await t.throwsAsync(emitter.emit(Emittery.listenerAdded), TypeError);
+});
+
 test.cb('emit() - is async', t => {
 	t.plan(2);
 
@@ -596,6 +603,13 @@ test('emitSerial() - eventName must be a string, symbol, or number', async t => 
 	emitter.emitSerial(42);
 
 	await t.throwsAsync(emitter.emitSerial(true), TypeError);
+});
+
+test('emitSerial() - userland cannot emit the meta events', async t => {
+	const emitter = new Emittery();
+
+	await t.throwsAsync(emitter.emitSerial(Emittery.listenerRemoved), TypeError);
+	await t.throwsAsync(emitter.emitSerial(Emittery.listenerAdded), TypeError);
 });
 
 test.cb('emitSerial() - is async', t => {

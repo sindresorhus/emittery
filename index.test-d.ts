@@ -102,13 +102,6 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 	expectAssignable<typeof ee.debug.logger>(myLogger);
 }
 
-// Userland can't emit the meta events
-{
-	const ee = new Emittery();
-	expectError(ee.emit(Emittery.listenerRemoved));
-	expectError(ee.emit(Emittery.listenerAdded));
-}
-
 // Strict typing for emission
 {
 	const ee = new Emittery<{
