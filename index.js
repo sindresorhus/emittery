@@ -6,7 +6,7 @@ const producersMap = new WeakMap();
 const anyProducer = Symbol('anyProducer');
 const resolvedPromise = Promise.resolve();
 
-// Define symbols for meta events.
+// Define symbols for "meta" events.
 const listenerAdded = Symbol('listenerAdded');
 const listenerRemoved = Symbol('listenerRemoved');
 
@@ -20,7 +20,7 @@ function assertEventName(eventName, allowMetaEvents) {
 		throw new TypeError('`eventName` must be a string, symbol, or number');
 	}
 
-	if (isListenerSymbol(eventName) && allowMetaEvents !== metaEventsAllowed) {
+	if (isMetaEvent(eventName) && allowMetaEvents !== metaEventsAllowed) {
 		throw new TypeError('`eventName` cannot be meta event `listenerAdded` or `listenerRemoved`');
 	}
 }
@@ -155,7 +155,7 @@ function defaultMethodNamesOrAssert(methodNames) {
 	return methodNames;
 }
 
-const isListenerSymbol = symbol => symbol === listenerAdded || symbol === listenerRemoved;
+const isMetaEvent = eventName => eventName === listenerAdded || eventName === listenerRemoved;
 
 class Emittery {
 	static mixin(emitteryPropertyName, methodNames) {
@@ -258,7 +258,7 @@ class Emittery {
 
 			this.logIfDebugEnabled('subscribe', eventName, undefined);
 
-			if (!isListenerSymbol(eventName)) {
+			if (!isMetaEvent(eventName)) {
 				this.emit(listenerAdded, {eventName, listener}, metaEventsAllowed);
 			}
 		}
@@ -276,7 +276,7 @@ class Emittery {
 
 			this.logIfDebugEnabled('unsubscribe', eventName, undefined);
 
-			if (!isListenerSymbol(eventName)) {
+			if (!isMetaEvent(eventName)) {
 				this.emit(listenerRemoved, {eventName, listener}, metaEventsAllowed);
 			}
 		}
@@ -310,7 +310,7 @@ class Emittery {
 		const listeners = getListeners(this, eventName);
 		const anyListeners = anyMap.get(this);
 		const staticListeners = [...listeners];
-		const staticAnyListeners = isListenerSymbol(eventName) ? [] : [...anyListeners];
+		const staticAnyListeners = isMetaEvent(eventName) ? [] : [...anyListeners];
 
 		await resolvedPromise;
 		await Promise.all([

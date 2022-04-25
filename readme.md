@@ -222,7 +222,7 @@ emitter.emit('🐶', '🍖'); // log => '🍖'
 
 ##### Custom subscribable events
 
-Emittery exports some symbols which represent custom events that can be passed to `Emitter.on` and similar methods.
+Emittery exports some symbols which represent "meta" events that can be passed to `Emitter.on` and similar methods.
 
 - `Emittery.listenerAdded` - Fires when an event listener was added.
 - `Emittery.listenerRemoved` - Fires when an event listener was removed.
