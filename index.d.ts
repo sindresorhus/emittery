@@ -1,11 +1,11 @@
 /* eslint-disable no-redeclare */
 
 /**
-Emittery accepts strings and symbols as event names.
+Emittery accepts strings, symbols, and numbers as event names.
 
-Symbol event names can be used to avoid name collisions when your classes are extended, especially for internal events.
+Symbol event names are preferred given that they can be used to avoid name collisions when your classes are extended, especially for internal events.
 */
-type EventName = string | symbol;
+type EventName = PropertyKey;
 
 // Helper type for turning the passed `EventData` type map into a list of string keys that don't require data alongside the event name when emitting. Uses the same trick that `Omit` does internally to filter keys by building a map of keys to keys we want to keep, and then accessing all the keys to return just the list of keys we want to keep.
 type DatalessEventNames<EventData> = {
@@ -90,7 +90,7 @@ interface DebugOptions<EventData> {
 	(type, debugName, eventName, eventData) => {
 		eventData = JSON.stringify(eventData);
 
-		if (typeof eventName === 'symbol') {
+		if (typeof eventName === 'symbol' || typeof eventName === 'number') {
 			eventName = eventName.toString();
 		}
 
@@ -142,7 +142,7 @@ Emittery is a strictly typed, fully async EventEmitter implementation. Event lis
 import Emittery = require('emittery');
 
 const emitter = new Emittery<
-	// Pass `{[eventName: <string | symbol>]: undefined | <eventArg>}` as the first type argument for events that pass data to their listeners.
+	// Pass `{[eventName: <string | symbol | number>]: undefined | <eventArg>}` as the first type argument for events that pass data to their listeners.
 	// A value of `undefined` in this map means the event listeners should expect no data, and a type other than `undefined` means the listeners will receive one argument of that type.
 	{
 		open: string,
@@ -164,7 +164,7 @@ emitter.emit('other');
 ```
 */
 declare class Emittery<
-	EventData = Record<string, any>, // When https://github.com/microsoft/TypeScript/issues/1863 ships, we can switch this to have an index signature including Symbols. If you want to use symbol keys right now, you need to pass an interface with those symbol keys explicitly listed.
+	EventData = Record<EventName, any>,
 	AllEventData = EventData & _OmnipresentEventData,
 	DatalessEvents = DatalessEventNames<EventData>
 > {

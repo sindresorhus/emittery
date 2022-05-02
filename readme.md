@@ -40,9 +40,9 @@ emitter.emit(myUnicorn, '🦋');  // Will trigger printing 'Unicorns love 🦋'
 
 ### eventName
 
-Emittery accepts strings and symbols as event names.
+Emittery accepts strings, symbols, and numbers as event names.
 
-Symbol event names can be used to avoid name collisions when your classes are extended, especially for internal events.
+Symbol event names are preferred given that they can be used to avoid name collisions when your classes are extended, especially for internal events.
 
 ### isDebugEnabled
 
@@ -160,7 +160,7 @@ Default:
 		eventData = JSON.stringify(eventData);
 	}
 
-	if (typeof eventName === 'symbol') {
+	if (typeof eventName === 'symbol' || typeof eventName === 'number') {
 		eventName = eventName.toString();
 	}
 
@@ -222,7 +222,7 @@ emitter.emit('🐶', '🍖'); // log => '🍖'
 
 ##### Custom subscribable events
 
-Emittery exports some symbols which represent custom events that can be passed to `Emitter.on` and similar methods.
+Emittery exports some symbols which represent "meta" events that can be passed to `Emitter.on` and similar methods.
 
 - `Emittery.listenerAdded` - Fires when an event listener was added.
 - `Emittery.listenerRemoved` - Fires when an event listener was removed.

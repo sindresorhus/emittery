@@ -21,11 +21,11 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 	ee.on('anEvent', async data => Promise.resolve());
 	ee.on(['anEvent', 'anotherEvent'], async data => undefined);
 	ee.on(Emittery.listenerAdded, ({eventName, listener}) => {
-		expectType<string | symbol | undefined>(eventName);
+		expectType<PropertyKey | undefined>(eventName);
 		expectType<AnyListener>(listener);
 	});
 	ee.on(Emittery.listenerRemoved, ({eventName, listener}) => {
-		expectType<string | symbol | undefined>(eventName);
+		expectType<PropertyKey | undefined>(eventName);
 		expectType<AnyListener>(listener);
 	});
 }
@@ -47,11 +47,11 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 	const test = async () => {
 		await ee.once('anEvent');
 		await ee.once(Emittery.listenerAdded).then(({eventName, listener}) => {
-			expectType<string | symbol | undefined>(eventName);
+			expectType<PropertyKey | undefined>(eventName);
 			expectType<AnyListener>(listener);
 		});
 		await ee.once(Emittery.listenerRemoved).then(({eventName, listener}) => {
-			expectType<string | symbol | undefined>(eventName);
+			expectType<PropertyKey | undefined>(eventName);
 			expectType<AnyListener>(listener);
 		});
 	};
@@ -100,13 +100,6 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 	expectNotAssignable<(type: string, debugName: string) => undefined>(ee.debug.logger);
 	expectNotAssignable<((type: string, debugName: string, eventName?: string, eventData?: Record<string, any>) => void) | undefined>(ee.debug.logger);
 	expectAssignable<typeof ee.debug.logger>(myLogger);
-}
-
-// Userland can't emit the meta events
-{
-	const ee = new Emittery();
-	expectError(ee.emit(Emittery.listenerRemoved));
-	expectError(ee.emit(Emittery.listenerAdded));
 }
 
 // Strict typing for emission

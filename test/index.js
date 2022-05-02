@@ -133,14 +133,15 @@ test('on() - listenerAdded offAny', async t => {
 	t.is(eventName, undefined);
 });
 
-test('on() - eventName must be a string or a symbol', t => {
+test('on() - eventName must be a string, symbol, or number', t => {
 	const emitter = new Emittery();
 
 	emitter.on('string', () => {});
 	emitter.on(Symbol('symbol'), () => {});
+	emitter.on(42, () => {});
 
 	t.throws(() => {
-		emitter.on(42, () => {});
+		emitter.on(true, () => {});
 	}, TypeError);
 });
 
@@ -327,14 +328,15 @@ test('off() - multiple event names', async t => {
 	t.deepEqual(calls, [1, 1]);
 });
 
-test('off() - eventName must be a string or a symbol', t => {
+test('off() - eventName must be a string, symbol, or number', t => {
 	const emitter = new Emittery();
 
 	emitter.on('string', () => {});
 	emitter.on(Symbol('symbol'), () => {});
+	emitter.on(42, () => {});
 
 	t.throws(() => {
-		emitter.off(42);
+		emitter.off(true);
 	}, TypeError);
 });
 
@@ -362,13 +364,14 @@ test('once() - multiple event names', async t => {
 	t.is(await promise, fixture);
 });
 
-test('once() - eventName must be a string or a symbol', async t => {
+test('once() - eventName must be a string, symbol, or number', async t => {
 	const emitter = new Emittery();
 
 	emitter.once('string');
 	emitter.once(Symbol('symbol'));
+	emitter.once(42);
 
-	await t.throwsAsync(emitter.once(42), TypeError);
+	await t.throwsAsync(emitter.once(true), TypeError);
 });
 
 test.cb('emit() - one event', t => {
@@ -407,13 +410,21 @@ test.cb('emit() - multiple events', t => {
 	emitter.emit('🦄');
 });
 
-test('emit() - eventName must be a string or a symbol', async t => {
+test('emit() - eventName must be a string, symbol, or number', async t => {
 	const emitter = new Emittery();
 
 	emitter.emit('string');
 	emitter.emit(Symbol('symbol'));
+	emitter.emit(42);
 
-	await t.throwsAsync(emitter.emit(42), TypeError);
+	await t.throwsAsync(emitter.emit(true), TypeError);
+});
+
+test('emit() - userland cannot emit the meta events', async t => {
+	const emitter = new Emittery();
+
+	await t.throwsAsync(emitter.emit(Emittery.listenerRemoved), TypeError);
+	await t.throwsAsync(emitter.emit(Emittery.listenerAdded), TypeError);
 });
 
 test.cb('emit() - is async', t => {
@@ -584,13 +595,21 @@ test.cb('emitSerial()', t => {
 	emitter.emitSerial('🦄', 'e');
 });
 
-test('emitSerial() - eventName must be a string or a symbol', async t => {
+test('emitSerial() - eventName must be a string, symbol, or number', async t => {
 	const emitter = new Emittery();
 
 	emitter.emitSerial('string');
 	emitter.emitSerial(Symbol('symbol'));
+	emitter.emitSerial(42);
 
-	await t.throwsAsync(emitter.emitSerial(42), TypeError);
+	await t.throwsAsync(emitter.emitSerial(true), TypeError);
+});
+
+test('emitSerial() - userland cannot emit the meta events', async t => {
+	const emitter = new Emittery();
+
+	await t.throwsAsync(emitter.emitSerial(Emittery.listenerRemoved), TypeError);
+	await t.throwsAsync(emitter.emitSerial(Emittery.listenerAdded), TypeError);
 });
 
 test.cb('emitSerial() - is async', t => {
@@ -1002,15 +1021,16 @@ test('listenerCount() - works with empty eventName strings', t => {
 	t.is(emitter.listenerCount(''), 1);
 });
 
-test('listenerCount() - eventName must be undefined if not a string nor a symbol', t => {
+test('listenerCount() - eventName must be undefined if not a string, symbol, or number', t => {
 	const emitter = new Emittery();
 
 	emitter.listenerCount('string');
 	emitter.listenerCount(Symbol('symbol'));
+	emitter.listenerCount(42);
 	emitter.listenerCount();
 
 	t.throws(() => {
-		emitter.listenerCount(42);
+		emitter.listenerCount(true);
 	}, TypeError);
 });
 
