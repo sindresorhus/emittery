@@ -10,18 +10,12 @@ const resolvedPromise = Promise.resolve();
 const listenerAdded = Symbol('listenerAdded');
 const listenerRemoved = Symbol('listenerRemoved');
 
-// Define a symbol that allows internal code to emit meta events, but prevents userland from doing so.
-const metaEventsAllowed = Symbol('metaEventsAllowed');
-
+let canEmitMetaEvents = false;
 let isGlobalDebugEnabled = false;
 
-function assertEventName(eventName, allowMetaEvents) {
+function assertEventName(eventName) {
 	if (typeof eventName !== 'string' && typeof eventName !== 'symbol' && typeof eventName !== 'number') {
 		throw new TypeError('`eventName` must be a string, symbol, or number');
-	}
-
-	if (isMetaEvent(eventName) && allowMetaEvents !== metaEventsAllowed) {
-		throw new TypeError('`eventName` cannot be meta event `listenerAdded` or `listenerRemoved`');
 	}
 }
 
@@ -157,6 +151,14 @@ function defaultMethodNamesOrAssert(methodNames) {
 
 const isMetaEvent = eventName => eventName === listenerAdded || eventName === listenerRemoved;
 
+function emitMetaEvent(emitter, eventName, eventData) {
+	if (isMetaEvent(eventName)) {
+		canEmitMetaEvents = true;
+		emitter.emit(eventName, eventData);
+		canEmitMetaEvents = false;
+	}
+}
+
 class Emittery {
 	static mixin(emitteryPropertyName, methodNames) {
 		methodNames = defaultMethodNamesOrAssert(methodNames);
@@ -253,13 +255,13 @@ class Emittery {
 
 		eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
 		for (const eventName of eventNames) {
-			assertEventName(eventName, metaEventsAllowed);
+			assertEventName(eventName);
 			getListeners(this, eventName).add(listener);
 
 			this.logIfDebugEnabled('subscribe', eventName, undefined);
 
 			if (!isMetaEvent(eventName)) {
-				this.emit(listenerAdded, {eventName, listener}, metaEventsAllowed);
+				emitMetaEvent(this, listenerAdded, {eventName, listener});
 			}
 		}
 
@@ -271,13 +273,13 @@ class Emittery {
 
 		eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
 		for (const eventName of eventNames) {
-			assertEventName(eventName, metaEventsAllowed);
+			assertEventName(eventName);
 			getListeners(this, eventName).delete(listener);
 
 			this.logIfDebugEnabled('unsubscribe', eventName, undefined);
 
 			if (!isMetaEvent(eventName)) {
-				this.emit(listenerRemoved, {eventName, listener}, metaEventsAllowed);
+				emitMetaEvent(this, listenerRemoved, {eventName, listener});
 			}
 		}
 	}
@@ -294,14 +296,18 @@ class Emittery {
 	events(eventNames) {
 		eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
 		for (const eventName of eventNames) {
-			assertEventName(eventName, metaEventsAllowed);
+			assertEventName(eventName);
 		}
 
 		return iterator(this, eventNames);
 	}
 
-	async emit(eventName, eventData, allowMetaEvents) {
-		assertEventName(eventName, allowMetaEvents);
+	async emit(eventName, eventData) {
+		assertEventName(eventName);
+
+		if (isMetaEvent(eventName) && !canEmitMetaEvents) {
+			throw new TypeError('`eventName` cannot be meta event `listenerAdded` or `listenerRemoved`');
+		}
 
 		this.logIfDebugEnabled('emit', eventName, eventData);
 
@@ -327,8 +333,12 @@ class Emittery {
 		]);
 	}
 
-	async emitSerial(eventName, eventData, allowMetaEvents) {
-		assertEventName(eventName, allowMetaEvents);
+	async emitSerial(eventName, eventData) {
+		assertEventName(eventName);
+
+		if (isMetaEvent(eventName) && !canEmitMetaEvents) {
+			throw new TypeError('`eventName` cannot be meta event `listenerAdded` or `listenerRemoved`');
+		}
 
 		this.logIfDebugEnabled('emitSerial', eventName, eventData);
 
@@ -359,7 +369,7 @@ class Emittery {
 		this.logIfDebugEnabled('subscribeAny', undefined, undefined);
 
 		anyMap.get(this).add(listener);
-		this.emit(listenerAdded, {listener}, metaEventsAllowed);
+		emitMetaEvent(this, listenerAdded, {listener});
 		return this.offAny.bind(this, listener);
 	}
 
@@ -372,7 +382,7 @@ class Emittery {
 
 		this.logIfDebugEnabled('unsubscribeAny', undefined, undefined);
 
-		this.emit(listenerRemoved, {listener}, metaEventsAllowed);
+		emitMetaEvent(this, listenerRemoved, {listener});
 		anyMap.get(this).delete(listener);
 	}
 
@@ -422,7 +432,7 @@ class Emittery {
 			}
 
 			if (typeof eventName !== 'undefined') {
-				assertEventName(eventName, metaEventsAllowed);
+				assertEventName(eventName);
 			}
 
 			count += anyMap.get(this).size;
