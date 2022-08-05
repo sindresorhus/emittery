@@ -133,6 +133,13 @@ interface Options<EventData> {
 }
 
 /**
+A promise returned from `emittery.once` with an extra `off` method to cancel your subscription.
+*/
+interface EmitteryOncePromise<T> extends Promise<T> {
+	off(): void;
+}
+
+/**
 Emittery is a strictly typed, fully async EventEmitter implementation. Event listeners can be registered with `on` or `once`, and events can be emitted with `emit`.
 
 `Emittery` has a generic `EventData` type that can be provided by users to strongly type the list of events and the data passed to the listeners for those events. Pass an interface of {[eventName]: undefined | <eventArg>}, with all the event names as the keys and the values as the type of the argument passed to listeners if there is one, or `undefined` if there isn't.
@@ -436,7 +443,7 @@ declare class Emittery<
 	Subscribe to one or more events only once. It will be unsubscribed after the first
 	event.
 
-	@returns The event data when `eventName` is emitted.
+	@returns The promise of event data when `eventName` is emitted. This promise is extended with an `off` method.
 
 	@example
 	```
@@ -457,7 +464,7 @@ declare class Emittery<
 	emitter.emit('🐶', '🍖'); // Nothing happens
 	```
 	*/
-	once<Name extends keyof AllEventData>(eventName: Name | Name[]): Promise<AllEventData[Name]>;
+	once<Name extends keyof AllEventData>(eventName: Name | Name[]): EmitteryOncePromise<AllEventData[Name]>;
 
 	/**
 	Trigger an event asynchronously, optionally with some data. Listeners are called in the order they were added, but executed concurrently.

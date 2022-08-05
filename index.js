@@ -283,12 +283,17 @@ class Emittery {
 	}
 
 	once(eventNames) {
-		return new Promise(resolve => {
-			const off = this.on(eventNames, data => {
-				off();
+		let off_;
+
+		const promise = new Promise(resolve => {
+			off_ = this.on(eventNames, data => {
+				off_();
 				resolve(data);
 			});
 		});
+
+		promise.off = off_;
+		return promise;
 	}
 
 	events(eventNames) {

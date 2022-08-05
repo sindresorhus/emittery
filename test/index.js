@@ -374,6 +374,30 @@ test('once() - eventName must be a string, symbol, or number', async t => {
 	await t.throwsAsync(emitter.once(true), TypeError);
 });
 
+test('once() - returns a promise with an unsubscribe method', async t => {
+	const fixture = '🌈';
+	const emitter = new Emittery();
+	const oncePromise = emitter.once('🦄');
+
+	const testFailurePromise = Promise.race([
+		(async () => {
+			await oncePromise;
+			t.fail();
+		})(),
+		new Promise(resolve => {
+			setTimeout(() => {
+				resolve(false);
+			}, 100);
+		})
+	]);
+
+	oncePromise.off();
+	emitter.emit('🦄', fixture);
+
+	await testFailurePromise;
+	t.pass();
+});
+
 test.cb('emit() - one event', t => {
 	t.plan(1);
 
