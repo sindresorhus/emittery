@@ -285,7 +285,7 @@ declare class Emittery<
 	static mixin(
 		emitteryPropertyName: string | symbol,
 		methodNames?: readonly string[]
-	): <T extends {new (): any}>(klass: T) => T; // eslint-disable-line @typescript-eslint/prefer-function-type
+	): <T extends { new (...args: any): any }>(klass: T) => T; // eslint-disable-line @typescript-eslint/prefer-function-type
 
 	/**
 	Subscribe to one or more events.
