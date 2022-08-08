@@ -279,3 +279,8 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 Emittery.mixin('emittery')(class {
 	test() {}
 });
+
+// Mixin type - arguments in constructor
+Emittery.mixin('emittery')(class { // eslint-disable-line @typescript-eslint/no-extraneous-class
+	constructor(argument: string) {} // eslint-disable-line @typescript-eslint/no-useless-constructor
+});
