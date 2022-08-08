@@ -54,6 +54,9 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 			expectType<PropertyKey | undefined>(eventName);
 			expectType<AnyListener>(listener);
 		});
+		const oncePromise = ee.once('anotherEvent');
+		oncePromise.off();
+		await oncePromise;
 	};
 }
 
