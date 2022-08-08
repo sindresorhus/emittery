@@ -284,7 +284,7 @@ const listener = data => console.log(data);
 
 Subscribe to one or more events only once. It will be unsubscribed after the first event.
 
-Returns a promise for the event data when `eventName` is emitted.
+Returns a promise for the event data when `eventName` is emitted. This promise is extended with an `off` method.
 
 ```js
 const Emittery = require('emittery');
