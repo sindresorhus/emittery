@@ -153,9 +153,12 @@ const isMetaEvent = eventName => eventName === listenerAdded || eventName === li
 
 function emitMetaEvent(emitter, eventName, eventData) {
 	if (isMetaEvent(eventName)) {
-		canEmitMetaEvents = true;
-		emitter.emit(eventName, eventData);
-		canEmitMetaEvents = false;
+		try {
+			canEmitMetaEvents = true;
+			emitter.emit(eventName, eventData);
+		} finally {
+			canEmitMetaEvents = false;
+		}
 	}
 }
 
