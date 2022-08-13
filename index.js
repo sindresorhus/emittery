@@ -1,8 +1,7 @@
 'use strict';
 
-const anyMap = new WeakMap();
-const eventsMap = new WeakMap();
-const producersMap = new WeakMap();
+const {anyMap, producersMap, eventsMap} = require('./maps.js');
+
 const anyProducer = Symbol('anyProducer');
 const resolvedPromise = Promise.resolve();
 
