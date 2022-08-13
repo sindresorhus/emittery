@@ -28,7 +28,7 @@ function assertListener(listener) {
 function getListeners(instance, eventName) {
 	const events = eventsMap.get(instance);
 	if (!events.has(eventName)) {
-		return null;
+		return;
 	}
 
 	return events.get(eventName);
@@ -38,7 +38,7 @@ function getEventProducers(instance, eventName) {
 	const key = typeof eventName === 'string' || typeof eventName === 'symbol' || typeof eventName === 'number' ? eventName : anyProducer;
 	const producers = producersMap.get(instance);
 	if (!producers.has(key)) {
-		return null;
+		return;
 	}
 
 	return producers.get(key);
