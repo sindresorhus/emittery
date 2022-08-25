@@ -349,17 +349,17 @@ test('off() - no listener', t => {
 	}, TypeError);
 });
 
-test('off() - Clears global maps when all listeners are removed', t => {
+test('off() - clears global maps when all listeners are removed', t => {
 	const emitter = new Emittery();
 
 	const event = 'string';
-	const cb = () => {};
+	const callback = () => {};
 
-	emitter.on(event, cb);
-	t.true(eventsMap.get(emitter).get(event).size === 1);
+	emitter.on(event, callback);
+	t.is(eventsMap.get(emitter).get(event).size, 1);
 
-	emitter.off(event, cb);
-	t.true(eventsMap.get(emitter).get(event) === undefined);
+	emitter.off(event, callback);
+	t.is(eventsMap.get(emitter).get(event), undefined);
 });
 
 test('once()', async t => {
