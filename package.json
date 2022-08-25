@@ -18,7 +18,8 @@
 	},
 	"files": [
 		"index.js",
-		"index.d.ts"
+		"index.d.ts",
+		"maps.js"
 	],
 	"keywords": [
 		"event",
