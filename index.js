@@ -1,8 +1,7 @@
 'use strict';
 
-const anyMap = new WeakMap();
-const eventsMap = new WeakMap();
-const producersMap = new WeakMap();
+const {anyMap, producersMap, eventsMap} = require('./maps.js');
+
 const anyProducer = Symbol('anyProducer');
 const resolvedPromise = Promise.resolve();
 
@@ -28,7 +27,7 @@ function assertListener(listener) {
 function getListeners(instance, eventName) {
 	const events = eventsMap.get(instance);
 	if (!events.has(eventName)) {
-		events.set(eventName, new Set());
+		return;
 	}
 
 	return events.get(eventName);
@@ -38,7 +37,7 @@ function getEventProducers(instance, eventName) {
 	const key = typeof eventName === 'string' || typeof eventName === 'symbol' || typeof eventName === 'number' ? eventName : anyProducer;
 	const producers = producersMap.get(instance);
 	if (!producers.has(key)) {
-		producers.set(key, new Set());
+		return;
 	}
 
 	return producers.get(key);
@@ -79,7 +78,14 @@ function iterator(instance, eventNames) {
 	};
 
 	for (const eventName of eventNames) {
-		getEventProducers(instance, eventName).add(producer);
+		let set = getEventProducers(instance, eventName);
+		if (!set) {
+			set = new Set();
+			const producers = producersMap.get(instance);
+			producers.set(eventName, set);
+		}
+
+		set.add(producer);
 	}
 
 	return {
@@ -111,7 +117,14 @@ function iterator(instance, eventNames) {
 			queue = undefined;
 
 			for (const eventName of eventNames) {
-				getEventProducers(instance, eventName).delete(producer);
+				const set = getEventProducers(instance, eventName);
+				if (set) {
+					set.delete(producer);
+					if (set.size === 0) {
+						const producers = producersMap.get(instance);
+						producers.delete(eventName);
+					}
+				}
 			}
 
 			flush();
@@ -221,6 +234,9 @@ class Emittery {
 		anyMap.set(this, new Set());
 		eventsMap.set(this, new Map());
 		producersMap.set(this, new Map());
+
+		producersMap.get(this).set(anyProducer, new Set());
+
 		this.debug = options.debug || {};
 
 		if (this.debug.enabled === undefined) {
@@ -259,7 +275,14 @@ class Emittery {
 		eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
 		for (const eventName of eventNames) {
 			assertEventName(eventName);
-			getListeners(this, eventName).add(listener);
+			let set = getListeners(this, eventName);
+			if (!set) {
+				set = new Set();
+				const events = eventsMap.get(this);
+				events.set(eventName, set);
+			}
+
+			set.add(listener);
 
 			this.logIfDebugEnabled('subscribe', eventName, undefined);
 
@@ -277,7 +300,14 @@ class Emittery {
 		eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
 		for (const eventName of eventNames) {
 			assertEventName(eventName);
-			getListeners(this, eventName).delete(listener);
+			const set = getListeners(this, eventName);
+			if (set) {
+				set.delete(listener);
+				if (set.size === 0) {
+					const events = eventsMap.get(this);
+					events.delete(eventName);
+				}
+			}
 
 			this.logIfDebugEnabled('unsubscribe', eventName, undefined);
 
@@ -321,7 +351,7 @@ class Emittery {
 
 		enqueueProducers(this, eventName, eventData);
 
-		const listeners = getListeners(this, eventName);
+		const listeners = getListeners(this, eventName) || new Set();
 		const anyListeners = anyMap.get(this);
 		const staticListeners = [...listeners];
 		const staticAnyListeners = isMetaEvent(eventName) ? [] : [...anyListeners];
@@ -350,7 +380,7 @@ class Emittery {
 
 		this.logIfDebugEnabled('emitSerial', eventName, eventData);
 
-		const listeners = getListeners(this, eventName);
+		const listeners = getListeners(this, eventName) || new Set();
 		const anyListeners = anyMap.get(this);
 		const staticListeners = [...listeners];
 		const staticAnyListeners = [...anyListeners];
@@ -401,28 +431,34 @@ class Emittery {
 			this.logIfDebugEnabled('clear', eventName, undefined);
 
 			if (typeof eventName === 'string' || typeof eventName === 'symbol' || typeof eventName === 'number') {
-				getListeners(this, eventName).clear();
+				const set = getListeners(this, eventName);
+				if (set) {
+					set.clear();
+				}
 
 				const producers = getEventProducers(this, eventName);
-
-				for (const producer of producers) {
-					producer.finish();
-				}
-
-				producers.clear();
-			} else {
-				anyMap.get(this).clear();
-
-				for (const listeners of eventsMap.get(this).values()) {
-					listeners.clear();
-				}
-
-				for (const producers of producersMap.get(this).values()) {
+				if (producers) {
 					for (const producer of producers) {
 						producer.finish();
 					}
 
 					producers.clear();
+				}
+			} else {
+				anyMap.get(this).clear();
+
+				for (const [eventName, listeners] of eventsMap.get(this).entries()) {
+					listeners.clear();
+					eventsMap.get(this).delete(eventName);
+				}
+
+				for (const [eventName, producers] of producersMap.get(this).entries()) {
+					for (const producer of producers) {
+						producer.finish();
+					}
+
+					producers.clear();
+					producersMap.get(this).delete(eventName);
 				}
 			}
 		}
@@ -434,8 +470,8 @@ class Emittery {
 
 		for (const eventName of eventNames) {
 			if (typeof eventName === 'string') {
-				count += anyMap.get(this).size + getListeners(this, eventName).size +
-					getEventProducers(this, eventName).size + getEventProducers(this).size;
+				count += anyMap.get(this).size + (getListeners(this, eventName) || new Set()).size +
+					(getEventProducers(this, eventName) || new Set()).size + (getEventProducers(this) || new Set()).size;
 				continue;
 			}
 

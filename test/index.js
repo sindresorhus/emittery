@@ -2,6 +2,7 @@ import test from 'ava';
 import delay from 'delay';
 import pEvent from 'p-event';
 import Emittery from '../index.js';
+import {eventsMap} from '../maps.js';
 
 test('on()', async t => {
 	const emitter = new Emittery();
@@ -346,6 +347,19 @@ test('off() - no listener', t => {
 	t.throws(() => {
 		emitter.off('🦄');
 	}, TypeError);
+});
+
+test('off() - clears global maps when all listeners are removed', t => {
+	const emitter = new Emittery();
+
+	const event = 'string';
+	const callback = () => {};
+
+	emitter.on(event, callback);
+	t.is(eventsMap.get(emitter).get(event).size, 1);
+
+	emitter.off(event, callback);
+	t.is(eventsMap.get(emitter).get(event), undefined);
 });
 
 test('once()', async t => {
