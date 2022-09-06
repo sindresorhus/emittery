@@ -222,7 +222,7 @@ export default class Emittery {
 		}
 
 		// eslint-disable-next-line n/prefer-global/process
-		const {env} = globalThis.process || {env: {}};
+		const {env} = globalThis.process ?? {env: {}};
 		return env.DEBUG === 'emittery' || env.DEBUG === '*' || isGlobalDebugEnabled;
 	}
 
@@ -237,7 +237,7 @@ export default class Emittery {
 
 		producersMap.get(this).set(anyProducer, new Set());
 
-		this.debug = options.debug || {};
+		this.debug = options.debug ?? {};
 
 		if (this.debug.enabled === undefined) {
 			this.debug.enabled = false;
@@ -351,7 +351,7 @@ export default class Emittery {
 
 		enqueueProducers(this, eventName, eventData);
 
-		const listeners = getListeners(this, eventName) || new Set();
+		const listeners = getListeners(this, eventName) ?? new Set();
 		const anyListeners = anyMap.get(this);
 		const staticListeners = [...listeners];
 		const staticAnyListeners = isMetaEvent(eventName) ? [] : [...anyListeners];
@@ -380,7 +380,7 @@ export default class Emittery {
 
 		this.logIfDebugEnabled('emitSerial', eventName, eventData);
 
-		const listeners = getListeners(this, eventName) || new Set();
+		const listeners = getListeners(this, eventName) ?? new Set();
 		const anyListeners = anyMap.get(this);
 		const staticListeners = [...listeners];
 		const staticAnyListeners = [...anyListeners];
@@ -470,8 +470,11 @@ export default class Emittery {
 
 		for (const eventName of eventNames) {
 			if (typeof eventName === 'string') {
-				count += anyMap.get(this).size + (getListeners(this, eventName) || new Set()).size
-					+ (getEventProducers(this, eventName) || new Set()).size + (getEventProducers(this) || new Set()).size;
+				count += anyMap.get(this).size
+					+ (getListeners(this, eventName)?.size ?? 0)
+					+ (getEventProducers(this, eventName)?.size ?? 0)
+					+ (getEventProducers(this)?.size ?? 0);
+
 				continue;
 			}
 
