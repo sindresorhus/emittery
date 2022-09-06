@@ -1,7 +1,6 @@
 #!/usr/bin/env node
-'use strict';
-
-const Emittery = require('..');
+import process from 'node:process';
+import Emittery from '../index.js';
 
 class Clock extends Emittery {
 	constructor() {

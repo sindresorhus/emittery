@@ -1,11 +1,9 @@
-/* eslint-disable no-redeclare */
-
 /**
 Emittery accepts strings, symbols, and numbers as event names.
 
 Symbol event names are preferred given that they can be used to avoid name collisions when your classes are extended, especially for internal events.
 */
-type EventName = PropertyKey;
+export type EventName = PropertyKey;
 
 // Helper type for turning the passed `EventData` type map into a list of string keys that don't require data alongside the event name when emitting. Uses the same trick that `Omit` does internally to filter keys by building a map of keys to keys we want to keep, and then accessing all the keys to return just the list of keys we want to keep.
 type DatalessEventNames<EventData> = {
@@ -14,7 +12,7 @@ type DatalessEventNames<EventData> = {
 
 declare const listenerAdded: unique symbol;
 declare const listenerRemoved: unique symbol;
-type _OmnipresentEventData = {[listenerAdded]: Emittery.ListenerChangedData; [listenerRemoved]: Emittery.ListenerChangedData};
+type OmnipresentEventData = {[listenerAdded]: ListenerChangedData; [listenerRemoved]: ListenerChangedData};
 
 /**
 Emittery can collect and log debug information.
@@ -23,12 +21,12 @@ To enable this feature set the `DEBUG` environment variable to `emittery` or `*`
 
 See API for more information on how debugging works.
 */
-type DebugLogger<EventData, Name extends keyof EventData> = (type: string, debugName: string, eventName?: Name, eventData?: EventData[Name]) => void;
+export type DebugLogger<EventData, Name extends keyof EventData> = (type: string, debugName: string, eventName?: Name, eventData?: EventData[Name]) => void;
 
 /**
 Configure debug options of an instance.
 */
-interface DebugOptions<EventData> {
+export type DebugOptions<EventData> = {
 	/**
 	Define a name for the instance of Emittery to use when outputting debug data.
 
@@ -36,7 +34,7 @@ interface DebugOptions<EventData> {
 
 	@example
 	```
-	import Emittery = require('emittery');
+	import Emittery from 'emittery';
 
 	Emittery.isDebugEnabled = true;
 
@@ -60,7 +58,7 @@ interface DebugOptions<EventData> {
 
 	@example
 	```
-	import Emittery = require('emittery');
+	import Emittery from 'emittery';
 
 	const emitter1 = new Emittery({debug: {name: 'emitter1', enabled: true}});
 	const emitter2 = new Emittery({debug: {name: 'emitter2'}});
@@ -80,7 +78,7 @@ interface DebugOptions<EventData> {
 	emitter2.emit('test');
 	```
 	*/
-	enabled?: boolean;
+	readonly enabled?: boolean;
 
 	/**
 	Function that handles debug data.
@@ -102,9 +100,11 @@ interface DebugOptions<EventData> {
 
 	@example
 	```
-	import Emittery = require('emittery');
+	import Emittery from 'emittery';
 
-	const myLogger = (type, debugName, eventName, eventData) => console.log(`[${type}]: ${eventName}`);
+	const myLogger = (type, debugName, eventName, eventData) => {
+		console.log(`[${type}]: ${eventName}`);
+	};
 
 	const emitter = new Emittery({
 		debug: {
@@ -122,22 +122,42 @@ interface DebugOptions<EventData> {
 	//=> [subscribe]: test
 	```
 	*/
-	logger?: DebugLogger<EventData, keyof EventData>;
-}
+	readonly logger?: DebugLogger<EventData, keyof EventData>;
+};
 
 /**
 Configuration options for Emittery.
 */
-interface Options<EventData> {
-	debug?: DebugOptions<EventData>;
-}
+export type Options<EventData> = {
+	readonly debug?: DebugOptions<EventData>;
+};
 
 /**
 A promise returned from `emittery.once` with an extra `off` method to cancel your subscription.
 */
-interface EmitteryOncePromise<T> extends Promise<T> {
+export type EmitteryOncePromise<T> = {
 	off(): void;
-}
+} & Promise<T>;
+
+/**
+Removes an event subscription.
+*/
+export type UnsubscribeFunction = () => void;
+
+/**
+The data provided as `eventData` when listening for `Emittery.listenerAdded` or `Emittery.listenerRemoved`.
+*/
+export type ListenerChangedData = {
+	/**
+	The listener that was added or removed.
+	*/
+	listener: (eventData?: unknown) => (void | Promise<void>);
+
+	/**
+	The name of the event that was added or removed if `.on()` or `.off()` was used, or `undefined` if `.onAny()` or `.offAny()` was used.
+	*/
+	eventName?: EventName;
+};
 
 /**
 Emittery is a strictly typed, fully async EventEmitter implementation. Event listeners can be registered with `on` or `once`, and events can be emitted with `emit`.
@@ -146,7 +166,7 @@ Emittery is a strictly typed, fully async EventEmitter implementation. Event lis
 
 @example
 ```
-import Emittery = require('emittery');
+import Emittery from 'emittery';
 
 const emitter = new Emittery<
 	// Pass `{[eventName: <string | symbol | number>]: undefined | <eventArg>}` as the first type argument for events that pass data to their listeners.
@@ -170,10 +190,10 @@ emitter.emit('open', 1);
 emitter.emit('other');
 ```
 */
-declare class Emittery<
-	EventData = Record<EventName, any>,
-	AllEventData = EventData & _OmnipresentEventData,
-	DatalessEvents = DatalessEventNames<EventData>
+export default class Emittery<
+	EventData = Record<EventName, any>, // TODO: Use `unknown` instead of `any`.
+	AllEventData = EventData & OmnipresentEventData,
+	DatalessEvents = DatalessEventNames<EventData>,
 > {
 	/**
 	Toggle debug mode for all instances.
@@ -182,7 +202,7 @@ declare class Emittery<
 
 	@example
 	```
-	import Emittery = require('emittery');
+	import Emittery from 'emittery';
 
 	Emittery.isDebugEnabled = true;
 
@@ -215,7 +235,7 @@ declare class Emittery<
 
 	@example
 	```
-	import Emittery = require('emittery');
+	import Emittery from 'emittery';
 
 	const emitter = new Emittery();
 
@@ -241,7 +261,7 @@ declare class Emittery<
 
 	@example
 	```
-	import Emittery = require('emittery');
+	import Emittery from 'emittery';
 
 	const emitter = new Emittery();
 
@@ -263,23 +283,11 @@ declare class Emittery<
 	static readonly listenerRemoved: typeof listenerRemoved;
 
 	/**
-	Debugging options for the current instance.
-	*/
-	debug: DebugOptions<EventData>;
-
-	/**
-	Create a new Emittery instance with the specified options.
-
-	@returns An instance of Emittery that you can use to listen for and emit events.
-	*/
-	constructor(options?: Options<EventData>);
-
-	/**
 	In TypeScript, it returns a decorator which mixins `Emittery` as property `emitteryPropertyName` and `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the target class.
 
 	@example
 	```
-	import Emittery = require('emittery');
+	import Emittery from 'emittery';
 
 	@Emittery.mixin('emittery')
 	class MyClass {}
@@ -292,7 +300,19 @@ declare class Emittery<
 	static mixin(
 		emitteryPropertyName: string | symbol,
 		methodNames?: readonly string[]
-	): <T extends {new (...arguments_: any[]): any}>(klass: T) => T; // eslint-disable-line @typescript-eslint/prefer-function-type
+	): <T extends {new (...arguments_: readonly any[]): any}>(klass: T) => T; // eslint-disable-line @typescript-eslint/prefer-function-type
+
+	/**
+	Debugging options for the current instance.
+	*/
+	debug: DebugOptions<EventData>;
+
+	/**
+	Create a new Emittery instance with the specified options.
+
+	@returns An instance of Emittery that you can use to listen for and emit events.
+	*/
+	constructor(options?: Options<EventData>);
 
 	/**
 	Subscribe to one or more events.
@@ -303,7 +323,7 @@ declare class Emittery<
 
 	@example
 	```
-	import Emittery = require('emittery');
+	import Emittery from 'emittery';
 
 	const emitter = new Emittery();
 
@@ -320,9 +340,9 @@ declare class Emittery<
 	```
 	*/
 	on<Name extends keyof AllEventData>(
-		eventName: Name | Name[],
+		eventName: Name | readonly Name[],
 		listener: (eventData: AllEventData[Name]) => void | Promise<void>
-	): Emittery.UnsubscribeFn;
+	): UnsubscribeFunction;
 
 	/**
 	Get an async iterator which buffers data each time an event is emitted.
@@ -331,7 +351,7 @@ declare class Emittery<
 
 	@example
 	```
-	import Emittery = require('emittery');
+	import Emittery from 'emittery';
 
 	const emitter = new Emittery();
 	const iterator = emitter.events('🦄');
@@ -361,7 +381,7 @@ declare class Emittery<
 
 	@example
 	```
-	import Emittery = require('emittery');
+	import Emittery from 'emittery';
 
 	const emitter = new Emittery();
 	const iterator = emitter.events('🦄');
@@ -381,7 +401,7 @@ declare class Emittery<
 
 	@example
 	```
-	import Emittery = require('emittery');
+	import Emittery from 'emittery';
 
 	const emitter = new Emittery();
 	const iterator = emitter.events(['🦄', '🦊']);
@@ -408,7 +428,7 @@ declare class Emittery<
 	```
 	*/
 	events<Name extends keyof EventData>(
-		eventName: Name | Name[]
+		eventName: Name | readonly Name[]
 	): AsyncIterableIterator<EventData[Name]>;
 
 	/**
@@ -416,26 +436,27 @@ declare class Emittery<
 
 	@example
 	```
-	import Emittery = require('emittery');
+	import Emittery from 'emittery';
 
 	const emitter = new Emittery();
 
-	const listener = data => console.log(data);
-	(async () => {
-		emitter.on(['🦄', '🐶', '🦊'], listener);
-		await emitter.emit('🦄', 'a');
-		await emitter.emit('🐶', 'b');
-		await emitter.emit('🦊', 'c');
-		emitter.off('🦄', listener);
-		emitter.off(['🐶', '🦊'], listener);
-		await emitter.emit('🦄', 'a'); // nothing happens
-		await emitter.emit('🐶', 'b'); // nothing happens
-		await emitter.emit('🦊', 'c'); // nothing happens
-	})();
+	const listener = data => {
+		console.log(data);
+	};
+
+	emitter.on(['🦄', '🐶', '🦊'], listener);
+	await emitter.emit('🦄', 'a');
+	await emitter.emit('🐶', 'b');
+	await emitter.emit('🦊', 'c');
+	emitter.off('🦄', listener);
+	emitter.off(['🐶', '🦊'], listener);
+	await emitter.emit('🦄', 'a'); // nothing happens
+	await emitter.emit('🐶', 'b'); // nothing happens
+	await emitter.emit('🦊', 'c'); // nothing happens
 	```
 	*/
 	off<Name extends keyof AllEventData>(
-		eventName: Name | Name[],
+		eventName: Name | readonly Name[],
 		listener: (eventData: AllEventData[Name]) => void | Promise<void>
 	): void;
 
@@ -447,7 +468,7 @@ declare class Emittery<
 
 	@example
 	```
-	import Emittery = require('emittery');
+	import Emittery from 'emittery';
 
 	const emitter = new Emittery();
 
@@ -464,7 +485,7 @@ declare class Emittery<
 	emitter.emit('🐶', '🍖'); // Nothing happens
 	```
 	*/
-	once<Name extends keyof AllEventData>(eventName: Name | Name[]): EmitteryOncePromise<AllEventData[Name]>;
+	once<Name extends keyof AllEventData>(eventName: Name | readonly Name[]): EmitteryOncePromise<AllEventData[Name]>;
 
 	/**
 	Trigger an event asynchronously, optionally with some data. Listeners are called in the order they were added, but executed concurrently.
@@ -500,7 +521,7 @@ declare class Emittery<
 			eventName: keyof EventData,
 			eventData: EventData[keyof EventData]
 		) => void | Promise<void>
-	): Emittery.UnsubscribeFn;
+	): UnsubscribeFunction;
 
 	/**
 	Get an async iterator which buffers a tuple of an event name and data each time an event is emitted.
@@ -511,7 +532,7 @@ declare class Emittery<
 
 	@example
 	```
-	import Emittery = require('emittery');
+	import Emittery from 'emittery';
 
 	const emitter = new Emittery();
 	const iterator = emitter.anyEvent();
@@ -555,19 +576,19 @@ declare class Emittery<
 
 	If `eventName` is given, only the listeners for that event are cleared.
 	*/
-	clearListeners<Name extends keyof EventData>(eventName?: Name | Name[]): void;
+	clearListeners<Name extends keyof EventData>(eventName?: Name | readonly Name[]): void;
 
 	/**
 	The number of listeners for the `eventName` or all events if not specified.
 	*/
-	listenerCount<Name extends keyof EventData>(eventName?: Name | Name[]): number;
+	listenerCount<Name extends keyof EventData>(eventName?: Name | readonly Name[]): number;
 
 	/**
 	Bind the given `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the `target` object.
 
 	@example
 	```
-	import Emittery = require('emittery');
+	import Emittery from 'emittery';
 
 	const object = {};
 
@@ -578,29 +599,3 @@ declare class Emittery<
 	*/
 	bindMethods(target: Record<string, unknown>, methodNames?: readonly string[]): void;
 }
-
-declare namespace Emittery {
-	/**
-	Removes an event subscription.
-	*/
-	type UnsubscribeFn = () => void;
-
-	/**
-	The data provided as `eventData` when listening for `Emittery.listenerAdded` or `Emittery.listenerRemoved`.
-	*/
-	interface ListenerChangedData {
-		/**
-		The listener that was added or removed.
-		*/
-		listener: (eventData?: unknown) => void | Promise<void>;
-
-		/**
-		The name of the event that was added or removed if `.on()` or `.off()` was used, or `undefined` if `.onAny()` or `.offAny()` was used.
-		*/
-		eventName?: EventName;
-	}
-
-	type OmnipresentEventData = _OmnipresentEventData;
-}
-
-export = Emittery;

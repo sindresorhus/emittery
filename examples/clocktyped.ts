@@ -1,11 +1,13 @@
 #!/usr/bin/env npx ts-node
-import {setInterval} from 'timers';
-import Emittery = require('..');
+/* eslint-disable @typescript-eslint/no-floating-promises */
+import process from 'node:process';
+import {setInterval} from 'node:timers';
+import Emittery from '../index.js';
 
-interface TickData {
+type TickData = {
 	now: number;
 	duration: number;
-}
+};
 
 // Map Clock's events emitting data to the type of their data.
 type EventDataMap = {
@@ -17,7 +19,7 @@ type EventDataMap = {
 
 class Clock extends Emittery<EventDataMap> {
 	private startedAt = 0;
-	private timer: NodeJS.Timer | null = null;
+	private timer: NodeJS.Timer | undefined = null;
 
 	public constructor() {
 		super();

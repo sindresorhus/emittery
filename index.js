@@ -1,6 +1,4 @@
-'use strict';
-
-const {anyMap, producersMap, eventsMap} = require('./maps.js');
+import {anyMap, producersMap, eventsMap} from './maps.js';
 
 const anyProducer = Symbol('anyProducer');
 const resolvedPromise = Promise.resolve();
@@ -74,7 +72,7 @@ function iterator(instance, eventNames) {
 		finish() {
 			isFinished = true;
 			flush();
-		}
+		},
 	};
 
 	for (const eventName of eventNames) {
@@ -109,7 +107,7 @@ function iterator(instance, eventNames) {
 
 			return {
 				done: false,
-				value: await queue.shift()
+				value: await queue.shift(),
 			};
 		},
 
@@ -129,14 +127,14 @@ function iterator(instance, eventNames) {
 
 			flush();
 
-			return arguments.length > 0 ?
-				{done: true, value: await value} :
-				{done: true};
+			return arguments.length > 0
+				? {done: true, value: await value}
+				: {done: true};
 		},
 
 		[Symbol.asyncIterator]() {
 			return this;
-		}
+		},
 	};
 }
 
@@ -175,7 +173,7 @@ function emitMetaEvent(emitter, eventName, eventData) {
 	}
 }
 
-class Emittery {
+export default class Emittery {
 	static mixin(emitteryPropertyName, methodNames) {
 		methodNames = defaultMethodNamesOrAssert(methodNames);
 		return target => {
@@ -192,14 +190,14 @@ class Emittery {
 			function getEmitteryProperty() {
 				Object.defineProperty(this, emitteryPropertyName, {
 					enumerable: false,
-					value: new Emittery()
+					value: new Emittery(),
 				});
 				return this[emitteryPropertyName];
 			}
 
 			Object.defineProperty(target.prototype, emitteryPropertyName, {
 				enumerable: false,
-				get: getEmitteryProperty
+				get: getEmitteryProperty,
 			});
 
 			const emitteryMethodCaller = methodName => function (...args) {
@@ -209,7 +207,7 @@ class Emittery {
 			for (const methodName of methodNames) {
 				Object.defineProperty(target.prototype, methodName, {
 					enumerable: false,
-					value: emitteryMethodCaller(methodName)
+					value: emitteryMethodCaller(methodName),
 				});
 			}
 
@@ -218,11 +216,13 @@ class Emittery {
 	}
 
 	static get isDebugEnabled() {
-		if (typeof process !== 'object') {
+		// eslint-disable-next-line n/prefer-global/process
+		if (typeof globalThis.process !== 'object') {
 			return isGlobalDebugEnabled;
 		}
 
-		const {env} = process || {env: {}};
+		// eslint-disable-next-line n/prefer-global/process
+		const {env} = globalThis.process || {env: {}};
 		return env.DEBUG === 'emittery' || env.DEBUG === '*' || isGlobalDebugEnabled;
 	}
 
@@ -367,7 +367,7 @@ class Emittery {
 				if (anyListeners.has(listener)) {
 					return listener(eventName, eventData);
 				}
-			})
+			}),
 		]);
 	}
 
@@ -470,8 +470,8 @@ class Emittery {
 
 		for (const eventName of eventNames) {
 			if (typeof eventName === 'string') {
-				count += anyMap.get(this).size + (getListeners(this, eventName) || new Set()).size +
-					(getEventProducers(this, eventName) || new Set()).size + (getEventProducers(this) || new Set()).size;
+				count += anyMap.get(this).size + (getListeners(this, eventName) || new Set()).size
+					+ (getEventProducers(this, eventName) || new Set()).size + (getEventProducers(this) || new Set()).size;
 				continue;
 			}
 
@@ -507,7 +507,7 @@ class Emittery {
 
 			Object.defineProperty(target, methodName, {
 				enumerable: false,
-				value: this[methodName].bind(this)
+				value: this[methodName].bind(this),
 			});
 		}
 	}
@@ -519,13 +519,11 @@ Object.defineProperty(Emittery, 'listenerAdded', {
 	value: listenerAdded,
 	writable: false,
 	enumerable: true,
-	configurable: false
+	configurable: false,
 });
 Object.defineProperty(Emittery, 'listenerRemoved', {
 	value: listenerRemoved,
 	writable: false,
 	enumerable: true,
-	configurable: false
+	configurable: false,
 });
-
-module.exports = Emittery;

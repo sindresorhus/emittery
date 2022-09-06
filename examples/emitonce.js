@@ -1,18 +1,16 @@
 #!/usr/bin/env node
-
-'use strict';
-
-const Emittery = require('..');
+import Emittery from '../index.js';
 
 const myEmitter = new Emittery();
 
 // Register listener for only the one event
-myEmitter.once('event')
-	.then(count => console.log('an event occurred (#%d).', count));
+(async () => {
+	console.log('An event occurred (#%d).', await myEmitter.once('event'));
+})();
 
 // Emit events in next tick
 myEmitter.emit('event', 1);
 myEmitter.emit('event', 2);
 
 // Prints:
-//		an event occurred (#1).
+//		An event occurred (#1).

@@ -1,14 +1,11 @@
 #!/usr/bin/env node
-
-'use strict';
-
-const Emittery = require('..');
+import Emittery from '../index.js';
 
 const myEmitter = new Emittery();
 
 // Does not provide a context either.
-myEmitter.on('event', function ({a, b}, ...args) {
-	console.log(a, b, args, this);
+myEmitter.on('event', function ({a, b}, ...arguments_) {
+	console.log(a, b, arguments_, this);
 });
 
 // Only accept one event data parameter

@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-empty-function, @typescript-eslint/no-unused-vars, @typescript-eslint/no-floating-promises */
+/* eslint-disable @typescript-eslint/no-empty-function, @typescript-eslint/no-floating-promises */
 import {expectType, expectError, expectNotAssignable, expectAssignable} from 'tsd';
-import pEvent = require('p-event');
-import Emittery = require('./index.js');
+import {pEvent} from 'p-event';
+import Emittery from './index.js';
 
 type AnyListener = (eventData?: unknown) => void | Promise<void>;
 
@@ -16,9 +16,9 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 {
 	const ee = new Emittery();
 	ee.on('anEvent', () => undefined);
-	ee.on('anEvent', async () => Promise.resolve());
+	ee.on('anEvent', async () => {});
 	ee.on('anEvent', data => undefined);
-	ee.on('anEvent', async data => Promise.resolve());
+	ee.on('anEvent', async data => {});
 	ee.on(['anEvent', 'anotherEvent'], async data => undefined);
 	ee.on(Emittery.listenerAdded, ({eventName, listener}) => {
 		expectType<PropertyKey | undefined>(eventName);
@@ -34,9 +34,9 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 {
 	const ee = new Emittery();
 	ee.off('anEvent', () => undefined);
-	ee.off('anEvent', async () => Promise.resolve());
+	ee.off('anEvent', async () => {});
 	ee.off('anEvent', data => undefined);
-	ee.off('anEvent', async data => Promise.resolve());
+	ee.off('anEvent', async data => {});
 	ee.off(Emittery.listenerAdded, ({eventName, listener}) => {});
 	ee.off(Emittery.listenerRemoved, ({eventName, listener}) => {});
 }
@@ -160,7 +160,7 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 	}>();
 	ee.on('open', () => {});
 	ee.on('open', async () => {});
-	ee.on('open', async () => Promise.resolve());
+	ee.on('open', async () => {});
 	ee.on('close', async value => {
 		expectType<string>(value);
 	});

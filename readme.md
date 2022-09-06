@@ -2,7 +2,7 @@
 
 > Simple and modern async event emitter
 
-[![Coverage Status](https://codecov.io/gh/sindresorhus/emittery/branch/main/graph/badge.svg)](https://codecov.io/gh/sindresorhus/emittery)
+<!-- [![Coverage Status](https://codecov.io/gh/sindresorhus/emittery/branch/main/graph/badge.svg)](https://codecov.io/gh/sindresorhus/emittery) -->
 [![](https://badgen.net/bundlephobia/minzip/emittery)](https://bundlephobia.com/result?p=emittery)
 
 It works in Node.js and the browser (using a bundler).
@@ -11,14 +11,14 @@ Emitting events asynchronously is important for production code where you want t
 
 ## Install
 
-```
-$ npm install emittery
+```sh
+npm install emittery
 ```
 
 ## Usage
 
 ```js
-const Emittery = require('emittery');
+import Emittery from 'emittery';
 
 const emitter = new Emittery();
 
@@ -53,7 +53,7 @@ Default: `true` if the `DEBUG` environment variable is set to `emittery` or `*`,
 Example:
 
 ```js
-const Emittery = require('emittery');
+import Emittery from 'emittery';
 
 Emittery.isDebugEnabled = true;
 
@@ -103,7 +103,7 @@ Define a name for the instance of Emittery to use when outputting debug data.
 Example:
 
 ```js
-const Emittery = require('emittery');
+import Emittery from 'emittery';
 
 Emittery.isDebugEnabled = true;
 
@@ -128,7 +128,7 @@ Toggle debug logging just for this instance.
 Example:
 
 ```js
-const Emittery = require('emittery');
+import Emittery from 'emittery';
 
 const emitter1 = new Emittery({debug: {name: 'emitter1', enabled: true}});
 const emitter2 = new Emittery({debug: {name: 'emitter2'}});
@@ -175,9 +175,11 @@ Function that handles debug data.
 Example:
 
 ```js
-const Emittery = require('emittery');
+import Emittery from 'emittery';
 
-const myLogger = (type, debugName, eventName, eventData) => console.log(`[${type}]: ${eventName}`);
+const myLogger = (type, debugName, eventName, eventData) => {
+	console.log(`[${type}]: ${eventName}`);
+};
 
 const emitter = new Emittery({
 	debug: {
@@ -204,7 +206,7 @@ Returns an unsubscribe method.
 Using the same listener multiple times for the same event will result in only one method call per emitted event.
 
 ```js
-const Emittery = require('emittery');
+import Emittery from 'emittery';
 
 const emitter = new Emittery();
 
@@ -228,7 +230,7 @@ Emittery exports some symbols which represent "meta" events that can be passed t
 - `Emittery.listenerRemoved` - Fires when an event listener was removed.
 
 ```js
-const Emittery = require('emittery');
+import Emittery from 'emittery';
 
 const emitter = new Emittery();
 
@@ -259,23 +261,23 @@ Only events that are not of this type are able to trigger these events.
 Remove one or more event subscriptions.
 
 ```js
-const Emittery = require('emittery');
+import Emittery from 'emittery';
 
 const emitter = new Emittery();
 
-const listener = data => console.log(data);
+const listener = data => {
+	console.log(data);
+};
 
-(async () => {
-	emitter.on(['🦄', '🐶', '🦊'], listener);
-	await emitter.emit('🦄', 'a');
-	await emitter.emit('🐶', 'b');
-	await emitter.emit('🦊', 'c');
-	emitter.off('🦄', listener);
-	emitter.off(['🐶', '🦊'], listener);
-	await emitter.emit('🦄', 'a'); // Nothing happens
-	await emitter.emit('🐶', 'b'); // Nothing happens
-	await emitter.emit('🦊', 'c'); // Nothing happens
-})();
+emitter.on(['🦄', '🐶', '🦊'], listener);
+await emitter.emit('🦄', 'a');
+await emitter.emit('🐶', 'b');
+await emitter.emit('🦊', 'c');
+emitter.off('🦄', listener);
+emitter.off(['🐶', '🦊'], listener);
+await emitter.emit('🦄', 'a'); // Nothing happens
+await emitter.emit('🐶', 'b'); // Nothing happens
+await emitter.emit('🦊', 'c'); // Nothing happens
 ```
 
 ##### listener(data)
@@ -287,7 +289,7 @@ Subscribe to one or more events only once. It will be unsubscribed after the fir
 Returns a promise for the event data when `eventName` is emitted. This promise is extended with an `off` method.
 
 ```js
-const Emittery = require('emittery');
+import Emittery from 'emittery';
 
 const emitter = new Emittery();
 
@@ -311,7 +313,7 @@ Get an async iterator which buffers data each time an event is emitted.
 Call `return()` on the iterator to remove the subscription.
 
 ```js
-const Emittery = require('emittery');
+import Emittery from 'emittery';
 
 const emitter = new Emittery();
 const iterator = emitter.events('🦄');
@@ -340,7 +342,7 @@ iterator
 In practice, you would usually consume the events using the [for await](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for-await...of) statement. In that case, to revoke the subscription simply break the loop.
 
 ```js
-const Emittery = require('emittery');
+import Emittery from 'emittery';
 
 const emitter = new Emittery();
 const iterator = emitter.events('🦄');
@@ -359,7 +361,7 @@ for await (const data of iterator) {
 It accepts multiple event names.
 
 ```js
-const Emittery = require('emittery');
+import Emittery from 'emittery';
 
 const emitter = new Emittery();
 const iterator = emitter.events(['🦄', '🦊']);
@@ -416,7 +418,7 @@ Get an async iterator which buffers a tuple of an event name and data each time 
 Call `return()` on the iterator to remove the subscription.
 
 ```js
-const Emittery = require('emittery');
+import Emittery from 'emittery';
 
 const emitter = new Emittery();
 const iterator = emitter.anyEvent();
@@ -458,7 +460,7 @@ The number of listeners for the `eventNames` or all events if not specified.
 Bind the given `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the `target` object.
 
 ```js
-import Emittery = require('emittery');
+import Emittery from 'emittery';
 
 const object = {};
 
@@ -472,7 +474,7 @@ object.emit('event');
 The default `Emittery` class has generic types that can be provided by TypeScript users to strongly type the list of events and the data passed to their event listeners.
 
 ```ts
-import Emittery = require('emittery');
+import Emittery from 'emittery';
 
 const emitter = new Emittery<
 	// Pass `{[eventName]: undefined | <eventArg>}` as the first type argument for events that pass data to their listeners.
@@ -501,7 +503,7 @@ emitter.emit('other');
 A decorator which mixins `Emittery` as property `emitteryPropertyName` and `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the target class.
 
 ```ts
-import Emittery = require('emittery');
+import Emittery from 'emittery';
 
 @Emittery.mixin('emittery')
 class MyClass {}
@@ -521,7 +523,7 @@ Note that when using `.emitSerial()`, a slow listener will delay invocation of s
 
 Emittery can collect and log debug information.
 
-To enable this feature set the DEBUG environment variable to 'emittery' or '*'. Additionally you can set the static `isDebugEnabled` variable to true on the Emittery class, or `myEmitter.debug.enabled` on an instance of it for debugging a single instance.
+To enable this feature set the DEBUG environment variable to `'emittery'` or `'*'`. Additionally you can set the static `isDebugEnabled` variable to true on the Emittery class, or `myEmitter.debug.enabled` on an instance of it for debugging a single instance.
 
 See [API](#api) for more details on how debugging works.
 

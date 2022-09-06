@@ -1,9 +1,3 @@
-const anyMap = new WeakMap();
-const eventsMap = new WeakMap();
-const producersMap = new WeakMap();
-
-module.exports = {
-	anyMap,
-	eventsMap,
-	producersMap
-};
+export const anyMap = new WeakMap();
+export const eventsMap = new WeakMap();
+export const producersMap = new WeakMap();

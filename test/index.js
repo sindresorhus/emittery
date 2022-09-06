@@ -1,6 +1,6 @@
 import test from 'ava';
 import delay from 'delay';
-import pEvent from 'p-event';
+import {pEvent, pEventMultiple} from 'p-event';
 import Emittery from '../index.js';
 import {eventsMap} from '../maps.js';
 
@@ -66,7 +66,7 @@ test('on() - listenerAdded', async t => {
 	const addListener = () => 1;
 	setImmediate(() => emitter.on('abc', addListener));
 	const {eventName, listener} = await pEvent(emitter, Emittery.listenerAdded, {
-		rejectionEvents: []
+		rejectionEvents: [],
 	});
 	t.is(listener, addListener);
 	t.is(eventName, 'abc');
@@ -78,7 +78,7 @@ test('on() - listenerRemoved', async t => {
 	emitter.on('abc', addListener);
 	setImmediate(() => emitter.off('abc', addListener));
 	const {eventName, listener} = await pEvent(emitter, Emittery.listenerRemoved, {
-		rejectionEvents: []
+		rejectionEvents: [],
 	});
 	t.is(listener, addListener);
 	t.is(eventName, 'abc');
@@ -89,7 +89,7 @@ test('on() - listenerAdded onAny', async t => {
 	const addListener = () => 1;
 	setImmediate(() => emitter.onAny(addListener));
 	const {eventName, listener} = await pEvent(emitter, Emittery.listenerAdded, {
-		rejectionEvents: []
+		rejectionEvents: [],
 	});
 	t.is(listener, addListener);
 	t.is(eventName, undefined);
@@ -110,10 +110,10 @@ test('off() - isDebug logs output', t => {
 		debug: {
 			name: 'testEmitter',
 			enabled: true,
-			logger: (type, debugName, eventName, eventData) => {
+			logger(type, debugName, eventName, eventData) {
 				eventStore.push({type, debugName, eventName, eventData});
-			}
-		}
+			},
+		},
 	});
 
 	const off = emitter.on('test', () => {});
@@ -143,7 +143,7 @@ test('on() - eventName must be a string, symbol, or number', t => {
 
 	t.throws(() => {
 		emitter.on(true, () => {});
-	}, TypeError);
+	}, {instanceOf: TypeError});
 });
 
 test('on() - must have a listener', t => {
@@ -151,7 +151,7 @@ test('on() - must have a listener', t => {
 
 	t.throws(() => {
 		emitter.on('🦄');
-	}, TypeError);
+	}, {instanceOf: TypeError});
 });
 
 test('on() - returns a unsubcribe method', async t => {
@@ -192,10 +192,10 @@ test('on() - isDebug logs output', t => {
 		debug: {
 			name: 'testEmitter',
 			enabled: true,
-			logger: (type, debugName, eventName, eventData) => {
+			logger(type, debugName, eventName, eventData) {
 				eventStore.push({type, debugName, eventName, eventData});
-			}
-		}
+			},
+		},
 	});
 
 	emitter.on('test', data => calls.push(data));
@@ -338,7 +338,7 @@ test('off() - eventName must be a string, symbol, or number', t => {
 
 	t.throws(() => {
 		emitter.off(true);
-	}, TypeError);
+	}, {instanceOf: TypeError});
 });
 
 test('off() - no listener', t => {
@@ -346,7 +346,7 @@ test('off() - no listener', t => {
 
 	t.throws(() => {
 		emitter.off('🦄');
-	}, TypeError);
+	}, {instanceOf: TypeError});
 });
 
 test('off() - clears global maps when all listeners are removed', t => {
@@ -385,7 +385,7 @@ test('once() - eventName must be a string, symbol, or number', async t => {
 	emitter.once(Symbol('symbol'));
 	emitter.once(42);
 
-	await t.throwsAsync(emitter.once(true), TypeError);
+	await t.throwsAsync(emitter.once(true), {instanceOf: TypeError});
 });
 
 test('once() - returns a promise with an unsubscribe method', async t => {
@@ -402,7 +402,7 @@ test('once() - returns a promise with an unsubscribe method', async t => {
 			setTimeout(() => {
 				resolve(false);
 			}, 100);
-		})
+		}),
 	]);
 
 	oncePromise.off();
@@ -412,40 +412,33 @@ test('once() - returns a promise with an unsubscribe method', async t => {
 	t.pass();
 });
 
-test.cb('emit() - one event', t => {
-	t.plan(1);
-
+test('emit() - one event', async t => {
 	const emitter = new Emittery();
 	const eventFixture = {foo: true};
-
-	emitter.on('🦄', data => {
-		t.deepEqual(data, eventFixture);
-		t.end();
-	});
-
+	const promise = pEvent(emitter, '🦄');
 	emitter.emit('🦄', eventFixture);
+	t.deepEqual(await promise, eventFixture);
 });
 
-test.cb('emit() - multiple events', t => {
-	t.plan(1);
-
+test('emit() - multiple events', async t => {
 	const emitter = new Emittery();
-	let count = 0;
+	const expectedCount = 5;
 
 	emitter.on('🦄', async () => {
 		await delay(Math.random() * 100);
-
-		if (++count >= 5) {
-			t.is(count, 5);
-			t.end();
-		}
 	});
 
+	const promise = pEventMultiple(emitter, '🦄', {count: expectedCount});
+
 	emitter.emit('🦄');
 	emitter.emit('🦄');
 	emitter.emit('🦄');
 	emitter.emit('🦄');
 	emitter.emit('🦄');
+
+	const result = await promise;
+
+	t.is(result.length, expectedCount);
 });
 
 test('emit() - eventName must be a string, symbol, or number', async t => {
@@ -455,31 +448,32 @@ test('emit() - eventName must be a string, symbol, or number', async t => {
 	emitter.emit(Symbol('symbol'));
 	emitter.emit(42);
 
-	await t.throwsAsync(emitter.emit(true), TypeError);
+	await t.throwsAsync(emitter.emit(true), {instanceOf: TypeError});
 });
 
 test('emit() - userland cannot emit the meta events', async t => {
 	const emitter = new Emittery();
 
-	await t.throwsAsync(emitter.emit(Emittery.listenerRemoved), TypeError);
-	await t.throwsAsync(emitter.emit(Emittery.listenerAdded), TypeError);
+	await t.throwsAsync(emitter.emit(Emittery.listenerRemoved), {instanceOf: TypeError});
+	await t.throwsAsync(emitter.emit(Emittery.listenerAdded), {instanceOf: TypeError});
 });
 
-test.cb('emit() - is async', t => {
-	t.plan(2);
-
+test('emit() - is async', async t => {
 	const emitter = new Emittery();
-	let unicorn = false;
+	const promise = pEvent(emitter, '🦄');
 
+	let unicorn = false;
 	emitter.on('🦄', () => {
 		unicorn = true;
-		t.pass();
-		t.end();
 	});
 
 	emitter.emit('🦄');
 
 	t.false(unicorn);
+
+	await promise;
+
+	t.true(unicorn);
 });
 
 test('emit() - awaits async listeners', async t => {
@@ -569,10 +563,10 @@ test('emit() - isDebug logs output', async t => {
 		debug: {
 			name: 'testEmitter',
 			enabled: true,
-			logger: (type, debugName, eventName, eventData) => {
+			logger(type, debugName, eventName, eventData) {
 				eventStore.push({type, debugName, eventName, eventData});
-			}
-		}
+			},
+		},
 	});
 
 	emitter.on('test', () => {});
@@ -608,20 +602,14 @@ test('emit() - throws an error if any listener throws', async t => {
 	await t.throwsAsync(emitter.emit('🦄🦄'), {instanceOf: Error});
 });
 
-test.cb('emitSerial()', t => {
-	t.plan(1);
-
+test('emitSerial()', async t => {
 	const emitter = new Emittery();
-	const events = [];
+	const promise = pEvent(emitter, '🦄');
 
-	const listener = async data => {
+	const values = [];
+	const listener = async value => {
 		await delay(Math.random() * 100);
-		events.push(data);
-
-		if (events.length >= 5) {
-			t.deepEqual(events, [1, 2, 3, 4, 5]);
-			t.end();
-		}
+		values.push(value);
 	};
 
 	emitter.on('🦄', () => listener(1));
@@ -630,7 +618,10 @@ test.cb('emitSerial()', t => {
 	emitter.on('🦄', () => listener(4));
 	emitter.on('🦄', () => listener(5));
 
-	emitter.emitSerial('🦄', 'e');
+	await emitter.emitSerial('🦄', 'e');
+	await promise;
+
+	t.deepEqual(values, [1, 2, 3, 4, 5]);
 });
 
 test('emitSerial() - eventName must be a string, symbol, or number', async t => {
@@ -640,31 +631,32 @@ test('emitSerial() - eventName must be a string, symbol, or number', async t => 
 	emitter.emitSerial(Symbol('symbol'));
 	emitter.emitSerial(42);
 
-	await t.throwsAsync(emitter.emitSerial(true), TypeError);
+	await t.throwsAsync(emitter.emitSerial(true), {instanceOf: TypeError});
 });
 
 test('emitSerial() - userland cannot emit the meta events', async t => {
 	const emitter = new Emittery();
 
-	await t.throwsAsync(emitter.emitSerial(Emittery.listenerRemoved), TypeError);
-	await t.throwsAsync(emitter.emitSerial(Emittery.listenerAdded), TypeError);
+	await t.throwsAsync(emitter.emitSerial(Emittery.listenerRemoved), {instanceOf: TypeError});
+	await t.throwsAsync(emitter.emitSerial(Emittery.listenerAdded), {instanceOf: TypeError});
 });
 
-test.cb('emitSerial() - is async', t => {
-	t.plan(2);
-
+test('emitSerial() - is async', async t => {
 	const emitter = new Emittery();
-	let unicorn = false;
+	const promise = pEvent(emitter, '🦄');
 
+	let unicorn = false;
 	emitter.on('🦄', () => {
 		unicorn = true;
-		t.pass();
-		t.end();
 	});
 
 	emitter.emitSerial('🦄');
 
 	t.false(unicorn);
+
+	await promise;
+
+	t.true(unicorn);
 });
 
 test('emitSerial() - calls listeners subscribed when emitSerial() was invoked', async t => {
@@ -739,10 +731,10 @@ test('emitSerial() - isDebug logs output', async t => {
 		debug: {
 			name: 'testEmitter',
 			enabled: true,
-			logger: (type, debugName, eventName, eventData) => {
+			logger(type, debugName, eventName, eventData) {
 				eventStore.push({type, debugName, eventName, eventData});
-			}
-		}
+			},
+		},
 	});
 
 	emitter.on('test', () => {});
@@ -774,7 +766,7 @@ test('onAny() - must have a listener', t => {
 
 	t.throws(() => {
 		emitter.onAny();
-	}, TypeError);
+	}, {instanceOf: TypeError});
 });
 
 test.serial('anyEvent()', async t => {
@@ -851,7 +843,7 @@ test('offAny() - no listener', t => {
 
 	t.throws(() => {
 		emitter.offAny();
-	}, TypeError);
+	}, {instanceOf: TypeError});
 });
 
 test('clearListeners()', async t => {
@@ -975,10 +967,10 @@ test('clearListeners() - isDebug logs output', t => {
 		debug: {
 			name: 'testEmitter',
 			enabled: true,
-			logger: (type, debugName, eventName, eventData) => {
+			logger(type, debugName, eventName, eventData) {
 				eventStore.push({type, debugName, eventName, eventData});
-			}
-		}
+			},
+		},
 	});
 
 	emitter.on('test', () => {});
@@ -996,10 +988,10 @@ test('onAny() - isDebug logs output', t => {
 		debug: {
 			name: 'testEmitter',
 			enabled: true,
-			logger: (type, debugName, eventName, eventData) => {
+			logger(type, debugName, eventName, eventData) {
 				eventStore.push({type, debugName, eventName, eventData});
-			}
-		}
+			},
+		},
 	});
 
 	emitter.onAny(() => {});
@@ -1016,10 +1008,10 @@ test('offAny() - isDebug logs output', t => {
 		debug: {
 			name: 'testEmitter',
 			enabled: true,
-			logger: (type, debugName, eventName, eventData) => {
+			logger(type, debugName, eventName, eventData) {
 				eventStore.push({type, debugName, eventName, eventData});
-			}
-		}
+			},
+		},
 	});
 
 	const off = emitter.onAny(() => {});
@@ -1069,7 +1061,7 @@ test('listenerCount() - eventName must be undefined if not a string, symbol, or 
 
 	t.throws(() => {
 		emitter.listenerCount(true);
-	}, TypeError);
+	}, {instanceOf: TypeError});
 });
 
 test('bindMethods()', t => {
@@ -1137,22 +1129,37 @@ test('bindMethods() - must bind all methods if no array supplied', t => {
 test('bindMethods() - methodNames must only include Emittery methods', t => {
 	const emitter = new Emittery();
 	const target = {};
-	t.throws(() => emitter.bindMethods(target, ['noexistent']));
+
+	t.throws(() => {
+		emitter.bindMethods(target, ['noexistent']);
+	});
 });
 
 test('bindMethods() - must not set already existing fields', t => {
 	const emitter = new Emittery();
 	const target = {
-		on: true
+		on: true,
 	};
-	t.throws(() => emitter.bindMethods(target, ['on']));
+
+	t.throws(() => {
+		emitter.bindMethods(target, ['on']);
+	});
 });
 
 test('bindMethods() - target must be an object', t => {
 	const emitter = new Emittery();
-	t.throws(() => emitter.bindMethods('string', []));
-	t.throws(() => emitter.bindMethods(null, []));
-	t.throws(() => emitter.bindMethods(undefined, []));
+
+	t.throws(() => {
+		emitter.bindMethods('string', []);
+	});
+
+	t.throws(() => {
+		emitter.bindMethods(null, []);
+	});
+
+	t.throws(() => {
+		emitter.bindMethods(undefined, []);
+	});
 });
 
 test('mixin()', t => {
@@ -1175,12 +1182,29 @@ test('mixin()', t => {
 test('mixin() - methodNames must be array of strings or undefined', t => {
 	class TestClass {}
 
-	t.throws(() => Emittery.mixin('emitter', null)(TestClass));
-	t.throws(() => Emittery.mixin('emitter', 'string')(TestClass));
-	t.throws(() => Emittery.mixin('emitter', {})(TestClass));
-	t.throws(() => Emittery.mixin('emitter', [null])(TestClass));
-	t.throws(() => Emittery.mixin('emitter', [1])(TestClass));
-	t.throws(() => Emittery.mixin('emitter', [{}])(TestClass));
+	t.throws(() => {
+		Emittery.mixin('emitter', null)(TestClass);
+	});
+
+	t.throws(() => {
+		Emittery.mixin('emitter', 'string')(TestClass);
+	});
+
+	t.throws(() => {
+		Emittery.mixin('emitter', {})(TestClass);
+	});
+
+	t.throws(() => {
+		Emittery.mixin('emitter', [null])(TestClass);
+	});
+
+	t.throws(() => {
+		Emittery.mixin('emitter', [1])(TestClass);
+	});
+
+	t.throws(() => {
+		Emittery.mixin('emitter', [{}])(TestClass);
+	});
 });
 
 test('mixin() - must mixin all methods if no array supplied', t => {
@@ -1196,7 +1220,9 @@ test('mixin() - must mixin all methods if no array supplied', t => {
 test('mixin() - methodNames must only include Emittery methods', t => {
 	class TestClass {}
 
-	t.throws(() => Emittery.mixin('emitter', ['nonexistent'])(TestClass));
+	t.throws(() => {
+		Emittery.mixin('emitter', ['nonexistent'])(TestClass);
+	});
 });
 
 test('mixin() - must not set already existing methods', t => {
@@ -1205,14 +1231,27 @@ test('mixin() - must not set already existing methods', t => {
 			return true;
 		}
 	}
-	t.throws(() => Emittery.mixin('emitter', ['on'])(TestClass));
+	t.throws(() => {
+		Emittery.mixin('emitter', ['on'])(TestClass);
+	});
 });
 
 test('mixin() - target must be function', t => {
-	t.throws(() => Emittery.mixin('emitter')('string'));
-	t.throws(() => Emittery.mixin('emitter')(null));
-	t.throws(() => Emittery.mixin('emitter')(undefined));
-	t.throws(() => Emittery.mixin('emitter')({}));
+	t.throws(() => {
+		Emittery.mixin('emitter')('string');
+	});
+
+	t.throws(() => {
+		Emittery.mixin('emitter')(null);
+	});
+
+	t.throws(() => {
+		Emittery.mixin('emitter')(undefined);
+	});
+
+	t.throws(() => {
+		Emittery.mixin('emitter')({});
+	});
 });
 
 test('isDebug default logger handles symbol event names and object for event data', async t => {
@@ -1230,10 +1269,10 @@ test('isDebug can be turned on globally during runtime', t => {
 		debug: {
 			name: 'testEmitter',
 			enabled: false,
-			logger: (type, debugName, eventName, eventData) => {
+			logger(type, debugName, eventName, eventData) {
 				eventStore.push({type, debugName, eventName, eventData});
-			}
-		}
+			},
+		},
 	});
 
 	emitter.on('test', () => {});
@@ -1253,10 +1292,10 @@ test('isDebug can be turned on for and instance without using the constructor', 
 		debug: {
 			name: 'testEmitter',
 			enabled: false,
-			logger: (type, debugName, eventName, eventData) => {
+			logger(type, debugName, eventName, eventData) {
 				eventStore.push({type, debugName, eventName, eventData});
-			}
-		}
+			},
+		},
 	});
 	emitter.debug.enabled = true;
 
@@ -1273,8 +1312,8 @@ test('debug mode - handles circular references in event data', async t => {
 	const emitter = new Emittery({
 		debug: {
 			name: 'testEmitter',
-			enabled: true
-		}
+			enabled: true,
+		},
 	});
 
 	const data = {};
