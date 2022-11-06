@@ -223,7 +223,7 @@ export default class Emittery {
 
 		// eslint-disable-next-line n/prefer-global/process
 		const {env} = globalThis.process ?? {env: {}};
-		return env.DEBUG === 'emittery' || env.DEBUG === '*' || isGlobalDebugEnabled;
+		return env?.DEBUG === 'emittery' || env?.DEBUG === '*' || isGlobalDebugEnabled;
 	}
 
 	static set isDebugEnabled(newValue) {
