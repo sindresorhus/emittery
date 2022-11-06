@@ -216,8 +216,10 @@ export default class Emittery {
 	}
 
 	static get isDebugEnabled() {
+		// In a browser environment, `globalThis.process` can potentially reference a DOM Element with a `#process` ID,
+		// so instead of just type checking `globalThis.process`, we need to make sure that `globalThis.process.env` exists.
 		// eslint-disable-next-line n/prefer-global/process
-		if (typeof globalThis.process !== 'object') {
+		if (typeof globalThis.process?.env !== 'object') {
 			return isGlobalDebugEnabled;
 		}
 
