@@ -480,7 +480,7 @@ export default class Emittery {
 				continue;
 			}
 
-			if (typeof eventName !== 'undefined') {
+			if (eventName !== undefined) {
 				assertEventName(eventName);
 			}
 
