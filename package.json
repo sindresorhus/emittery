@@ -66,5 +66,8 @@
 			"lcov",
 			"text"
 		]
+	},
+	"xo" : {
+		"prettier": true
 	}
 }

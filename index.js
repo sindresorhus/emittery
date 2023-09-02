@@ -32,7 +32,10 @@ function getListeners(instance, eventName) {
 }
 
 function getEventProducers(instance, eventName) {
-	const key = typeof eventName === 'string' || typeof eventName === 'symbol' || typeof eventName === 'number' ? eventName : anyProducer;
+	const key =
+		typeof eventName === 'string' || typeof eventName === 'symbol' || typeof eventName === 'number'
+			? eventName
+			: anyProducer;
 	const producers = producersMap.get(instance);
 	if (!producers.has(key)) {
 		return;
@@ -127,9 +130,7 @@ function iterator(instance, eventNames) {
 
 			flush();
 
-			return arguments.length > 0
-				? {done: true, value: await value}
-				: {done: true};
+			return arguments.length > 0 ? {done: true, value: await value} : {done: true};
 		},
 
 		[Symbol.asyncIterator]() {
@@ -200,9 +201,10 @@ export default class Emittery {
 				get: getEmitteryProperty,
 			});
 
-			const emitteryMethodCaller = methodName => function (...args) {
-				return this[emitteryPropertyName][methodName](...args);
-			};
+			const emitteryMethodCaller = methodName =>
+				function (...args) {
+					return this[emitteryPropertyName][methodName](...args);
+				};
 
 			for (const methodName of methodNames) {
 				Object.defineProperty(target.prototype, methodName, {
@@ -472,10 +474,11 @@ export default class Emittery {
 
 		for (const eventName of eventNames) {
 			if (typeof eventName === 'string') {
-				count += anyMap.get(this).size
-					+ (getListeners(this, eventName)?.size ?? 0)
-					+ (getEventProducers(this, eventName)?.size ?? 0)
-					+ (getEventProducers(this)?.size ?? 0);
+				count +=
+					anyMap.get(this).size +
+					(getListeners(this, eventName)?.size ?? 0) +
+					(getEventProducers(this, eventName)?.size ?? 0) +
+					(getEventProducers(this)?.size ?? 0);
 
 				continue;
 			}

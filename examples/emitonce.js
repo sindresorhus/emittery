@@ -4,7 +4,8 @@ import Emittery from '../index.js';
 const myEmitter = new Emittery();
 
 // Register listener for only the one event
-(async () => { // eslint-disable-line unicorn/prefer-top-level-await
+// eslint-disable-next-line unicorn/prefer-top-level-await
+(async () => {
 	console.log('An event occurred (#%d).', await myEmitter.once('event'));
 })();
 

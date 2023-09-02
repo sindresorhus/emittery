@@ -141,17 +141,23 @@ test('on() - eventName must be a string, symbol, or number', t => {
 	emitter.on(Symbol('symbol'), () => {});
 	emitter.on(42, () => {});
 
-	t.throws(() => {
-		emitter.on(true, () => {});
-	}, {instanceOf: TypeError});
+	t.throws(
+		() => {
+			emitter.on(true, () => {});
+		},
+		{instanceOf: TypeError}
+	);
 });
 
 test('on() - must have a listener', t => {
 	const emitter = new Emittery();
 
-	t.throws(() => {
-		emitter.on('🦄');
-	}, {instanceOf: TypeError});
+	t.throws(
+		() => {
+			emitter.on('🦄');
+		},
+		{instanceOf: TypeError}
+	);
 });
 
 test('on() - returns a unsubcribe method', async t => {
@@ -336,17 +342,23 @@ test('off() - eventName must be a string, symbol, or number', t => {
 	emitter.on(Symbol('symbol'), () => {});
 	emitter.on(42, () => {});
 
-	t.throws(() => {
-		emitter.off(true);
-	}, {instanceOf: TypeError});
+	t.throws(
+		() => {
+			emitter.off(true);
+		},
+		{instanceOf: TypeError}
+	);
 });
 
 test('off() - no listener', t => {
 	const emitter = new Emittery();
 
-	t.throws(() => {
-		emitter.off('🦄');
-	}, {instanceOf: TypeError});
+	t.throws(
+		() => {
+			emitter.off('🦄');
+		},
+		{instanceOf: TypeError}
+	);
 });
 
 test('off() - clears global maps when all listeners are removed', t => {
@@ -764,9 +776,12 @@ test('onAny()', async t => {
 test('onAny() - must have a listener', t => {
 	const emitter = new Emittery();
 
-	t.throws(() => {
-		emitter.onAny();
-	}, {instanceOf: TypeError});
+	t.throws(
+		() => {
+			emitter.onAny();
+		},
+		{instanceOf: TypeError}
+	);
 });
 
 test.serial('anyEvent()', async t => {
@@ -779,7 +794,10 @@ test.serial('anyEvent()', async t => {
 	}, 10);
 
 	t.plan(3);
-	const expected = [['🦄', '🌈'], ['🦄', '🌟']];
+	const expected = [
+		['🦄', '🌈'],
+		['🦄', '🌟'],
+	];
 	for await (const data of iterator) {
 		t.deepEqual(data, expected.shift());
 		if (expected.length === 0) {
@@ -841,9 +859,12 @@ test('offAny()', async t => {
 test('offAny() - no listener', t => {
 	const emitter = new Emittery();
 
-	t.throws(() => {
-		emitter.offAny();
-	}, {instanceOf: TypeError});
+	t.throws(
+		() => {
+			emitter.offAny();
+		},
+		{instanceOf: TypeError}
+	);
 });
 
 test('clearListeners()', async t => {
@@ -1059,9 +1080,12 @@ test('listenerCount() - eventName must be undefined if not a string, symbol, or 
 	emitter.listenerCount(42);
 	emitter.listenerCount();
 
-	t.throws(() => {
-		emitter.listenerCount(true);
-	}, {instanceOf: TypeError});
+	t.throws(
+		() => {
+			emitter.listenerCount(true);
+		},
+		{instanceOf: TypeError}
+	);
 });
 
 test('bindMethods()', t => {
@@ -1109,7 +1133,21 @@ test('bindMethods() - methodNames must be array of strings or undefined', t => {
 });
 
 test('bindMethods() - must bind all methods if no array supplied', t => {
-	const methodsExpected = ['on', 'off', 'once', 'events', 'emit', 'emitSerial', 'onAny', 'anyEvent', 'offAny', 'clearListeners', 'listenerCount', 'bindMethods', 'logIfDebugEnabled'];
+	const methodsExpected = [
+		'on',
+		'off',
+		'once',
+		'events',
+		'emit',
+		'emitSerial',
+		'onAny',
+		'anyEvent',
+		'offAny',
+		'clearListeners',
+		'listenerCount',
+		'bindMethods',
+		'logIfDebugEnabled',
+	];
 
 	const emitter = new Emittery();
 	const target = {};
@@ -1169,7 +1207,18 @@ test('mixin()', t => {
 		}
 	}
 
-	const TestClassWithMixin = Emittery.mixin('emitter', ['on', 'off', 'once', 'emit', 'emitSerial', 'onAny', 'offAny', 'clearListeners', 'listenerCount', 'bindMethods'])(TestClass);
+	const TestClassWithMixin = Emittery.mixin('emitter', [
+		'on',
+		'off',
+		'once',
+		'emit',
+		'emitSerial',
+		'onAny',
+		'offAny',
+		'clearListeners',
+		'listenerCount',
+		'bindMethods',
+	])(TestClass);
 	const symbol = Symbol('test symbol');
 	const instance = new TestClassWithMixin(symbol);
 	t.true(instance.emitter instanceof Emittery);
@@ -1208,13 +1257,30 @@ test('mixin() - methodNames must be array of strings or undefined', t => {
 });
 
 test('mixin() - must mixin all methods if no array supplied', t => {
-	const methodsExpected = ['on', 'off', 'once', 'events', 'emit', 'emitSerial', 'onAny', 'anyEvent', 'offAny', 'clearListeners', 'listenerCount', 'bindMethods', 'logIfDebugEnabled'];
+	const methodsExpected = [
+		'on',
+		'off',
+		'once',
+		'events',
+		'emit',
+		'emitSerial',
+		'onAny',
+		'anyEvent',
+		'offAny',
+		'clearListeners',
+		'listenerCount',
+		'bindMethods',
+		'logIfDebugEnabled',
+	];
 
 	class TestClass {}
 
 	const TestClassWithMixin = Emittery.mixin('emitter')(TestClass);
 
-	t.deepEqual(Object.getOwnPropertyNames(TestClassWithMixin.prototype).sort(), [...methodsExpected, 'constructor', 'emitter'].sort());
+	t.deepEqual(
+		Object.getOwnPropertyNames(TestClassWithMixin.prototype).sort(),
+		[...methodsExpected, 'constructor', 'emitter'].sort()
+	);
 });
 
 test('mixin() - methodNames must only include Emittery methods', t => {

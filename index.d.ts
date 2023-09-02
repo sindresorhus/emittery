@@ -21,7 +21,12 @@ To enable this feature set the `DEBUG` environment variable to `emittery` or `*`
 
 See API for more information on how debugging works.
 */
-export type DebugLogger<EventData, Name extends keyof EventData> = (type: string, debugName: string, eventName?: Name, eventData?: EventData[Name]) => void;
+export type DebugLogger<EventData, Name extends keyof EventData> = (
+	type: string,
+	debugName: string,
+	eventName?: Name,
+	eventData?: EventData[Name]
+) => void;
 
 /**
 Configure debug options of an instance.
@@ -151,7 +156,7 @@ export type ListenerChangedData = {
 	/**
 	The listener that was added or removed.
 	*/
-	listener: (eventData?: unknown) => (void | Promise<void>);
+	listener: (eventData?: unknown) => void | Promise<void>;
 
 	/**
 	The name of the event that was added or removed if `.on()` or `.off()` was used, or `undefined` if `.onAny()` or `.offAny()` was used.
@@ -427,9 +432,7 @@ export default class Emittery<
 		});
 	```
 	*/
-	events<Name extends keyof EventData>(
-		eventName: Name | readonly Name[]
-	): AsyncIterableIterator<EventData[Name]>;
+	events<Name extends keyof EventData>(eventName: Name | readonly Name[]): AsyncIterableIterator<EventData[Name]>;
 
 	/**
 	Remove one or more event subscriptions.
@@ -493,10 +496,7 @@ export default class Emittery<
 	@returns A promise that resolves when all the event listeners are done. *Done* meaning executed if synchronous or resolved when an async/promise-returning function. You usually wouldn't want to wait for this, but you could for example catch possible errors. If any of the listeners throw/reject, the returned promise will be rejected with the error, but the other listeners will not be affected.
 	*/
 	emit<Name extends DatalessEvents>(eventName: Name): Promise<void>;
-	emit<Name extends keyof EventData>(
-		eventName: Name,
-		eventData: EventData[Name]
-	): Promise<void>;
+	emit<Name extends keyof EventData>(eventName: Name, eventData: EventData[Name]): Promise<void>;
 
 	/**
 	Same as `emit()`, but it waits for each listener to resolve before triggering the next one. This can be useful if your events depend on each other. Although ideally they should not. Prefer `emit()` whenever possible.
@@ -506,10 +506,7 @@ export default class Emittery<
 	@returns A promise that resolves when all the event listeners are done.
 	*/
 	emitSerial<Name extends DatalessEvents>(eventName: Name): Promise<void>;
-	emitSerial<Name extends keyof EventData>(
-		eventName: Name,
-		eventData: EventData[Name]
-	): Promise<void>;
+	emitSerial<Name extends keyof EventData>(eventName: Name, eventData: EventData[Name]): Promise<void>;
 
 	/**
 	Subscribe to be notified about any event.
@@ -517,10 +514,7 @@ export default class Emittery<
 	@returns A method to unsubscribe.
 	*/
 	onAny(
-		listener: (
-			eventName: keyof EventData,
-			eventData: EventData[keyof EventData]
-		) => void | Promise<void>
+		listener: (eventName: keyof EventData, eventData: EventData[keyof EventData]) => void | Promise<void>
 	): UnsubscribeFunction;
 
 	/**
@@ -557,19 +551,12 @@ export default class Emittery<
 		});
 	```
 	*/
-	anyEvent(): AsyncIterableIterator<
-	[keyof EventData, EventData[keyof EventData]]
-	>;
+	anyEvent(): AsyncIterableIterator<[keyof EventData, EventData[keyof EventData]]>;
 
 	/**
 	Remove an `onAny` subscription.
 	*/
-	offAny(
-		listener: (
-			eventName: keyof EventData,
-			eventData: EventData[keyof EventData]
-		) => void | Promise<void>
-	): void;
+	offAny(listener: (eventName: keyof EventData, eventData: EventData[keyof EventData]) => void | Promise<void>): void;
 
 	/**
 	Clear all event listeners on the instance.

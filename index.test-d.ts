@@ -80,7 +80,12 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 
 	const ee = new Emittery<MyEventData>();
 
-	const myLogger = (type: string, debugName: string, eventName?: keyof MyEventData, eventData?: MyEventData[keyof MyEventData]): void => {
+	const myLogger = (
+		type: string,
+		debugName: string,
+		eventName?: keyof MyEventData,
+		eventData?: MyEventData[keyof MyEventData]
+	): void => {
 		expectAssignable<string>(type);
 		expectAssignable<string>(debugName);
 		expectAssignable<string | undefined>(eventName);
@@ -101,7 +106,9 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 	expectNotAssignable<() => undefined>(ee.debug.logger);
 	expectNotAssignable<(data: unknown) => undefined>(ee.debug.logger);
 	expectNotAssignable<(type: string, debugName: string) => undefined>(ee.debug.logger);
-	expectNotAssignable<((type: string, debugName: string, eventName?: string, eventData?: Record<string, any>) => void) | undefined>(ee.debug.logger);
+	expectNotAssignable<
+		((type: string, debugName: string, eventName?: string, eventData?: Record<string, any>) => void) | undefined
+	>(ee.debug.logger);
 	expectAssignable<typeof ee.debug.logger>(myLogger);
 }
 
@@ -276,11 +283,17 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 // }
 
 // Mixin type
-Emittery.mixin('emittery')(class {
-	test() {}
-});
+Emittery.mixin('emittery')(
+	class {
+		test() {}
+	}
+);
 
 // Mixin type - arguments in constructor
-Emittery.mixin('emittery')(class { // eslint-disable-line @typescript-eslint/no-extraneous-class
-	constructor(argument: string) {} // eslint-disable-line @typescript-eslint/no-useless-constructor
-});
+Emittery.mixin('emittery')(
+	// eslint-disable-next-line @typescript-eslint/no-extraneous-class
+	class {
+		// eslint-disable-next-line @typescript-eslint/no-useless-constructor
+		constructor(argument: string) {}
+	}
+);
