@@ -1064,6 +1064,18 @@ test('listenerCount() - eventName must be undefined if not a string, symbol, or 
 	}, {instanceOf: TypeError});
 });
 
+test('listenerCount() - symbol', t => {
+	const symbol = Symbol('🦄');
+	const emitter = new Emittery();
+	t.is(emitter.listenerCount(symbol), 0);
+	emitter.on(symbol, () => {});
+	emitter.on(symbol, () => {});
+	t.is(emitter.listenerCount(symbol), 2);
+	emitter.onAny(() => {});
+	emitter.onAny(() => {});
+	t.is(emitter.listenerCount(symbol), 4);
+});
+
 test('bindMethods()', t => {
 	const methodsToBind = ['on', 'off', 'emit', 'listenerCount'];
 

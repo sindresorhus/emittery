@@ -10,8 +10,10 @@ const listenerRemoved = Symbol('listenerRemoved');
 let canEmitMetaEvents = false;
 let isGlobalDebugEnabled = false;
 
+const isEventKeyType = key => typeof key === 'string' || typeof key === 'symbol' || typeof key === 'number';
+
 function assertEventName(eventName) {
-	if (typeof eventName !== 'string' && typeof eventName !== 'symbol' && typeof eventName !== 'number') {
+	if (!isEventKeyType(eventName)) {
 		throw new TypeError('`eventName` must be a string, symbol, or number');
 	}
 }
@@ -32,7 +34,7 @@ function getListeners(instance, eventName) {
 }
 
 function getEventProducers(instance, eventName) {
-	const key = typeof eventName === 'string' || typeof eventName === 'symbol' || typeof eventName === 'number' ? eventName : anyProducer;
+	const key = isEventKeyType(eventName) ? eventName : anyProducer;
 	const producers = producersMap.get(instance);
 	if (!producers.has(key)) {
 		return;
@@ -432,7 +434,7 @@ export default class Emittery {
 		for (const eventName of eventNames) {
 			this.logIfDebugEnabled('clear', eventName, undefined);
 
-			if (typeof eventName === 'string' || typeof eventName === 'symbol' || typeof eventName === 'number') {
+			if (isEventKeyType(eventName)) {
 				const set = getListeners(this, eventName);
 				if (set) {
 					set.clear();
@@ -471,7 +473,7 @@ export default class Emittery {
 		let count = 0;
 
 		for (const eventName of eventNames) {
-			if (typeof eventName === 'string') {
+			if (isEventKeyType(eventName)) {
 				count += anyMap.get(this).size
 					+ (getListeners(this, eventName)?.size ?? 0)
 					+ (getEventProducers(this, eventName)?.size ?? 0)
