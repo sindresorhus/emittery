@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-empty-function, @typescript-eslint/no-floating-promises */
 import {expectType, expectError, expectNotAssignable, expectAssignable} from 'tsd';
-import {pEvent} from 'p-event';
+import {pEventIterator} from 'p-event';
 import Emittery from './index.js';
 
 type AnyListener = (eventData?: unknown) => void | Promise<void>;
@@ -254,26 +254,26 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 	};
 }
 
-// TODO: Fix type compatibility with `p-event`.
 // Compatibility with p-event, without explicit types
-// {
-// 	const ee = new Emittery();
-// 	pEvent.iterator(ee, 'data', {
-// 		resolutionEvents: ['finish']
-// 	});
-// }
+{
+	const ee = new Emittery();
+	pEventIterator(ee, 'data', {
+		resolutionEvents: ['finish'],
+	});
+}
 
 // Compatibility with p-event, with explicit types
-// {
-// 	const ee = new Emittery<{
-// 		data: unknown;
-// 		error: unknown;
-// 		finish: undefined;
-// 	}>();
-// 	pEvent.iterator(ee, 'data', {
-// 		resolutionEvents: ['finish']
-// 	});
-// }
+{
+	type EventData = {
+		data: unknown;
+		error: unknown;
+		finish: undefined;
+	};
+	const ee = new Emittery<EventData>();
+	pEventIterator<keyof EventData, unknown>(ee, 'data', {
+		resolutionEvents: ['finish'],
+	});
+}
 
 // Mixin type
 Emittery.mixin('emittery')(class {
