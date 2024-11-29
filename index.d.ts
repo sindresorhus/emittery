@@ -515,11 +515,11 @@ export default class Emittery<
 	- If all listeners succeed, resolves with undefined
 	- If any listeners fail, resolves with an array with exactly one error
 	*/
-	emitSerial<Name extends DatalessEvents>(eventName: Name): Promise<[unknown]>;
+	emitSerial<Name extends DatalessEvents>(eventName: Name): Promise<undefined | [unknown]>;
 	emitSerial<Name extends keyof EventData>(
 		eventName: Name,
 		eventData: EventData[Name]
-	): Promise<[unknown]>;
+	): Promise<undefined | [unknown]>;
 
 	/**
 	Subscribe to be notified about any event.
