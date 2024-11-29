@@ -408,15 +408,13 @@ export default class Emittery {
 
 		await resolvedPromise;
 
-		const errors = [];
-
 		/* eslint-disable no-await-in-loop */
 		for (const listener of staticListeners) {
 			if (listeners.has(listener)) {
 				try {
 					await listener(eventData);
 				} catch (error) {
-					errors.push(error);
+					return [error];
 				}
 			}
 		}
@@ -426,15 +424,11 @@ export default class Emittery {
 				try {
 					await listener(eventName, eventData);
 				} catch (error) {
-					errors.push(error);
+					return [error];
 				}
 			}
 		}
 		/* eslint-enable no-await-in-loop */
-
-		if (errors.length > 0) {
-			return errors;
-		}
 
 		return undefined;
 	}

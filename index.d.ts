@@ -509,16 +509,17 @@ export default class Emittery<
 	/**
 	Same as `emit()`, but it waits for each listener to resolve before triggering the next one. This can be useful if your events depend on each other. Although ideally they should not. Prefer `emit()` whenever possible.
 
+	If any of the listeners throw/reject, the remaining listeners will *not* be called.
+
 	@returns A promise that resolves when all event listeners are done:
 	- If all listeners succeed, resolves with undefined
-	- If any listeners fail, resolves with an array of their errors
-	All listeners will execute regardless of whether other listeners throw/reject.
+	- If any listeners fail, resolves with an array with exactly one error
 	*/
-	emitSerial<Name extends DatalessEvents>(eventName: Name): Promise<EmitResult>;
+	emitSerial<Name extends DatalessEvents>(eventName: Name): Promise<[unknown]>;
 	emitSerial<Name extends keyof EventData>(
 		eventName: Name,
 		eventData: EventData[Name]
-	): Promise<EmitResult>;
+	): Promise<[unknown]>;
 
 	/**
 	Subscribe to be notified about any event.

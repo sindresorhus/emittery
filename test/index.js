@@ -1359,7 +1359,7 @@ test('emitSerial() - returns undefined when all listeners succeed', async t => {
 	t.is(result, undefined);
 });
 
-test('emitSerial() - returns array of errors when listeners fail', async t => {
+test('emitSerial() - returns array of the error when listeners fail', async t => {
 	const emitter = new Emittery();
 	const syncError = new Error('sync error');
 	const asyncError = new Error('async error');
@@ -1373,7 +1373,6 @@ test('emitSerial() - returns array of errors when listeners fail', async t => {
 
 	const result = await emitter.emitSerial('test', 'data');
 	t.true(Array.isArray(result));
-	t.is(result.length, 2);
+	t.is(result.length, 1);
 	t.is(result[0], syncError);
-	t.is(result[1], asyncError);
 });
