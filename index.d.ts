@@ -495,7 +495,7 @@ export default class Emittery<
 	/**
 	Trigger an event asynchronously, optionally with some data. Listeners are called in the order they were added, but executed concurrently.
 
-	@returns A promise that resolves when all the event listeners are done. *Done* meaning executed if synchronous or resolved when an async/promise-returning function. You usually wouldn't want to wait for this, but you could for example catch possible errors. If any of the listeners throw/reject, the returned promise will be rejected with the error, but the other listeners will not be affected.
+	@returns A promise that resolves with `undefined` when all event listeners complete successfully, or resolves with an array of errors if any listeners throw/reject. This promise will never throw. *Done* means the function has executed if synchronous, or resolved if it returns a promise. You usually don't need to await this promise, but you could use it to catch errors. Even if some listeners throw/reject, all listeners will still execute normally.
 	*/
 	emit<Name extends DatalessEvents>(eventName: Name): Promise<EmitResult>;
 	emit<Name extends keyof EventData>(

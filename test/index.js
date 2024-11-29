@@ -1320,7 +1320,7 @@ test('debug mode - handles circular references in event data', async t => {
 	await t.notThrowsAsync(emitter.emit('test', data));
 });
 
-test('emit() - returns null when all listeners succeed', async t => {
+test('emit() - returns undefined when all listeners succeed', async t => {
 	const emitter = new Emittery();
 
 	emitter.on('test', () => {});
