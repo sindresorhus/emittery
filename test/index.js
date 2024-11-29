@@ -588,20 +588,6 @@ test('emit() - returns undefined', async t => {
 	t.is(await emitter.emit('🦄🦄'), undefined);
 });
 
-test('emit() - throws an error if any listener throws', async t => {
-	const emitter = new Emittery();
-
-	emitter.on('🦄', () => {
-		throw new Error('🌈');
-	});
-	await t.throwsAsync(emitter.emit('🦄'), {instanceOf: Error});
-
-	emitter.on('🦄🦄', async () => {
-		throw new Error('🌈');
-	});
-	await t.throwsAsync(emitter.emit('🦄🦄'), {instanceOf: Error});
-});
-
 test('emitSerial()', async t => {
 	const emitter = new Emittery();
 	const promise = pEvent(emitter, '🦄');
@@ -1332,4 +1318,33 @@ test('debug mode - handles circular references in event data', async t => {
 	data.circular = data;
 
 	await t.notThrowsAsync(emitter.emit('test', data));
+});
+
+test('emit() - returns null when all listeners succeed', async t => {
+	const emitter = new Emittery();
+
+	emitter.on('test', () => {});
+	emitter.on('test', async () => {});
+
+	const result = await emitter.emit('test', 'data');
+	t.is(result, undefined);
+});
+
+test('emit() - returns array of errors when listeners fail', async t => {
+	const emitter = new Emittery();
+	const syncError = new Error('sync error');
+	const asyncError = new Error('async error');
+
+	emitter.on('test', () => {
+		throw syncError;
+	});
+	emitter.on('test', async () => {
+		throw asyncError;
+	});
+
+	const result = await emitter.emit('test', 'data');
+	t.true(Array.isArray(result));
+	t.is(result.length, 2);
+	t.is(result[0], syncError);
+	t.is(result[1], asyncError);
 });

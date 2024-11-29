@@ -190,6 +190,11 @@ emitter.emit('open', 1);
 emitter.emit('other');
 ```
 */
+
+export type EmitErrorResult = [unknown, ...unknown[]];
+export type EmitSuccessResult = undefined;
+export type EmitResult = EmitErrorResult | EmitSuccessResult;
+
 export default class Emittery<
 	EventData = Record<EventName, any>, // TODO: Use `unknown` instead of `any`.
 	AllEventData = EventData & OmnipresentEventData,
@@ -492,11 +497,11 @@ export default class Emittery<
 
 	@returns A promise that resolves when all the event listeners are done. *Done* meaning executed if synchronous or resolved when an async/promise-returning function. You usually wouldn't want to wait for this, but you could for example catch possible errors. If any of the listeners throw/reject, the returned promise will be rejected with the error, but the other listeners will not be affected.
 	*/
-	emit<Name extends DatalessEvents>(eventName: Name): Promise<void>;
+	emit<Name extends DatalessEvents>(eventName: Name): Promise<EmitResult>;
 	emit<Name extends keyof EventData>(
 		eventName: Name,
 		eventData: EventData[Name]
-	): Promise<void>;
+	): Promise<EmitResult>;
 
 	/**
 	Same as `emit()`, but it waits for each listener to resolve before triggering the next one. This can be useful if your events depend on each other. Although ideally they should not. Prefer `emit()` whenever possible.

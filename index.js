@@ -361,18 +361,35 @@ export default class Emittery {
 		const staticAnyListeners = isMetaEvent(eventName) ? [] : [...anyListeners];
 
 		await resolvedPromise;
+
+		const errors = [];
+
+		async function runListener(listener, ...args) {
+			try {
+				await listener(...args);
+			} catch (error) {
+				errors.push(error);
+			}
+		}
+
 		await Promise.all([
 			...staticListeners.map(async listener => {
 				if (listeners.has(listener)) {
-					return listener(eventData);
+					await runListener(listener, eventData);
 				}
 			}),
 			...staticAnyListeners.map(async listener => {
 				if (anyListeners.has(listener)) {
-					return listener(eventName, eventData);
+					await runListener(listener, eventName, eventData);
 				}
 			}),
 		]);
+
+		if (errors.length > 0) {
+			return errors;
+		}
+
+		return undefined;
 	}
 
 	async emitSerial(eventName, eventData) {
