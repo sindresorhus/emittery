@@ -495,7 +495,10 @@ export default class Emittery<
 	/**
 	Trigger an event asynchronously, optionally with some data. Listeners are called in the order they were added, but executed concurrently.
 
-	@returns A promise that resolves with `undefined` when all event listeners complete successfully, or resolves with an array of errors if any listeners throw/reject. This promise will never throw. *Done* means the function has executed if synchronous, or resolved if it returns a promise. You usually don't need to await this promise, but you could use it to catch errors. Even if some listeners throw/reject, all listeners will still execute normally.
+	@returns A promise that resolves when all event listeners are done:
+	- If all listeners succeed, resolves with undefined
+	- If any listeners fail, resolves with an array of their errors
+	All listeners will execute regardless of whether other listeners throw/reject.
 	*/
 	emit<Name extends DatalessEvents>(eventName: Name): Promise<EmitResult>;
 	emit<Name extends keyof EventData>(
@@ -506,15 +509,16 @@ export default class Emittery<
 	/**
 	Same as `emit()`, but it waits for each listener to resolve before triggering the next one. This can be useful if your events depend on each other. Although ideally they should not. Prefer `emit()` whenever possible.
 
-	If any of the listeners throw/reject, the returned promise will be rejected with the error and the remaining listeners will *not* be called.
-
-	@returns A promise that resolves when all the event listeners are done.
+	@returns A promise that resolves when all event listeners are done:
+	- If all listeners succeed, resolves with undefined
+	- If any listeners fail, resolves with an array of their errors
+	All listeners will execute regardless of whether other listeners throw/reject.
 	*/
-	emitSerial<Name extends DatalessEvents>(eventName: Name): Promise<void>;
+	emitSerial<Name extends DatalessEvents>(eventName: Name): Promise<EmitResult>;
 	emitSerial<Name extends keyof EventData>(
 		eventName: Name,
 		eventData: EventData[Name]
-	): Promise<void>;
+	): Promise<EmitResult>;
 
 	/**
 	Subscribe to be notified about any event.

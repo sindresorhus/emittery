@@ -391,13 +391,13 @@ iterator
 
 Trigger an event asynchronously, optionally with some data. Listeners are called in the order they were added, but executed concurrently.
 
-Returns a promise that resolves when all the event listeners are done. *Done* meaning executed if synchronous or resolved when an async/promise-returning function. If any of the listeners throw/reject, the returned promise will resolve with an array containing the errors. If all listeners succeed, the promise resolves with `undefined`.
+Returns a promise that resolves when all the event listeners are done. *Done* meaning executed if synchronous or resolved when an async/promise-returning function. You usually wouldn't want to wait for this, but you could for example catch possible errors. If any of the listeners throw/reject, the returned promise will be rejected with the error, but the other listeners will not be affected.
 
 #### emitSerial(eventName, data?)
 
-Same as above, but it waits for each listener to resolve before triggering the next one. This can be useful if your events depend on each other. Although ideally they should not. Prefer `emit()` whenever possible.
+Trigger an event asynchronously, optionally with some data. Listeners are called in the order they were added and executed serially.
 
-If any of the listeners throw/reject, the returned promise will be rejected with the error and the remaining listeners will *not* be called.
+Returns a promise that resolves when all the event listeners are done. *Done* meaning executed if synchronous or resolved when an async/promise-returning function. If any of the listeners throw/reject, the returned promise will resolve with an array containing the errors. If all listeners succeed, the promise resolves with `undefined`.
 
 #### onAny(listener)
 

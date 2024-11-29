@@ -1348,3 +1348,32 @@ test('emit() - returns array of errors when listeners fail', async t => {
 	t.is(result[0], syncError);
 	t.is(result[1], asyncError);
 });
+
+test('emitSerial() - returns undefined when all listeners succeed', async t => {
+	const emitter = new Emittery();
+
+	emitter.on('test', () => {});
+	emitter.on('test', async () => {});
+
+	const result = await emitter.emitSerial('test', 'data');
+	t.is(result, undefined);
+});
+
+test('emitSerial() - returns array of errors when listeners fail', async t => {
+	const emitter = new Emittery();
+	const syncError = new Error('sync error');
+	const asyncError = new Error('async error');
+
+	emitter.on('test', () => {
+		throw syncError;
+	});
+	emitter.on('test', async () => {
+		throw asyncError;
+	});
+
+	const result = await emitter.emitSerial('test', 'data');
+	t.true(Array.isArray(result));
+	t.is(result.length, 2);
+	t.is(result[0], syncError);
+	t.is(result[1], asyncError);
+});
