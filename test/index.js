@@ -205,6 +205,26 @@ test('on() - isDebug logs output', t => {
 	t.is(eventStore[0].eventName, 'test');
 });
 
+test('on() - use abort signal', async t => {
+	const emitter = new Emittery();
+	const abortController = new AbortController();
+
+	const calls = [];
+	const listener = () => {
+		calls.push(1);
+	};
+
+	emitter.on('abc', listener, {signal: abortController.signal});
+
+	await emitter.emit('abc');
+	t.deepEqual(calls, [1]);
+
+	abortController.abort();
+	await emitter.emit('abc');
+
+	t.deepEqual(calls, [1]);
+});
+
 test.serial('events()', async t => {
 	const emitter = new Emittery();
 	const iterator = emitter.events('🦄');
@@ -767,6 +787,24 @@ test('onAny() - must have a listener', t => {
 	t.throws(() => {
 		emitter.onAny();
 	}, {instanceOf: TypeError});
+});
+
+test('onAny() - use abort signal', async t => {
+	t.plan(4);
+
+	const emitter = new Emittery();
+	const eventFixture = {foo: true};
+	const abortController = new AbortController();
+
+	emitter.onAny((eventName, data) => {
+		t.is(eventName, '🦄');
+		t.deepEqual(data, eventFixture);
+	}, {signal: abortController.signal});
+
+	await emitter.emit('🦄', eventFixture);
+	await emitter.emitSerial('🦄', eventFixture);
+	abortController.abort();
+	await emitter.emit('🦄', eventFixture);
 });
 
 test.serial('anyEvent()', async t => {

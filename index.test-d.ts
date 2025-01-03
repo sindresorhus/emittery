@@ -19,6 +19,7 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 	ee.on('anEvent', async () => {});
 	ee.on('anEvent', data => undefined);
 	ee.on('anEvent', async data => {});
+	ee.on('anEvent', async data => {}, {signal: new AbortController().signal});
 	ee.on(['anEvent', 'anotherEvent'], async data => undefined);
 	ee.on(Emittery.listenerAdded, ({eventName, listener}) => {
 		expectType<PropertyKey | undefined>(eventName);
@@ -179,6 +180,8 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 		expectType<'value' | 'open' | 'close' | 'other'>(name);
 		expectType<string | number | undefined>(data);
 	});
+
+	ee.onAny(() => {}, {signal: new AbortController().signal});
 
 	const listener = (name: string) => {};
 	ee.onAny(listener);

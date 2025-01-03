@@ -273,7 +273,7 @@ export default class Emittery {
 		}
 	}
 
-	on(eventNames, listener) {
+	on(eventNames, listener, options) {
 		assertListener(listener);
 
 		eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
@@ -295,7 +295,13 @@ export default class Emittery {
 			}
 		}
 
-		return this.off.bind(this, eventNames, listener);
+		const off = this.off.bind(this, eventNames, listener);
+
+		if (options?.signal instanceof globalThis.AbortSignal) {
+			options.signal.addEventListener('abort', off);
+		}
+
+		return off;
 	}
 
 	off(eventNames, listener) {
@@ -405,14 +411,20 @@ export default class Emittery {
 		/* eslint-enable no-await-in-loop */
 	}
 
-	onAny(listener) {
+	onAny(listener, options) {
 		assertListener(listener);
 
 		this.logIfDebugEnabled('subscribeAny', undefined, undefined);
 
 		anyMap.get(this).add(listener);
 		emitMetaEvent(this, listenerAdded, {listener});
-		return this.offAny.bind(this, listener);
+		const offAny = this.offAny.bind(this, listener);
+
+		if (options?.signal instanceof globalThis.AbortSignal) {
+			options.signal.addEventListener('abort', offAny);
+		}
+
+		return offAny;
 	}
 
 	anyEvent() {
