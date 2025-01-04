@@ -197,7 +197,7 @@ emitter.emit('test');
 //=> [subscribe]: test
 ```
 
-#### on(eventName | eventName[], listener, options?: { signal?: AbortSignal })
+#### on(eventName | eventName[], listener, options?: {signal?: AbortSignal})
 
 Subscribe to one or more events.
 
@@ -229,7 +229,7 @@ const abortController = new AbortController();
 
 emitter.on('🐗', data => {
 	console.log(data);
-}, { signal: abortController.signal });
+}, {signal: abortController.signal});
 
 abortController.abort();
 emitter.emit('🐗', '🍞'); // nothing happens
@@ -412,7 +412,7 @@ Same as above, but it waits for each listener to resolve before triggering the n
 
 If any of the listeners throw/reject, the returned promise will be rejected with the error and the remaining listeners will *not* be called.
 
-#### onAny(listener, options?: { signal?: AbortSignal })
+#### onAny(listener, options?: {signal?: AbortSignal})
 
 Subscribe to be notified about any event.
 
