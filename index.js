@@ -295,9 +295,16 @@ export default class Emittery {
 			}
 		}
 
-		const off = this.off.bind(this, eventNames, listener);
+		const off = () => {
+			this.off(eventNames, listener);
+			options?.signal?.removeEventListener('abort', off);
+		};
 
 		options?.signal?.addEventListener('abort', off);
+
+		if (options?.signal?.aborted) {
+			off();
+		}
 
 		return off;
 	}
@@ -416,9 +423,17 @@ export default class Emittery {
 
 		anyMap.get(this).add(listener);
 		emitMetaEvent(this, listenerAdded, {listener});
-		const offAny = this.offAny.bind(this, listener);
+
+		const offAny = () => {
+			this.offAny(listener);
+			options?.signal?.removeEventListener('abort', offAny);
+		};
 
 		options?.signal?.addEventListener('abort', offAny);
+
+		if (options?.signal?.aborted) {
+			offAny();
+		}
 
 		return offAny;
 	}
