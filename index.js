@@ -418,9 +418,7 @@ export default class Emittery {
 		emitMetaEvent(this, listenerAdded, {listener});
 		const offAny = this.offAny.bind(this, listener);
 
-		if (options?.signal instanceof globalThis.AbortSignal) {
-			options.signal.addEventListener('abort', offAny);
-		}
+		options?.signal?.addEventListener('abort', offAny);
 
 		return offAny;
 	}
