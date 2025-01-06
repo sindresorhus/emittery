@@ -297,12 +297,12 @@ export default class Emittery {
 
 		const off = () => {
 			this.off(eventNames, listener);
-			options?.signal?.removeEventListener('abort', off);
+			signal?.removeEventListener('abort', off);
 		};
 
-		options?.signal?.addEventListener('abort', off, {once: true});
+		signal?.addEventListener('abort', off, {once: true});
 
-		if (options?.signal?.aborted) {
+		if (signal?.aborted) {
 			off();
 		}
 
@@ -416,7 +416,7 @@ export default class Emittery {
 		/* eslint-enable no-await-in-loop */
 	}
 
-	onAny(listener, options) {
+	onAny(listener, {signal} = {}) {
 		assertListener(listener);
 
 		this.logIfDebugEnabled('subscribeAny', undefined, undefined);
@@ -426,12 +426,12 @@ export default class Emittery {
 
 		const offAny = () => {
 			this.offAny(listener);
-			options?.signal?.removeEventListener('abort', offAny);
+			signal?.removeEventListener('abort', offAny);
 		};
 
-		options?.signal?.addEventListener('abort', offAny);
+		signal?.addEventListener('abort', offAny, {once: true});
 
-		if (options?.signal?.aborted) {
+		if (signal?.aborted) {
 			offAny();
 		}
 
