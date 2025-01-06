@@ -300,7 +300,7 @@ export default class Emittery {
 			options?.signal?.removeEventListener('abort', off);
 		};
 
-		options?.signal?.addEventListener('abort', off);
+		options?.signal?.addEventListener('abort', off, {once: true});
 
 		if (options?.signal?.aborted) {
 			off();
