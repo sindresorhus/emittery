@@ -225,6 +225,8 @@ emitter.emit('🐶', '🍖'); // log => '🍖'
 You can pass an [abort signal](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal) to unsubscribe too:
 
 ```js
+import Emittery from 'emittery';
+
 const abortController = new AbortController();
 
 emitter.on('🐗', data => {
