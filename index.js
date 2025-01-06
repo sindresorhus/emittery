@@ -165,13 +165,15 @@ function defaultMethodNamesOrAssert(methodNames) {
 const isMetaEvent = eventName => eventName === listenerAdded || eventName === listenerRemoved;
 
 function emitMetaEvent(emitter, eventName, eventData) {
-	if (isMetaEvent(eventName)) {
-		try {
-			canEmitMetaEvents = true;
-			emitter.emit(eventName, eventData);
-		} finally {
-			canEmitMetaEvents = false;
-		}
+	if (!isMetaEvent(eventName)) {
+		return;
+	}
+
+	try {
+		canEmitMetaEvents = true;
+		emitter.emit(eventName, eventData);
+	} finally {
+		canEmitMetaEvents = false;
 	}
 }
 
