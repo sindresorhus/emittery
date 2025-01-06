@@ -341,7 +341,8 @@ export default class Emittery<
 	*/
 	on<Name extends keyof AllEventData>(
 		eventName: Name | readonly Name[],
-		listener: (eventData: AllEventData[Name]) => void | Promise<void>
+		listener: (eventData: AllEventData[Name]) => void | Promise<void>,
+		options?: {signal?: AbortSignal}
 	): UnsubscribeFunction;
 
 	/**
@@ -520,7 +521,8 @@ export default class Emittery<
 		listener: (
 			eventName: keyof EventData,
 			eventData: EventData[keyof EventData]
-		) => void | Promise<void>
+		) => void | Promise<void>,
+		options?: {signal?: AbortSignal}
 	): UnsubscribeFunction;
 
 	/**

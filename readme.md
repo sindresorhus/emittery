@@ -197,7 +197,7 @@ emitter.emit('test');
 //=> [subscribe]: test
 ```
 
-#### on(eventName | eventName[], listener)
+#### on(eventName | eventName[], listener, options?: {signal?: AbortSignal})
 
 Subscribe to one or more events.
 
@@ -220,6 +220,21 @@ emitter.on(['🦄', '🐶'], data => {
 
 emitter.emit('🦄', '🌈'); // log => '🌈' x2
 emitter.emit('🐶', '🍖'); // log => '🍖'
+```
+
+You can pass an [abort signal](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal) to unsubscribe too:
+
+```js
+import Emittery from 'emittery';
+
+const abortController = new AbortController();
+
+emitter.on('🐗', data => {
+	console.log(data);
+}, {signal: abortController.signal});
+
+abortController.abort();
+emitter.emit('🐗', '🍞'); // nothing happens
 ```
 
 ##### Custom subscribable events
@@ -399,11 +414,11 @@ Same as above, but it waits for each listener to resolve before triggering the n
 
 If any of the listeners throw/reject, the returned promise will be rejected with the error and the remaining listeners will *not* be called.
 
-#### onAny(listener)
+#### onAny(listener, options?: {signal?: AbortSignal})
 
 Subscribe to be notified about any event.
 
-Returns a method to unsubscribe.
+Returns a method to unsubscribe. Abort signal is respected too.
 
 ##### listener(eventName, data)
 
