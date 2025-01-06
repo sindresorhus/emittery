@@ -273,7 +273,7 @@ export default class Emittery {
 		}
 	}
 
-	on(eventNames, listener, options) {
+	on(eventNames, listener, {signal} = {}) {
 		assertListener(listener);
 
 		eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
