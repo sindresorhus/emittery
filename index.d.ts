@@ -560,7 +560,9 @@ export default class Emittery<
 	```
 	*/
 	anyEvent(): AsyncIterableIterator<
-	[keyof EventData, EventData[keyof EventData]]
+	{ 
+		[K in keyof EventData]: [K, EventData[K]]
+	}[keyof EventData]
 	>;
 
 	/**
