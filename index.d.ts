@@ -460,12 +460,14 @@ export default class Emittery<
 		eventName: Name | readonly Name[],
 		listener: (eventData: AllEventData[Name]) => void | Promise<void>
 	): void;
-
 	/**
 	Subscribe to one or more events only once. It will be unsubscribed after the first
-	event.
+	event that matches the predicate (if provided).
 
-	@returns The promise of event data when `eventName` is emitted. This promise is extended with an `off` method.
+	@param eventName - The event name(s) to subscribe to.
+	@param predicate - Optional predicate function to filter event data. The event will only be emitted if the predicate returns true.
+
+	@returns The promise of event data when `eventName` is emitted and predicate matches (if provided). This promise is extended with an `off` method.
 
 	@example
 	```
@@ -482,11 +484,19 @@ export default class Emittery<
 		console.log(data);
 	});
 
+	// With predicate
+	emitter.once('data', data => data.ok === true).then(data => {
+		console.log(data);
+		//=> {ok: true, value: 42}
+	});
+
 	emitter.emit('🦄', '🌈'); // Logs `🌈` twice
 	emitter.emit('🐶', '🍖'); // Nothing happens
+	emitter.emit('data', {ok: false}); // Nothing happens
+	emitter.emit('data', {ok: true, value: 42}); // Logs {ok: true, value: 42}
 	```
 	*/
-	once<Name extends keyof AllEventData>(eventName: Name | readonly Name[]): EmitteryOncePromise<AllEventData[Name]>;
+	once<Name extends keyof AllEventData>(eventName: Name | readonly Name[], predicate?: (eventData: AllEventData[Name]) => boolean): EmitteryOncePromise<AllEventData[Name]>;
 
 	/**
 	Trigger an event asynchronously, optionally with some data. Listeners are called in the order they were added, but executed concurrently.
