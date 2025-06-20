@@ -432,6 +432,59 @@ test('once() - returns a promise with an unsubscribe method', async t => {
 	t.pass();
 });
 
+test('once() - supports filter predicate', async t => {
+	const emitter = new Emittery();
+
+	const oncePromise = emitter.once('data', data => data.ok === true);
+	await emitter.emit('data', {ok: false, foo: 'bar'});
+
+	const payload = {ok: true, value: 42};
+
+	await emitter.emit('data', payload);
+	await emitter.emit('data', {ok: true, other: 'value'});
+
+	t.is(await oncePromise, payload);
+});
+
+test('once() - filter predicate must be a function', t => {
+	const emitter = new Emittery();
+	t.throws(
+		() => emitter.once('data', 'not a function'),
+		{
+			instanceOf: TypeError,
+			message: 'predicate must be a function',
+		},
+	);
+});
+
+test('once() - filter predicate with multiple event names', async t => {
+	const emitter = new Emittery();
+	const payload = {ok: true, value: 42};
+
+	const oncePromise = emitter.once(['data1', 'data2'], data => data.ok === true);
+	await emitter.emit('data1', {ok: false});
+	await emitter.emit('data2', payload);
+
+	t.is(await oncePromise, payload);
+});
+
+test('once() - filter predicate can be unsubscribed', async t => {
+	const emitter = new Emittery();
+	const oncePromise = emitter.once('data', data => data.ok === true);
+
+	oncePromise.off();
+	await emitter.emit('data', {ok: true});
+
+	const testPromise = Promise.race([
+		oncePromise,
+		new Promise(resolve => {
+			setTimeout(() => resolve('timeout'), 100);
+		}),
+	]);
+
+	t.is(await testPromise, 'timeout');
+});
+
 test('emit() - one event', async t => {
 	const emitter = new Emittery();
 	const eventFixture = {foo: true};

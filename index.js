@@ -334,11 +334,19 @@ export default class Emittery {
 		}
 	}
 
-	once(eventNames) {
+	once(eventNames, predicate) {
+		if (predicate !== undefined && typeof predicate !== 'function') {
+			throw new TypeError('predicate must be a function');
+		}
+
 		let off_;
 
 		const promise = new Promise(resolve => {
 			off_ = this.on(eventNames, data => {
+				if (predicate && !predicate(data)) {
+					return;
+				}
+
 				off_();
 				resolve(data);
 			});
