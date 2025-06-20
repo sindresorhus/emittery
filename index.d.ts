@@ -460,9 +460,9 @@ export default class Emittery<
 		eventName: Name | readonly Name[],
 		listener: (eventData: AllEventData[Name]) => void | Promise<void>
 	): void;
+
 	/**
-	Subscribe to one or more events only once. It will be unsubscribed after the first
-	event that matches the predicate (if provided).
+	Subscribe to one or more events only once. It will be unsubscribed after the first event that matches the predicate (if provided).
 
 	@param eventName - The event name(s) to subscribe to.
 	@param predicate - Optional predicate function to filter event data. The event will only be emitted if the predicate returns true.
