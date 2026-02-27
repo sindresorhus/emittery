@@ -5,6 +5,31 @@ Symbol event names are preferred given that they can be used to avoid name colli
 */
 export type EventName = PropertyKey;
 
+/**
+The object passed to every event listener. Always includes `name`. Includes `data` only when the event was emitted with data.
+
+@example
+```
+import Emittery from 'emittery';
+
+const emitter = new Emittery<{unicorn: string; close: undefined}>();
+
+emitter.on('unicorn', ({name, data}) => {
+	console.log(name); //=> 'unicorn'
+	console.log(data); //=> '🌈'
+});
+
+emitter.on('close', ({name}) => {
+	console.log(name); //=> 'close'
+});
+```
+*/
+export type EmitteryEvent<Name extends EventName, Data> = [Data] extends [undefined]
+	? {readonly name: Name; readonly data?: undefined}
+	: {readonly name: Name; readonly data: Data};
+
+type EventDataPair<EventData, Name extends keyof EventData> = Name extends keyof EventData ? EmitteryEvent<Name, EventData[Name]> : never;
+
 // Helper type for turning the passed `EventData` type map into a list of string keys that don't require data alongside the event name when emitting. Uses the same trick that `Omit` does internally to filter keys by building a map of keys to keys we want to keep, and then accessing all the keys to return just the list of keys we want to keep.
 type DatalessEventNames<EventData> = {
 	[Key in keyof EventData]: EventData[Key] extends undefined ? Key : never;
@@ -40,7 +65,7 @@ export type DebugOptions<EventData> = {
 
 	const emitter = new Emittery({debug: {name: 'myEmitter'}});
 
-	emitter.on('test', data => {
+	emitter.on('test', () => {
 		// …
 	});
 
@@ -63,11 +88,11 @@ export type DebugOptions<EventData> = {
 	const emitter1 = new Emittery({debug: {name: 'emitter1', enabled: true}});
 	const emitter2 = new Emittery({debug: {name: 'emitter2'}});
 
-	emitter1.on('test', data => {
+	emitter1.on('test', () => {
 		// …
 	});
 
-	emitter2.on('test', data => {
+	emitter2.on('test', () => {
 		// …
 	});
 
@@ -114,7 +139,7 @@ export type DebugOptions<EventData> = {
 		}
 	});
 
-	emitter.on('test', data => {
+	emitter.on('test', () => {
 		// …
 	});
 
@@ -151,7 +176,7 @@ export type ListenerChangedData = {
 	/**
 	The listener that was added or removed.
 	*/
-	listener: (eventData?: unknown) => (void | Promise<void>);
+	listener: (event: unknown) => (void | Promise<void>);
 
 	/**
 	The name of the event that was added or removed if `.on()` or `.off()` was used, or `undefined` if `.onAny()` or `.offAny()` was used.
@@ -209,11 +234,11 @@ export default class Emittery<
 	const emitter1 = new Emittery({debug: {name: 'myEmitter1'}});
 	const emitter2 = new Emittery({debug: {name: 'myEmitter2'}});
 
-	emitter1.on('test', data => {
+	emitter1.on('test', () => {
 		// …
 	});
 
-	emitter2.on('otherTest', data => {
+	emitter2.on('otherTest', () => {
 		// …
 	});
 
@@ -239,15 +264,15 @@ export default class Emittery<
 
 	const emitter = new Emittery();
 
-	emitter.on(Emittery.listenerAdded, ({listener, eventName}) => {
+	emitter.on(Emittery.listenerAdded, ({data: {listener, eventName}}) => {
 		console.log(listener);
-		//=> data => {}
+		//=> ({data}) => {}
 
 		console.log(eventName);
 		//=> '🦄'
 	});
 
-	emitter.on('🦄', data => {
+	emitter.on('🦄', ({data}) => {
 		// Handle data
 	});
 	```
@@ -265,13 +290,13 @@ export default class Emittery<
 
 	const emitter = new Emittery();
 
-	const off = emitter.on('🦄', data => {
+	const off = emitter.on('🦄', ({data}) => {
 		// Handle data
 	});
 
-	emitter.on(Emittery.listenerRemoved, ({listener, eventName}) => {
+	emitter.on(Emittery.listenerRemoved, ({data: {listener, eventName}}) => {
 		console.log(listener);
-		//=> data => {}
+		//=> ({data}) => {}
 
 		console.log(eventName);
 		//=> '🦄'
@@ -327,21 +352,21 @@ export default class Emittery<
 
 	const emitter = new Emittery();
 
-	emitter.on('🦄', data => {
+	emitter.on('🦄', ({data}) => {
 		console.log(data);
 	});
 
-	emitter.on(['🦄', '🐶'], data => {
-		console.log(data);
+	emitter.on(['🦄', '🐶'], ({name, data}) => {
+		console.log(name, data);
 	});
 
-	emitter.emit('🦄', '🌈'); // log => '🌈' x2
-	emitter.emit('🐶', '🍖'); // log => '🍖'
+	emitter.emit('🦄', '🌈'); // log => '🌈' and '🦄 🌈'
+	emitter.emit('🐶', '🍖'); // log => '🐶 🍖'
 	```
 	*/
 	on<Name extends keyof AllEventData>(
 		eventName: Name | readonly Name[],
-		listener: (eventData: AllEventData[Name]) => void | Promise<void>,
+		listener: (event: EventDataPair<AllEventData, Name>) => void | Promise<void>,
 		options?: {signal?: AbortSignal}
 	): UnsubscribeFunction;
 
@@ -364,12 +389,12 @@ export default class Emittery<
 		.next()
 		.then(({value, done}) => {
 			// done === false
-			// value === '🌈1'
+			// value === {name: '🦄', data: '🌈1'}
 			return iterator.next();
 		})
 		.then(({value, done}) => {
 			// done === false
-			// value === '🌈2'
+			// value === {name: '🦄', data: '🌈2'}
 			// Revoke subscription
 			return iterator.return();
 		})
@@ -391,7 +416,7 @@ export default class Emittery<
 	emitter.emit('🦄', '🌈2'); // Buffered
 
 	// In an async context.
-	for await (const data of iterator) {
+	for await (const {data} of iterator) {
 		if (data === '🌈2') {
 			break; // Revoke the subscription when we see the value `🌈2`.
 		}
@@ -414,12 +439,12 @@ export default class Emittery<
 		.next()
 		.then(({value, done}) => {
 			// done === false
-			// value === '🌈1'
+			// value === {name: '🦄', data: '🌈1'}
 			return iterator.next();
 		})
 		.then(({value, done}) => {
 			// done === false
-			// value === '🌈2'
+			// value === {name: '🦊', data: '🌈2'}
 			// Revoke subscription
 			return iterator.return();
 		})
@@ -430,7 +455,7 @@ export default class Emittery<
 	*/
 	events<Name extends keyof EventData>(
 		eventName: Name | readonly Name[]
-	): AsyncIterableIterator<EventData[Name]>;
+	): AsyncIterableIterator<EventDataPair<EventData, Name>>;
 
 	/**
 	Remove one or more event subscriptions.
@@ -441,7 +466,7 @@ export default class Emittery<
 
 	const emitter = new Emittery();
 
-	const listener = data => {
+	const listener = ({data}) => {
 		console.log(data);
 	};
 
@@ -458,7 +483,7 @@ export default class Emittery<
 	*/
 	off<Name extends keyof AllEventData>(
 		eventName: Name | readonly Name[],
-		listener: (eventData: AllEventData[Name]) => void | Promise<void>
+		listener: (event: EventDataPair<AllEventData, Name>) => void | Promise<void>
 	): void;
 
 	/**
@@ -475,28 +500,28 @@ export default class Emittery<
 
 	const emitter = new Emittery();
 
-	emitter.once('🦄').then(data => {
+	emitter.once('🦄').then(({data}) => {
 		console.log(data);
 		//=> '🌈'
 	});
 
-	emitter.once(['🦄', '🐶']).then(data => {
-		console.log(data);
+	emitter.once(['🦄', '🐶']).then(({name, data}) => {
+		console.log(name, data);
 	});
 
 	// With predicate
-	emitter.once('data', data => data.ok === true).then(data => {
+	emitter.once('data', ({data}) => data.ok === true).then(({data}) => {
 		console.log(data);
 		//=> {ok: true, value: 42}
 	});
 
-	emitter.emit('🦄', '🌈'); // Logs `🌈` twice
+	emitter.emit('🦄', '🌈'); // Logs '🌈', then '🦄 🌈'
 	emitter.emit('🐶', '🍖'); // Nothing happens
 	emitter.emit('data', {ok: false}); // Nothing happens
 	emitter.emit('data', {ok: true, value: 42}); // Logs {ok: true, value: 42}
 	```
 	*/
-	once<Name extends keyof AllEventData>(eventName: Name | readonly Name[], predicate?: (eventData: AllEventData[Name]) => boolean): EmitteryOncePromise<AllEventData[Name]>;
+	once<Name extends keyof AllEventData>(eventName: Name | readonly Name[], predicate?: (event: EventDataPair<AllEventData, Name>) => boolean): EmitteryOncePromise<EventDataPair<AllEventData, Name>>;
 
 	/**
 	Trigger an event asynchronously, optionally with some data. Listeners are called in the order they were added, but executed concurrently.
@@ -528,15 +553,12 @@ export default class Emittery<
 	@returns A method to unsubscribe.
 	*/
 	onAny(
-		listener: (
-			eventName: keyof EventData,
-			eventData: EventData[keyof EventData]
-		) => void | Promise<void>,
+		listener: (event: EventDataPair<EventData, keyof EventData>) => void | Promise<void>,
 		options?: {signal?: AbortSignal}
 	): UnsubscribeFunction;
 
 	/**
-	Get an async iterator which buffers a tuple of an event name and data each time an event is emitted.
+	Get an async iterator which buffers an event object each time an event is emitted.
 
 	Call `return()` on the iterator to remove the subscription.
 
@@ -555,12 +577,12 @@ export default class Emittery<
 	iterator.next()
 		.then(({value, done}) => {
 			// done is false
-			// value is ['🦄', '🌈1']
+			// value is {name: '🦄', data: '🌈1'}
 			return iterator.next();
 		})
 		.then(({value, done}) => {
 			// done is false
-			// value is ['🌟', '🌈2']
+			// value is {name: '🌟', data: '🌈2'}
 			// revoke subscription
 			return iterator.return();
 		})
@@ -569,18 +591,13 @@ export default class Emittery<
 		});
 	```
 	*/
-	anyEvent(): AsyncIterableIterator<
-	[keyof EventData, EventData[keyof EventData]]
-	>;
+	anyEvent(): AsyncIterableIterator<EventDataPair<EventData, keyof EventData>>;
 
 	/**
 	Remove an `onAny` subscription.
 	*/
 	offAny(
-		listener: (
-			eventName: keyof EventData,
-			eventData: EventData[keyof EventData]
-		) => void | Promise<void>
+		listener: (event: EventDataPair<EventData, keyof EventData>) => void | Promise<void>
 	): void;
 
 	/**

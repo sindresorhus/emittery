@@ -22,13 +22,13 @@ import Emittery from 'emittery';
 
 const emitter = new Emittery();
 
-emitter.on('🦄', data => {
+emitter.on('🦄', ({data}) => {
 	console.log(data);
 });
 
 const myUnicorn = Symbol('🦄');
 
-emitter.on(myUnicorn, data => {
+emitter.on(myUnicorn, ({data}) => {
 	console.log(`Unicorns love ${data}`);
 });
 
@@ -60,11 +60,11 @@ Emittery.isDebugEnabled = true;
 const emitter1 = new Emittery({debug: {name: 'myEmitter1'}});
 const emitter2 = new Emittery({debug: {name: 'myEmitter2'}});
 
-emitter1.on('test', data => {
+emitter1.on('test', () => {
 	// …
 });
 
-emitter2.on('otherTest', data => {
+emitter2.on('otherTest', () => {
 	// …
 });
 
@@ -109,7 +109,7 @@ Emittery.isDebugEnabled = true;
 
 const emitter = new Emittery({debug: {name: 'myEmitter'}});
 
-emitter.on('test', data => {
+emitter.on('test', () => {
 	// …
 });
 
@@ -133,11 +133,11 @@ import Emittery from 'emittery';
 const emitter1 = new Emittery({debug: {name: 'emitter1', enabled: true}});
 const emitter2 = new Emittery({debug: {name: 'emitter2'}});
 
-emitter1.on('test', data => {
+emitter1.on('test', () => {
 	// …
 });
 
-emitter2.on('test', data => {
+emitter2.on('test', () => {
 	// …
 });
 
@@ -189,7 +189,7 @@ const emitter = new Emittery({
 	}
 });
 
-emitter.on('test', data => {
+emitter.on('test', () => {
 	// …
 });
 
@@ -210,16 +210,16 @@ import Emittery from 'emittery';
 
 const emitter = new Emittery();
 
-emitter.on('🦄', data => {
+emitter.on('🦄', ({data}) => {
 	console.log(data);
 });
 
-emitter.on(['🦄', '🐶'], data => {
-	console.log(data);
+emitter.on(['🦄', '🐶'], ({name, data}) => {
+	console.log(name, data);
 });
 
-emitter.emit('🦄', '🌈'); // log => '🌈' x2
-emitter.emit('🐶', '🍖'); // log => '🍖'
+emitter.emit('🦄', '🌈'); // log => '🌈' and '🦄 🌈'
+emitter.emit('🐶', '🍖'); // log => '🐶 🍖'
 ```
 
 You can pass an [abort signal](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal) to unsubscribe too:
@@ -229,7 +229,7 @@ import Emittery from 'emittery';
 
 const abortController = new AbortController();
 
-emitter.on('🐗', data => {
+emitter.on('🐗', ({data}) => {
 	console.log(data);
 }, {signal: abortController.signal});
 
@@ -249,15 +249,15 @@ import Emittery from 'emittery';
 
 const emitter = new Emittery();
 
-emitter.on(Emittery.listenerAdded, ({listener, eventName}) => {
+emitter.on(Emittery.listenerAdded, ({data: {listener, eventName}}) => {
 	console.log(listener);
-	//=> data => {}
+	//=> ({data}) => {}
 
 	console.log(eventName);
 	//=> '🦄'
 });
 
-emitter.on('🦄', data => {
+emitter.on('🦄', ({data}) => {
 	// Handle data
 });
 ```
@@ -269,7 +269,7 @@ emitter.on('🦄', data => {
 
 Only events that are not of this type are able to trigger these events.
 
-##### listener(data)
+##### listener({name, data?})
 
 #### off(eventName | eventName[], listener)
 
@@ -280,7 +280,7 @@ import Emittery from 'emittery';
 
 const emitter = new Emittery();
 
-const listener = data => {
+const listener = ({data}) => {
 	console.log(data);
 };
 
@@ -295,7 +295,7 @@ await emitter.emit('🐶', 'b'); // Nothing happens
 await emitter.emit('🦊', 'c'); // Nothing happens
 ```
 
-##### listener(data)
+##### listener({name, data?})
 
 #### once(eventName | eventName[], predicate?)
 
@@ -308,22 +308,22 @@ import Emittery from 'emittery';
 
 const emitter = new Emittery();
 
-emitter.once('🦄').then(data => {
+emitter.once('🦄').then(({data}) => {
 	console.log(data);
 	//=> '🌈'
 });
 
-emitter.once(['🦄', '🐶']).then(data => {
-	console.log(data);
+emitter.once(['🦄', '🐶']).then(({name, data}) => {
+	console.log(name, data);
 });
 
 // With predicate
-emitter.once('data', data => data.ok === true).then(data => {
+emitter.once('data', ({data}) => data.ok === true).then(({data}) => {
 	console.log(data);
 	//=> {ok: true, value: 42}
 });
 
-emitter.emit('🦄', '🌈'); // Log => '🌈' x2
+emitter.emit('🦄', '🌈'); // Logs '🌈', then '🦄 🌈'
 emitter.emit('🐶', '🍖'); // Nothing happens
 emitter.emit('data', {ok: false}); // Nothing happens
 emitter.emit('data', {ok: true, value: 42}); // Log => {ok: true, value: 42}
@@ -348,12 +348,12 @@ iterator
 	.next()
 	.then(({value, done}) => {
 		// done === false
-		// value === '🌈1'
+		// value === {name: '🦄', data: '🌈1'}
 		return iterator.next();
 	})
 	.then(({value, done}) => {
 		// done === false
-		// value === '🌈2'
+		// value === {name: '🦄', data: '🌈2'}
 		// Revoke subscription
 		return iterator.return();
 	})
@@ -374,7 +374,7 @@ emitter.emit('🦄', '🌈1'); // Buffered
 emitter.emit('🦄', '🌈2'); // Buffered
 
 // In an async context.
-for await (const data of iterator) {
+for await (const {data} of iterator) {
 	if (data === '🌈2') {
 		break; // Revoke the subscription when we see the value '🌈2'.
 	}
@@ -396,12 +396,12 @@ iterator
 	.next()
 	.then(({value, done}) => {
 		// done === false
-		// value === '🌈1'
+		// value === {name: '🦄', data: '🌈1'}
 		return iterator.next();
 	})
 	.then(({value, done}) => {
 		// done === false
-		// value === '🌈2'
+		// value === {name: '🦊', data: '🌈2'}
 		// Revoke subscription
 		return iterator.return();
 	})
@@ -428,7 +428,7 @@ Subscribe to be notified about any event.
 
 Returns a method to unsubscribe. Abort signal is respected too.
 
-##### listener(eventName, data)
+##### listener({name, data?})
 
 #### offAny(listener)
 
@@ -436,7 +436,7 @@ Remove an `onAny` subscription.
 
 #### anyEvent()
 
-Get an async iterator which buffers a tuple of an event name and data each time an event is emitted.
+Get an async iterator which buffers an event object each time an event is emitted.
 
 Call `return()` on the iterator to remove the subscription.
 
@@ -452,12 +452,12 @@ emitter.emit('🌟', '🌈2'); // Buffered
 iterator.next()
 	.then(({value, done}) => {
 		// done === false
-		// value is ['🦄', '🌈1']
+		// value is {name: '🦄', data: '🌈1'}
 		return iterator.next();
 	})
 	.then(({value, done}) => {
 		// done === false
-		// value is ['🌟', '🌈2']
+		// value is {name: '🌟', data: '🌈2'}
 		// Revoke subscription
 		return iterator.return();
 	})
@@ -582,7 +582,7 @@ But I would argue doing that shows a deeper lack of Node.js and async comprehens
 No, just use [destructuring](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring_assignment):
 
 ```js
-emitter.on('🦄', ([foo, bar]) => {
+emitter.on('🦄', ({data: [foo, bar]}) => {
 	console.log(foo, bar);
 });
 

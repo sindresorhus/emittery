@@ -43,18 +43,23 @@ function getEventProducers(instance, eventName) {
 	return producers.get(key);
 }
 
-function enqueueProducers(instance, eventName, eventData) {
+function enqueueProducers(instance, eventName, eventData, hasEventData) {
 	const producers = producersMap.get(instance);
+	if (!producers.has(eventName) && !producers.get(anyProducer)?.size) {
+		return;
+	}
+
+	const resolvedEventData = Promise.resolve(eventData);
+
 	if (producers.has(eventName)) {
 		for (const producer of producers.get(eventName)) {
-			producer.enqueue(eventData);
+			producer.enqueue(resolvedEventData.then(data => makeEventObject(eventName, data, hasEventData)));
 		}
 	}
 
 	if (producers.has(anyProducer)) {
-		const item = Promise.all([eventName, eventData]);
 		for (const producer of producers.get(anyProducer)) {
-			producer.enqueue(item);
+			producer.enqueue(resolvedEventData.then(data => makeEventObject(eventName, data, hasEventData)));
 		}
 	}
 }
@@ -163,6 +168,9 @@ function defaultMethodNamesOrAssert(methodNames) {
 }
 
 const isMetaEvent = eventName => eventName === listenerAdded || eventName === listenerRemoved;
+
+const makeEventObject = (eventName, eventData, hasEventData) =>
+	hasEventData ? {name: eventName, data: eventData} : {name: eventName};
 
 function emitMetaEvent(emitter, eventName, eventData) {
 	if (!isMetaEvent(eventName)) {
@@ -342,13 +350,13 @@ export default class Emittery {
 		let off_;
 
 		const promise = new Promise(resolve => {
-			off_ = this.on(eventNames, data => {
-				if (predicate && !predicate(data)) {
+			off_ = this.on(eventNames, event => {
+				if (predicate && !predicate(event)) {
 					return;
 				}
 
 				off_();
-				resolve(data);
+				resolve(event);
 			});
 		});
 
@@ -374,7 +382,9 @@ export default class Emittery {
 
 		this.logIfDebugEnabled('emit', eventName, eventData);
 
-		enqueueProducers(this, eventName, eventData);
+		const hasEventData = arguments.length > 1;
+
+		enqueueProducers(this, eventName, eventData, hasEventData);
 
 		const listeners = getListeners(this, eventName) ?? new Set();
 		const anyListeners = anyMap.get(this);
@@ -385,12 +395,12 @@ export default class Emittery {
 		await Promise.all([
 			...staticListeners.map(async listener => {
 				if (listeners.has(listener)) {
-					return listener(eventData);
+					return listener(makeEventObject(eventName, eventData, hasEventData));
 				}
 			}),
 			...staticAnyListeners.map(async listener => {
 				if (anyListeners.has(listener)) {
-					return listener(eventName, eventData);
+					return listener(makeEventObject(eventName, eventData, hasEventData));
 				}
 			}),
 		]);
@@ -405,7 +415,9 @@ export default class Emittery {
 
 		this.logIfDebugEnabled('emitSerial', eventName, eventData);
 
-		enqueueProducers(this, eventName, eventData);
+		const hasEventData = arguments.length > 1;
+
+		enqueueProducers(this, eventName, eventData, hasEventData);
 
 		const listeners = getListeners(this, eventName) ?? new Set();
 		const anyListeners = anyMap.get(this);
@@ -416,13 +428,13 @@ export default class Emittery {
 		/* eslint-disable no-await-in-loop */
 		for (const listener of staticListeners) {
 			if (listeners.has(listener)) {
-				await listener(eventData);
+				await listener(makeEventObject(eventName, eventData, hasEventData));
 			}
 		}
 
 		for (const listener of staticAnyListeners) {
 			if (anyListeners.has(listener)) {
-				await listener(eventName, eventData);
+				await listener(makeEventObject(eventName, eventData, hasEventData));
 			}
 		}
 		/* eslint-enable no-await-in-loop */

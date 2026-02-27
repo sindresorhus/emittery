@@ -65,7 +65,7 @@ test('on() - listenerAdded', async t => {
 	const emitter = new Emittery();
 	const addListener = () => 1;
 	setImmediate(() => emitter.on('abc', addListener));
-	const {eventName, listener} = await pEvent(emitter, Emittery.listenerAdded, {
+	const {data: {eventName, listener}} = await pEvent(emitter, Emittery.listenerAdded, {
 		rejectionEvents: [],
 	});
 	t.is(listener, addListener);
@@ -77,7 +77,7 @@ test('on() - listenerRemoved', async t => {
 	const addListener = () => 1;
 	emitter.on('abc', addListener);
 	setImmediate(() => emitter.off('abc', addListener));
-	const {eventName, listener} = await pEvent(emitter, Emittery.listenerRemoved, {
+	const {data: {eventName, listener}} = await pEvent(emitter, Emittery.listenerRemoved, {
 		rejectionEvents: [],
 	});
 	t.is(listener, addListener);
@@ -88,7 +88,7 @@ test('on() - listenerAdded onAny', async t => {
 	const emitter = new Emittery();
 	const addListener = () => 1;
 	setImmediate(() => emitter.onAny(addListener));
-	const {eventName, listener} = await pEvent(emitter, Emittery.listenerAdded, {
+	const {data: {eventName, listener}} = await pEvent(emitter, Emittery.listenerAdded, {
 		rejectionEvents: [],
 	});
 	t.is(listener, addListener);
@@ -129,7 +129,7 @@ test('on() - listenerAdded offAny', async t => {
 	const addListener = () => 1;
 	emitter.onAny(addListener);
 	setImmediate(() => emitter.offAny(addListener));
-	const {listener, eventName} = await pEvent(emitter, Emittery.listenerRemoved);
+	const {data: {listener, eventName}} = await pEvent(emitter, Emittery.listenerRemoved);
 	t.is(listener, addListener);
 	t.is(eventName, undefined);
 });
@@ -205,6 +205,73 @@ test('on() - isDebug logs output', t => {
 	t.is(eventStore[0].eventName, 'test');
 });
 
+test('on() - listener receives event object with eventName and data', async t => {
+	const emitter = new Emittery();
+	const promise = new Promise(resolve => {
+		emitter.on('🦄', event => resolve(event));
+	});
+	emitter.emit('🦄', '🌈');
+	t.deepEqual(await promise, {name: '🦄', data: '🌈'});
+});
+
+test('on() - dataless event produces event object without data key', async t => {
+	const emitter = new Emittery();
+	const promise = new Promise(resolve => {
+		emitter.on('🦄', event => resolve(event));
+	});
+	emitter.emit('🦄');
+	const event = await promise;
+	t.deepEqual(event, {name: '🦄'});
+	t.false('data' in event);
+});
+
+test('on() - explicit undefined payload includes data key', async t => {
+	const emitter = new Emittery();
+	const promise = new Promise(resolve => {
+		emitter.on('🦄', event => resolve(event));
+	});
+	emitter.emit('🦄', undefined);
+	const event = await promise;
+	t.deepEqual(event, {name: '🦄', data: undefined});
+	t.true('data' in event);
+});
+
+test('on() - listeners get isolated event objects', async t => {
+	const emitter = new Emittery();
+	let secondListenerEvent;
+
+	emitter.on('🦄', event => {
+		event.name = 'changed';
+		event.data = 'changed';
+	});
+
+	emitter.on('🦄', event => {
+		secondListenerEvent = event;
+	});
+
+	await emitter.emit('🦄', '🌈');
+	t.deepEqual(secondListenerEvent, {name: '🦄', data: '🌈'});
+});
+
+test('on() - symbol eventName is included in event object', async t => {
+	const emitter = new Emittery();
+	const eventName = Symbol('test');
+	const promise = new Promise(resolve => {
+		emitter.on(eventName, event => resolve(event));
+	});
+	emitter.emit(eventName, 'test data');
+	t.deepEqual(await promise, {name: eventName, data: 'test data'});
+});
+
+test('on() - number eventName is included in event object', async t => {
+	const emitter = new Emittery();
+	const promise = new Promise(resolve => {
+		emitter.on(42, event => resolve(event));
+	});
+	emitter.emit(42, 'data');
+	t.deepEqual(await promise, {name: 42, data: 'data'});
+});
+
 test('on() - use abort signal', async t => {
 	const emitter = new Emittery();
 	const abortController = new AbortController();
@@ -235,9 +302,12 @@ test.serial('events()', async t => {
 	}, 10);
 
 	t.plan(3);
-	const expected = ['🌈', '🌟'];
-	for await (const data of iterator) {
-		t.deepEqual(data, expected.shift());
+	const expected = [
+		{name: '🦄', data: '🌈'},
+		{name: '🦄', data: '🌟'},
+	];
+	for await (const event of iterator) {
+		t.deepEqual(event, expected.shift());
 		if (expected.length === 0) {
 			break;
 		}
@@ -257,15 +327,66 @@ test.serial('events() - multiple event names', async t => {
 	}, 10);
 
 	t.plan(4);
-	const expected = ['🌈', '🌈', '🌟'];
-	for await (const data of iterator) {
-		t.deepEqual(data, expected.shift());
+	const expected = [
+		{name: '🦄', data: '🌈'},
+		{name: '🐶', data: '🌈'},
+		{name: '🦄', data: '🌟'},
+	];
+	for await (const event of iterator) {
+		t.deepEqual(event, expected.shift());
 		if (expected.length === 0) {
 			break;
 		}
 	}
 
 	t.deepEqual(await iterator.next(), {done: true});
+});
+
+test('events() - dataless event produces event object without data key', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.events('🦄');
+	await emitter.emit('🦄');
+	const result = await iterator.next();
+	t.deepEqual(result, {done: false, value: {name: '🦄'}});
+	t.false('data' in result.value);
+	await iterator.return();
+});
+
+test('events() - explicit undefined payload includes data key', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.events('🦄');
+	await emitter.emit('🦄', undefined);
+	const result = await iterator.next();
+	t.deepEqual(result, {done: false, value: {name: '🦄', data: undefined}});
+	t.true('data' in result.value);
+	await iterator.return();
+});
+
+test('events() - symbol eventName is included in event object', async t => {
+	const emitter = new Emittery();
+	const eventName = Symbol('test');
+	const iterator = emitter.events(eventName);
+	await emitter.emit(eventName, '🌈');
+	const result = await iterator.next();
+	t.deepEqual(result, {done: false, value: {name: eventName, data: '🌈'}});
+	await iterator.return();
+});
+
+test('events() - iterators get isolated event objects', async t => {
+	const emitter = new Emittery();
+	const firstIterator = emitter.events('🦄');
+	const secondIterator = emitter.events('🦄');
+
+	await emitter.emit('🦄', '🌈');
+	const first = await firstIterator.next();
+	first.value.name = 'changed';
+	first.value.data = 'changed';
+
+	const second = await secondIterator.next();
+	t.deepEqual(second, {done: false, value: {name: '🦄', data: '🌈'}});
+
+	await firstIterator.return();
+	await secondIterator.return();
 });
 
 test('events() - return() called during emit', async t => {
@@ -276,7 +397,7 @@ test('events() - return() called during emit', async t => {
 	});
 	iterator = emitter.events('🦄');
 	emitter.emit('🦄', '🌈');
-	t.deepEqual(await iterator.next(), {done: false, value: '🌈'});
+	t.deepEqual(await iterator.next(), {done: false, value: {name: '🦄', data: '🌈'}});
 	t.deepEqual(await iterator.next(), {done: true});
 });
 
@@ -297,7 +418,7 @@ test('events() - discarded iterators should stop receiving events', async t => {
 	const iterator = emitter.events('🦄');
 
 	await emitter.emit('🦄', '🌈');
-	t.deepEqual(await iterator.next(), {value: '🌈', done: false});
+	t.deepEqual(await iterator.next(), {value: {name: '🦄', data: '🌈'}, done: false});
 	await iterator.return();
 	await emitter.emit('🦄', '🌈');
 	t.deepEqual(await iterator.next(), {done: true});
@@ -387,7 +508,42 @@ test('once()', async t => {
 	const emitter = new Emittery();
 	const promise = emitter.once('🦄');
 	emitter.emit('🦄', fixture);
-	t.is(await promise, fixture);
+	t.deepEqual(await promise, {name: '🦄', data: fixture});
+});
+
+test('once() - dataless event produces event object without data key', async t => {
+	const emitter = new Emittery();
+	const promise = emitter.once('🦄');
+	emitter.emit('🦄');
+	const event = await promise;
+	t.deepEqual(event, {name: '🦄'});
+	t.false('data' in event);
+});
+
+test('once() - explicit undefined payload includes data key', async t => {
+	const emitter = new Emittery();
+	const promise = emitter.once('🦄');
+	emitter.emit('🦄', undefined);
+	const event = await promise;
+	t.deepEqual(event, {name: '🦄', data: undefined});
+	t.true('data' in event);
+});
+
+test('once() - emitSerial explicit undefined payload includes data key', async t => {
+	const emitter = new Emittery();
+	const promise = emitter.once('🦄');
+	await emitter.emitSerial('🦄', undefined);
+	const event = await promise;
+	t.deepEqual(event, {name: '🦄', data: undefined});
+	t.true('data' in event);
+});
+
+test('once() - symbol eventName is included in event object', async t => {
+	const emitter = new Emittery();
+	const eventName = Symbol('test');
+	const promise = emitter.once(eventName);
+	emitter.emit(eventName, '🌈');
+	t.deepEqual(await promise, {name: eventName, data: '🌈'});
 });
 
 test('once() - multiple event names', async t => {
@@ -395,7 +551,7 @@ test('once() - multiple event names', async t => {
 	const emitter = new Emittery();
 	const promise = emitter.once(['🦄', '🐶']);
 	emitter.emit('🐶', fixture);
-	t.is(await promise, fixture);
+	t.deepEqual(await promise, {name: '🐶', data: fixture});
 });
 
 test('once() - eventName must be a string, symbol, or number', async t => {
@@ -435,7 +591,7 @@ test('once() - returns a promise with an unsubscribe method', async t => {
 test('once() - supports filter predicate', async t => {
 	const emitter = new Emittery();
 
-	const oncePromise = emitter.once('data', data => data.ok === true);
+	const oncePromise = emitter.once('data', ({data}) => data.ok === true);
 	await emitter.emit('data', {ok: false, foo: 'bar'});
 
 	const payload = {ok: true, value: 42};
@@ -443,7 +599,16 @@ test('once() - supports filter predicate', async t => {
 	await emitter.emit('data', payload);
 	await emitter.emit('data', {ok: true, other: 'value'});
 
-	t.is(await oncePromise, payload);
+	t.deepEqual(await oncePromise, {name: 'data', data: payload});
+});
+
+test('once() - filter predicate receives full event object with eventName', async t => {
+	const emitter = new Emittery();
+	const eventName = Symbol('test');
+	const oncePromise = emitter.once(eventName, event => event.name === eventName && event.data === 'match');
+	await emitter.emit(eventName, 'no match');
+	await emitter.emit(eventName, 'match');
+	t.deepEqual(await oncePromise, {name: eventName, data: 'match'});
 });
 
 test('once() - filter predicate must be a function', t => {
@@ -461,16 +626,16 @@ test('once() - filter predicate with multiple event names', async t => {
 	const emitter = new Emittery();
 	const payload = {ok: true, value: 42};
 
-	const oncePromise = emitter.once(['data1', 'data2'], data => data.ok === true);
+	const oncePromise = emitter.once(['data1', 'data2'], ({data}) => data.ok === true);
 	await emitter.emit('data1', {ok: false});
 	await emitter.emit('data2', payload);
 
-	t.is(await oncePromise, payload);
+	t.deepEqual(await oncePromise, {name: 'data2', data: payload});
 });
 
 test('once() - filter predicate can be unsubscribed', async t => {
 	const emitter = new Emittery();
-	const oncePromise = emitter.once('data', data => data.ok === true);
+	const oncePromise = emitter.once('data', ({data}) => data.ok === true);
 
 	oncePromise.off();
 	await emitter.emit('data', {ok: true});
@@ -485,12 +650,43 @@ test('once() - filter predicate can be unsubscribed', async t => {
 	t.is(await testPromise, 'timeout');
 });
 
+test('emitSerial() - listener receives event object with eventName and data', async t => {
+	const emitter = new Emittery();
+	const promise = new Promise(resolve => {
+		emitter.on('🦄', event => resolve(event));
+	});
+	await emitter.emitSerial('🦄', '🌈');
+	t.deepEqual(await promise, {name: '🦄', data: '🌈'});
+});
+
+test('emitSerial() - explicit undefined payload includes data key', async t => {
+	const emitter = new Emittery();
+	const promise = new Promise(resolve => {
+		emitter.on('🦄', event => resolve(event));
+	});
+	await emitter.emitSerial('🦄', undefined);
+	const event = await promise;
+	t.deepEqual(event, {name: '🦄', data: undefined});
+	t.true('data' in event);
+});
+
+test('emitSerial() - dataless event produces event object without data key', async t => {
+	const emitter = new Emittery();
+	const promise = new Promise(resolve => {
+		emitter.on('🦄', event => resolve(event));
+	});
+	await emitter.emitSerial('🦄');
+	const event = await promise;
+	t.deepEqual(event, {name: '🦄'});
+	t.false('data' in event);
+});
+
 test('emit() - one event', async t => {
 	const emitter = new Emittery();
 	const eventFixture = {foo: true};
 	const promise = pEvent(emitter, '🦄');
 	emitter.emit('🦄', eventFixture);
-	t.deepEqual(await promise, eventFixture);
+	t.deepEqual(await promise, {name: '🦄', data: eventFixture});
 });
 
 test('emit() - multiple events', async t => {
@@ -807,15 +1003,27 @@ test.serial('emitSerial() - delivers events to events() iterator', async t => {
 	}, 10);
 
 	t.plan(3);
-	const expected = ['🌈', '🌟'];
-	for await (const data of iterator) {
-		t.deepEqual(data, expected.shift());
+	const expected = [{name: '🦄', data: '🌈'}, {name: '🦄', data: '🌟'}];
+	for await (const event of iterator) {
+		t.deepEqual(event, expected.shift());
 		if (expected.length === 0) {
 			break;
 		}
 	}
 
 	t.deepEqual(await iterator.next(), {done: true});
+});
+
+test.serial('emitSerial() - delivers explicit undefined payload to events() iterator', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.events('🦄');
+
+	await emitter.emitSerial('🦄', undefined);
+
+	const result = await iterator.next();
+	t.deepEqual(result, {done: false, value: {name: '🦄', data: undefined}});
+	t.true('data' in result.value);
+	await iterator.return();
 });
 
 test.serial('emitSerial() - delivers events to anyEvent() iterator', async t => {
@@ -828,15 +1036,27 @@ test.serial('emitSerial() - delivers events to anyEvent() iterator', async t => 
 	}, 10);
 
 	t.plan(3);
-	const expected = [['🦄', '🌈'], ['🦄', '🌟']];
-	for await (const data of iterator) {
-		t.deepEqual(data, expected.shift());
+	const expected = [{name: '🦄', data: '🌈'}, {name: '🦄', data: '🌟'}];
+	for await (const event of iterator) {
+		t.deepEqual(event, expected.shift());
 		if (expected.length === 0) {
 			break;
 		}
 	}
 
 	t.deepEqual(await iterator.next(), {done: true});
+});
+
+test.serial('emitSerial() - delivers explicit undefined payload to anyEvent() iterator', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.anyEvent();
+
+	await emitter.emitSerial('🦄', undefined);
+
+	const result = await iterator.next();
+	t.deepEqual(result, {done: false, value: {name: '🦄', data: undefined}});
+	t.true('data' in result.value);
+	await iterator.return();
 });
 
 test('emitSerial() - isDebug logs output', async t => {
@@ -867,13 +1087,68 @@ test('onAny()', async t => {
 	const emitter = new Emittery();
 	const eventFixture = {foo: true};
 
-	emitter.onAny((eventName, data) => {
-		t.is(eventName, '🦄');
+	emitter.onAny(({name, data}) => {
+		t.is(name, '🦄');
 		t.deepEqual(data, eventFixture);
 	});
 
 	await emitter.emit('🦄', eventFixture);
 	await emitter.emitSerial('🦄', eventFixture);
+});
+
+test('onAny() - dataless event produces event object without data key', async t => {
+	const emitter = new Emittery();
+	const promise = new Promise(resolve => {
+		emitter.onAny(event => resolve(event));
+	});
+	emitter.emit('🦄');
+	const event = await promise;
+	t.deepEqual(event, {name: '🦄'});
+	t.false('data' in event);
+});
+
+test('onAny() - emit explicit undefined payload includes data key', async t => {
+	const emitter = new Emittery();
+	const promise = new Promise(resolve => {
+		emitter.onAny(event => resolve(event));
+	});
+	await emitter.emit('🦄', undefined);
+	const event = await promise;
+	t.deepEqual(event, {name: '🦄', data: undefined});
+	t.true('data' in event);
+});
+
+test('onAny() - emitSerial explicit undefined payload includes data key', async t => {
+	const emitter = new Emittery();
+	const promise = new Promise(resolve => {
+		emitter.onAny(event => resolve(event));
+	});
+	await emitter.emitSerial('🦄', undefined);
+	const event = await promise;
+	t.deepEqual(event, {name: '🦄', data: undefined});
+	t.true('data' in event);
+});
+
+test('onAny() - symbol eventName is included in event object', async t => {
+	const emitter = new Emittery();
+	const eventName = Symbol('test');
+	const promise = new Promise(resolve => {
+		emitter.onAny(event => resolve(event));
+	});
+	emitter.emit(eventName, '🌈');
+	t.deepEqual(await promise, {name: eventName, data: '🌈'});
+});
+
+test('onAny() - receives correct eventName per distinct event', async t => {
+	const emitter = new Emittery();
+	const events = [];
+	emitter.onAny(event => events.push(event));
+	await emitter.emit('🦄', '🌈');
+	await emitter.emit('🐶', '🍖');
+	t.deepEqual(events, [
+		{name: '🦄', data: '🌈'},
+		{name: '🐶', data: '🍖'},
+	]);
 });
 
 test('onAny() - must have a listener', t => {
@@ -891,8 +1166,8 @@ test('onAny() - use abort signal', async t => {
 	const eventFixture = {foo: true};
 	const abortController = new AbortController();
 
-	emitter.onAny((eventName, data) => {
-		t.is(eventName, '🦄');
+	emitter.onAny(({name, data}) => {
+		t.is(name, '🦄');
 		t.deepEqual(data, eventFixture);
 	}, {signal: abortController.signal});
 
@@ -912,15 +1187,52 @@ test.serial('anyEvent()', async t => {
 	}, 10);
 
 	t.plan(3);
-	const expected = [['🦄', '🌈'], ['🦄', '🌟']];
-	for await (const data of iterator) {
-		t.deepEqual(data, expected.shift());
+	const expected = [{name: '🦄', data: '🌈'}, {name: '🦄', data: '🌟'}];
+	for await (const event of iterator) {
+		t.deepEqual(event, expected.shift());
 		if (expected.length === 0) {
 			break;
 		}
 	}
 
 	t.deepEqual(await iterator.next(), {done: true});
+});
+
+test('anyEvent() - dataless event produces event object without data key', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.anyEvent();
+	await emitter.emit('🦄');
+	const result = await iterator.next();
+	t.deepEqual(result, {done: false, value: {name: '🦄'}});
+	t.false('data' in result.value);
+	await iterator.return();
+});
+
+test('anyEvent() - explicit undefined payload includes data key', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.anyEvent();
+	await emitter.emit('🦄', undefined);
+	const result = await iterator.next();
+	t.deepEqual(result, {done: false, value: {name: '🦄', data: undefined}});
+	t.true('data' in result.value);
+	await iterator.return();
+});
+
+test('anyEvent() - iterators get isolated event objects', async t => {
+	const emitter = new Emittery();
+	const firstIterator = emitter.anyEvent();
+	const secondIterator = emitter.anyEvent();
+
+	await emitter.emit('🦄', '🌈');
+	const first = await firstIterator.next();
+	first.value.name = 'changed';
+	first.value.data = 'changed';
+
+	const second = await secondIterator.next();
+	t.deepEqual(second, {done: false, value: {name: '🦄', data: '🌈'}});
+
+	await firstIterator.return();
+	await secondIterator.return();
 });
 
 test('anyEvent() - return() called during emit', async t => {
@@ -931,7 +1243,7 @@ test('anyEvent() - return() called during emit', async t => {
 	});
 	iterator = emitter.anyEvent();
 	emitter.emit('🦄', '🌈');
-	t.deepEqual(await iterator.next(), {done: false, value: ['🦄', '🌈']});
+	t.deepEqual(await iterator.next(), {done: false, value: {name: '🦄', data: '🌈'}});
 	t.deepEqual(await iterator.next(), {done: true});
 });
 
@@ -940,7 +1252,7 @@ test('anyEvents() - discarded iterators should stop receiving events', async t =
 	const iterator = emitter.anyEvent();
 
 	await emitter.emit('🦄', '🌈');
-	t.deepEqual(await iterator.next(), {value: ['🦄', '🌈'], done: false});
+	t.deepEqual(await iterator.next(), {value: {name: '🦄', data: '🌈'}, done: false});
 	await iterator.return();
 	await emitter.emit('🦄', '🌈');
 	t.deepEqual(await iterator.next(), {done: true});
@@ -1012,15 +1324,15 @@ test('clearListeners() - also clears iterators', async t => {
 	const anyIterator = emitter.anyEvent();
 	await emitter.emit('🦄', '🌟');
 	await emitter.emit('🌈', '🌟');
-	t.deepEqual(await iterator.next(), {done: false, value: '🌟'});
-	t.deepEqual(await anyIterator.next(), {done: false, value: ['🦄', '🌟']});
-	t.deepEqual(await anyIterator.next(), {done: false, value: ['🌈', '🌟']});
+	t.deepEqual(await iterator.next(), {done: false, value: {name: '🦄', data: '🌟'}});
+	t.deepEqual(await anyIterator.next(), {done: false, value: {name: '🦄', data: '🌟'}});
+	t.deepEqual(await anyIterator.next(), {done: false, value: {name: '🌈', data: '🌟'}});
 	await emitter.emit('🦄', '💫');
 	emitter.clearListeners();
 	await emitter.emit('🌈', '💫');
-	t.deepEqual(await iterator.next(), {done: false, value: '💫'});
+	t.deepEqual(await iterator.next(), {done: false, value: {name: '🦄', data: '💫'}});
 	t.deepEqual(await iterator.next(), {done: true});
-	t.deepEqual(await anyIterator.next(), {done: false, value: ['🦄', '💫']});
+	t.deepEqual(await anyIterator.next(), {done: false, value: {name: '🦄', data: '💫'}});
 	t.deepEqual(await anyIterator.next(), {done: true});
 });
 
@@ -1081,16 +1393,16 @@ test('clearListeners() - with event name - clears iterators for that event', asy
 	const anyIterator = emitter.anyEvent();
 	await emitter.emit('🦄', '🌟');
 	await emitter.emit('🌈', '🌟');
-	t.deepEqual(await iterator.next(), {done: false, value: '🌟'});
-	t.deepEqual(await anyIterator.next(), {done: false, value: ['🦄', '🌟']});
-	t.deepEqual(await anyIterator.next(), {done: false, value: ['🌈', '🌟']});
+	t.deepEqual(await iterator.next(), {done: false, value: {name: '🦄', data: '🌟'}});
+	t.deepEqual(await anyIterator.next(), {done: false, value: {name: '🦄', data: '🌟'}});
+	t.deepEqual(await anyIterator.next(), {done: false, value: {name: '🌈', data: '🌟'}});
 	await emitter.emit('🦄', '💫');
 	emitter.clearListeners('🦄');
 	await emitter.emit('🌈', '💫');
-	t.deepEqual(await iterator.next(), {done: false, value: '💫'});
+	t.deepEqual(await iterator.next(), {done: false, value: {name: '🦄', data: '💫'}});
 	t.deepEqual(await iterator.next(), {done: true});
-	t.deepEqual(await anyIterator.next(), {done: false, value: ['🦄', '💫']});
-	t.deepEqual(await anyIterator.next(), {done: false, value: ['🌈', '💫']});
+	t.deepEqual(await anyIterator.next(), {done: false, value: {name: '🦄', data: '💫'}});
+	t.deepEqual(await anyIterator.next(), {done: false, value: {name: '🌈', data: '💫'}});
 });
 
 test('clearListeners() - isDebug logs output', t => {

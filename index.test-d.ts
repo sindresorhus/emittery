@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-empty-function, @typescript-eslint/no-floating-promises */
 import {expectType, expectError, expectNotAssignable, expectAssignable} from 'tsd';
 import {pEventIterator} from 'p-event';
-import Emittery from './index.js';
+import Emittery, {type EmitteryEvent, type EventName} from './index.js';
 
-type AnyListener = (eventData?: unknown) => void | Promise<void>;
+type AnyListener = (event: unknown) => void | Promise<void>;
 
 // Emit
 {
@@ -17,15 +17,15 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 	const ee = new Emittery();
 	ee.on('anEvent', () => undefined);
 	ee.on('anEvent', async () => {});
-	ee.on('anEvent', data => undefined);
-	ee.on('anEvent', async data => {});
-	ee.on('anEvent', async data => {}, {signal: new AbortController().signal});
-	ee.on(['anEvent', 'anotherEvent'], async data => undefined);
-	ee.on(Emittery.listenerAdded, ({eventName, listener}) => {
+	ee.on('anEvent', event => undefined);
+	ee.on('anEvent', async event => {});
+	ee.on('anEvent', async event => {}, {signal: new AbortController().signal});
+	ee.on(['anEvent', 'anotherEvent'], async event => undefined);
+	ee.on(Emittery.listenerAdded, ({data: {eventName, listener}}) => {
 		expectType<PropertyKey | undefined>(eventName);
 		expectType<AnyListener>(listener);
 	});
-	ee.on(Emittery.listenerRemoved, ({eventName, listener}) => {
+	ee.on(Emittery.listenerRemoved, ({data: {eventName, listener}}) => {
 		expectType<PropertyKey | undefined>(eventName);
 		expectType<AnyListener>(listener);
 	});
@@ -36,10 +36,10 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 	const ee = new Emittery();
 	ee.off('anEvent', () => undefined);
 	ee.off('anEvent', async () => {});
-	ee.off('anEvent', data => undefined);
-	ee.off('anEvent', async data => {});
-	ee.off(Emittery.listenerAdded, ({eventName, listener}) => {});
-	ee.off(Emittery.listenerRemoved, ({eventName, listener}) => {});
+	ee.off('anEvent', event => undefined);
+	ee.off('anEvent', async event => {});
+	ee.off(Emittery.listenerAdded, ({data: {eventName, listener}}) => {});
+	ee.off(Emittery.listenerRemoved, ({data: {eventName, listener}}) => {});
 }
 
 // Once
@@ -47,11 +47,11 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 	const ee = new Emittery();
 	const test = async () => {
 		await ee.once('anEvent');
-		await ee.once(Emittery.listenerAdded).then(({eventName, listener}) => {
+		await ee.once(Emittery.listenerAdded).then(({data: {eventName, listener}}) => {
 			expectType<PropertyKey | undefined>(eventName);
 			expectType<AnyListener>(listener);
 		});
-		await ee.once(Emittery.listenerRemoved).then(({eventName, listener}) => {
+		await ee.once(Emittery.listenerRemoved).then(({data: {eventName, listener}}) => {
 			expectType<PropertyKey | undefined>(eventName);
 			expectType<AnyListener>(listener);
 		});
@@ -127,27 +127,44 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 		open: undefined;
 		close: undefined;
 		other: number;
+		maybe: string | undefined;
 	}>();
 	ee.on('open', () => {});
-	ee.on('open', argument => {
-		expectType<undefined>(argument);
+	ee.on('open', event => {
+		expectType<EmitteryEvent<'open', undefined>>(event);
+		expectAssignable<{name: 'open'; data?: undefined}>(event);
+		expectNotAssignable<{name: 'open'; data: undefined}>(event);
+	});
+	ee.on('open', ({data}) => {
+		expectType<undefined>(data);
 	});
 
 	ee.on('value', () => {});
-	ee.on('value', argument => {
-		expectType<string>(argument);
+	ee.on('value', ({data}) => {
+		expectType<string>(data);
 	});
-	ee.on(['value', 'other'], argument => {
-		expectType<string | number>(argument);
+	ee.on(['value', 'other'], ({name, data}) => {
+		expectType<'value' | 'other'>(name);
+		expectType<string | number>(data);
 	});
-	const listener = (value: string) => undefined;
+	ee.on(['value', 'other'], event => {
+		if (event.name === 'value') {
+			expectType<string>(event.data);
+		} else {
+			expectType<number>(event.data);
+		}
+	});
+	ee.on('maybe', event => {
+		expectType<string | undefined>(event.data);
+	});
+	const listener = ({data}: EmitteryEvent<'value', string>) => undefined;
 	ee.on('value', listener);
 	ee.off('value', listener);
 	const test = async () => {
 		const event = await ee.once('value');
-		expectType<string>(event);
+		expectType<EmitteryEvent<'value', string>>(event);
 		const multiEvent = await ee.once(['value', 'other']);
-		expectType<string | number>(multiEvent);
+		expectType<EmitteryEvent<'value', string> | EmitteryEvent<'other', number>>(multiEvent);
 	};
 
 	expectError(ee.on('value', (value: number) => {}));
@@ -162,8 +179,8 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 	ee.on('open', () => {});
 	ee.on('open', async () => {});
 	ee.on('open', async () => {});
-	ee.on('close', async value => {
-		expectType<string>(value);
+	ee.on('close', async ({data}) => {
+		expectType<string>(data);
 	});
 }
 
@@ -176,14 +193,14 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 		other: number;
 	}>();
 
-	ee.onAny((name, data) => {
-		expectType<'value' | 'open' | 'close' | 'other'>(name);
-		expectType<string | number | undefined>(data);
+	ee.onAny(event => {
+		// Some events are dataless so `data` only exists on some union variants
+		expectType<'value' | 'open' | 'close' | 'other'>(event.name);
 	});
 
 	ee.onAny(() => {}, {signal: new AbortController().signal});
 
-	const listener = (name: string) => {};
+	const listener = ({name}: {name: string}) => {};
 	ee.onAny(listener);
 	ee.offAny(listener);
 }
@@ -195,7 +212,7 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 		other: number;
 	}>();
 
-	ee.onAny((name, data) => {
+	ee.onAny(({name, data}) => {
 		expectType<'value' | 'other'>(name);
 		expectType<string | number>(data);
 	});
@@ -211,9 +228,7 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 		}>();
 
 		for await (const event of ee.anyEvent()) {
-			expectType<'value' | 'open' | 'close'>(event[0]);
-
-			expectType<string | undefined>(event[1]);
+			expectType<'value' | 'open' | 'close'>(event.name);
 		}
 
 		const ee2 = new Emittery<{
@@ -222,8 +237,8 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 		}>();
 
 		for await (const event of ee2.anyEvent()) {
-			expectType<'value' | 'other'>(event[0]);
-			expectType<string | number>(event[1]);
+			expectType<'value' | 'other'>(event.name);
+			expectType<string | number>(event.data);
 		}
 	};
 }
@@ -239,20 +254,22 @@ type AnyListener = (eventData?: unknown) => void | Promise<void>;
 		}>();
 
 		for await (const event of ee.events('value')) {
-			expectType<string>(event);
+			expectType<string>(event.data);
+			expectType<'value'>(event.name);
 		}
 
 		for await (const event of ee.events(['value', 'other'])) {
-			expectType<string | number>(event);
+			expectType<'value' | 'other'>(event.name);
+			expectType<string | number>(event.data);
 		}
 
 		for await (const event of ee.events(['value', 'open'])) {
-			expectType<string | undefined>(event);
+			expectType<'value' | 'open'>(event.name);
 		}
 
 		const ee2 = new Emittery();
 		for await (const event of ee2.events('unknown')) {
-			expectType<any>(event);
+			expectAssignable<{name: EventName}>(event);
 		}
 	};
 }
