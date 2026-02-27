@@ -186,7 +186,7 @@ function emitMetaEvent(emitter, eventName, eventData) {
 export default class Emittery {
 	static mixin(emitteryPropertyName, methodNames) {
 		methodNames = defaultMethodNamesOrAssert(methodNames);
-		return target => {
+		return (target, _context) => {
 			if (typeof target !== 'function') {
 				throw new TypeError('`target` must be function');
 			}

@@ -325,7 +325,7 @@ export default class Emittery<
 	static mixin(
 		emitteryPropertyName: string | symbol,
 		methodNames?: readonly string[]
-	): <T extends {new (...arguments_: readonly any[]): any}>(klass: T) => T; // eslint-disable-line @typescript-eslint/prefer-function-type
+	): <T extends abstract new (...arguments_: readonly any[]) => any>(klass: T, context?: ClassDecoratorContext<T>) => T;
 
 	/**
 	Debugging options for the current instance.

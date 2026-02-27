@@ -295,12 +295,44 @@ type AnyListener = (event: unknown) => void | Promise<void>;
 	});
 }
 
-// Mixin type
-Emittery.mixin('emittery')(class {
+// Mixin - return type is preserved as T
+class MixinBase {
 	test() {}
-});
+}
 
-// Mixin type - arguments in constructor
+expectType<typeof MixinBase>(Emittery.mixin('emittery')(MixinBase));
+
+// Mixin - works with parameterized constructor
 Emittery.mixin('emittery')(class { // eslint-disable-line @typescript-eslint/no-extraneous-class
 	constructor(argument: string) {} // eslint-disable-line @typescript-eslint/no-useless-constructor
 });
+
+// Mixin - symbol as emitteryPropertyName
+Emittery.mixin(Symbol('emittery'))(MixinBase);
+
+// Mixin - works with abstract class (validates `abstract new` constraint)
+@Emittery.mixin('emittery')
+abstract class MixinAbstractClass {
+	abstract abstractMethod(): void;
+}
+
+// Mixin - as TC39 decorator
+@Emittery.mixin('emittery')
+class MixinDecoratorClass {
+	test() {}
+}
+
+// Mixin - as TC39 decorator with specific method names
+@Emittery.mixin('emittery', ['emit', 'on'])
+class MixinDecoratorWithMethodNames {
+	test() {}
+}
+
+// Mixin - error: non-string/symbol as emitteryPropertyName
+expectError(Emittery.mixin(42));
+
+// Mixin - error: string instead of array for methodNames
+expectError(Emittery.mixin('emittery', 'on'));
+
+// Mixin - error: plain object as target (not a constructor)
+expectError(Emittery.mixin('emittery')({}));
