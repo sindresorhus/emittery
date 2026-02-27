@@ -1182,6 +1182,25 @@ test('emit() - is async', async t => {
 	t.true(unicorn);
 });
 
+test('emit() - unawaited emits fire after synchronous code (by design)', async t => {
+	const emitter = new Emittery();
+	const log = [];
+
+	emitter.on('unicorn', () => {
+		log.push('listener');
+	});
+
+	const p1 = emitter.emit('unicorn');
+	log.push('after emit 1');
+	const p2 = emitter.emit('unicorn');
+	log.push('after emit 2');
+
+	await Promise.all([p1, p2]);
+
+	// Listeners fire after all synchronous code because emit() yields to the microtask queue
+	t.deepEqual(log, ['after emit 1', 'after emit 2', 'listener', 'listener']);
+});
+
 test('emit() - awaits async listeners', async t => {
 	const emitter = new Emittery();
 	let unicorn = false;
