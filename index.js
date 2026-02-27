@@ -405,10 +405,12 @@ export default class Emittery {
 
 		this.logIfDebugEnabled('emitSerial', eventName, eventData);
 
+		enqueueProducers(this, eventName, eventData);
+
 		const listeners = getListeners(this, eventName) ?? new Set();
 		const anyListeners = anyMap.get(this);
 		const staticListeners = [...listeners];
-		const staticAnyListeners = [...anyListeners];
+		const staticAnyListeners = isMetaEvent(eventName) ? [] : [...anyListeners];
 
 		await resolvedPromise;
 		/* eslint-disable no-await-in-loop */
