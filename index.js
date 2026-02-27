@@ -383,7 +383,9 @@ export default class Emittery {
 			metaEventsPermitted.set(this, remainingPermits - 1);
 		}
 
-		this.logIfDebugEnabled('emit', eventName, eventData);
+		if (!isMetaEvent(eventName)) {
+			this.logIfDebugEnabled('emit', eventName, eventData);
+		}
 
 		const hasEventData = arguments.length > 1;
 
@@ -421,7 +423,9 @@ export default class Emittery {
 			metaEventsPermitted.set(this, remainingPermits - 1);
 		}
 
-		this.logIfDebugEnabled('emitSerial', eventName, eventData);
+		if (!isMetaEvent(eventName)) {
+			this.logIfDebugEnabled('emitSerial', eventName, eventData);
+		}
 
 		const hasEventData = arguments.length > 1;
 
