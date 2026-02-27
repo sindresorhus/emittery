@@ -51,16 +51,17 @@ function enqueueProducers(instance, eventName, eventData, hasEventData) {
 	}
 
 	const resolvedEventData = Promise.resolve(eventData);
+	const makeEvent = async () => makeEventObject(eventName, await resolvedEventData, hasEventData);
 
 	if (producers.has(eventName)) {
 		for (const producer of producers.get(eventName)) {
-			producer.enqueue(resolvedEventData.then(data => makeEventObject(eventName, data, hasEventData)));
+			producer.enqueue(makeEvent());
 		}
 	}
 
 	if (producers.has(anyProducer)) {
 		for (const producer of producers.get(anyProducer)) {
-			producer.enqueue(resolvedEventData.then(data => makeEventObject(eventName, data, hasEventData)));
+			producer.enqueue(makeEvent());
 		}
 	}
 }
@@ -106,9 +107,9 @@ function iterator(instance, eventNames) {
 					return this.next();
 				}
 
-				await new Promise(resolve => {
-					flush = resolve;
-				});
+				const {promise, resolve} = Promise.withResolvers();
+				flush = resolve;
+				await promise;
 
 				return this.next();
 			}
@@ -264,24 +265,22 @@ export default class Emittery {
 			this.debug.enabled = false;
 		}
 
-		if (!this.debug.logger) {
-			this.debug.logger = (type, debugName, eventName, eventData) => {
-				try {
-					// TODO: Use https://github.com/sindresorhus/safe-stringify when the package is more mature. Just copy-paste the code.
-					eventData = JSON.stringify(eventData);
-				} catch {
-					eventData = `Object with the following keys failed to stringify: ${Object.keys(eventData).join(',')}`;
-				}
+		this.debug.logger ||= (type, debugName, eventName, eventData) => {
+			try {
+				// TODO: Use https://github.com/sindresorhus/safe-stringify when the package is more mature. Just copy-paste the code.
+				eventData = JSON.stringify(eventData);
+			} catch {
+				eventData = `Object with the following keys failed to stringify: ${Object.keys(eventData).join(',')}`;
+			}
 
-				if (typeof eventName === 'symbol' || typeof eventName === 'number') {
-					eventName = eventName.toString();
-				}
+			if (typeof eventName === 'symbol' || typeof eventName === 'number') {
+				eventName = eventName.toString();
+			}
 
-				const currentTime = new Date();
-				const logTime = `${currentTime.getHours()}:${currentTime.getMinutes()}:${currentTime.getSeconds()}.${currentTime.getMilliseconds()}`;
-				console.log(`[${logTime}][emittery:${type}][${debugName}] Event Name: ${eventName}\n\tdata: ${eventData}`);
-			};
-		}
+			const currentTime = new Date();
+			const logTime = `${currentTime.getHours()}:${currentTime.getMinutes()}:${currentTime.getSeconds()}.${currentTime.getMilliseconds()}`;
+			console.log(`[${logTime}][emittery:${type}][${debugName}] Event Name: ${eventName}\n\tdata: ${eventData}`);
+		};
 	}
 
 	logIfDebugEnabled(type, eventName, eventData) {
@@ -350,24 +349,27 @@ export default class Emittery {
 	}
 
 	once(eventNames, predicate) {
-		if (predicate !== undefined && typeof predicate !== 'function') {
-			throw new TypeError('predicate must be a function');
-		}
+		const {promise, resolve, reject} = Promise.withResolvers();
+		let off = () => {};
 
-		let off_;
+		try {
+			if (predicate !== undefined && typeof predicate !== 'function') {
+				throw new TypeError('predicate must be a function');
+			}
 
-		const promise = new Promise(resolve => {
-			off_ = this.on(eventNames, event => {
+			off = this.on(eventNames, event => {
 				if (predicate && !predicate(event)) {
 					return;
 				}
 
-				off_();
+				off();
 				resolve(event);
 			});
-		});
+		} catch (error) {
+			reject(error);
+		}
 
-		promise.off = off_;
+		promise.off = off;
 		return promise;
 	}
 
@@ -419,9 +421,10 @@ export default class Emittery {
 			}),
 		]);
 
-		const errors = results
+		const errors = results.values()
 			.filter(result => result.status === 'rejected')
-			.map(result => result.reason);
+			.map(result => result.reason)
+			.toArray();
 
 		if (errors.length > 0) {
 			throw new AggregateError(errors, 'One or more listeners threw an error');
@@ -577,7 +580,7 @@ export default class Emittery {
 	}
 
 	bindMethods(target, methodNames) {
-		if (typeof target !== 'object' || target === null) {
+		if (!target || typeof target !== 'object') {
 			throw new TypeError('`target` must be an object');
 		}
 

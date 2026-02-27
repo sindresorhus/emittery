@@ -216,8 +216,7 @@ emitter.emit('other');
 ```
 */
 export default class Emittery<
-	EventData = Record<EventName, any>, // TODO: Use `unknown` instead of `any`.
-	AllEventData = EventData & OmnipresentEventData,
+	EventData = Record<EventName, unknown>, AllEventData = EventData & OmnipresentEventData,
 	DatalessEvents = DatalessEventNames<EventData>,
 > {
 	/**

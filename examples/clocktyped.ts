@@ -19,7 +19,7 @@ type EventDataMap = {
 
 class Clock extends Emittery<EventDataMap> {
 	private startedAt = 0;
-	private timer: NodeJS.Timer | undefined = null;
+	private timer: ReturnType<typeof setInterval> | undefined;
 
 	public constructor() {
 		super();
@@ -42,7 +42,7 @@ class Clock extends Emittery<EventDataMap> {
 		}
 
 		this.startedAt = 0;
-		this.timer = null;
+		this.timer = undefined;
 
 		this.emit('stop');
 	}

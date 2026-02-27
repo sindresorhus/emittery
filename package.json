@@ -11,14 +11,16 @@
 		"url": "https://sindresorhus.com"
 	},
 	"type": "module",
-	"exports": "./index.js",
-	"types": "./index.d.ts",
+	"exports": {
+		"types": "./index.d.ts",
+		"default": "./index.js"
+	},
 	"sideEffects": false,
 	"engines": {
-		"node": ">=18"
+		"node": ">=22"
 	},
 	"scripts": {
-		"test": "xo && nyc ava && tsd"
+		"test": "xo && ava && tsd"
 	},
 	"files": [
 		"index.js",
@@ -53,19 +55,11 @@
 		"typed"
 	],
 	"devDependencies": {
-		"@types/node": "^18.7.15",
-		"ava": "^4.3.3",
-		"delay": "^5.0.0",
-		"nyc": "^15.1.0",
-		"p-event": "^6.0.0",
+		"@types/node": "^25.3.2",
+		"ava": "^6.4.1",
+		"delay": "^7.0.0",
+		"p-event": "^7.1.0",
 		"tsd": "^0.33.0",
-		"xo": "^0.55.0"
-	},
-	"nyc": {
-		"reporter": [
-			"html",
-			"lcov",
-			"text"
-		]
+		"xo": "^1.2.3"
 	}
 }

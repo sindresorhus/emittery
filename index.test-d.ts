@@ -1,5 +1,10 @@
 /* eslint-disable @typescript-eslint/no-empty-function, @typescript-eslint/no-floating-promises */
-import {expectType, expectError, expectNotAssignable, expectAssignable} from 'tsd';
+import {
+	expectType,
+	expectError,
+	expectNotAssignable,
+	expectAssignable,
+} from 'tsd';
 import {pEventIterator} from 'p-event';
 import Emittery, {type EmitteryEvent, type EventName} from './index.js';
 
@@ -7,9 +12,10 @@ type AnyListener = (event: unknown) => void | Promise<void>;
 
 // Emit
 {
-	const ee = new Emittery();
+	const ee = new Emittery<{anEvent: undefined}>();
 	ee.emit('anEvent');
-	ee.emit('anEvent', 'some data');
+	const ee2 = new Emittery<{anEvent: string}>();
+	ee2.emit('anEvent', 'some data');
 }
 
 // On
@@ -47,14 +53,12 @@ type AnyListener = (event: unknown) => void | Promise<void>;
 	const ee = new Emittery();
 	const test = async () => {
 		await ee.once('anEvent');
-		await ee.once(Emittery.listenerAdded).then(({data: {eventName, listener}}) => {
-			expectType<PropertyKey | undefined>(eventName);
-			expectType<AnyListener>(listener);
-		});
-		await ee.once(Emittery.listenerRemoved).then(({data: {eventName, listener}}) => {
-			expectType<PropertyKey | undefined>(eventName);
-			expectType<AnyListener>(listener);
-		});
+		const listenerAddedEvent = await ee.once(Emittery.listenerAdded);
+		expectType<PropertyKey | undefined>(listenerAddedEvent.data.eventName);
+		expectType<AnyListener>(listenerAddedEvent.data.listener);
+		const listenerRemovedEvent = await ee.once(Emittery.listenerRemoved);
+		expectType<PropertyKey | undefined>(listenerRemovedEvent.data.eventName);
+		expectType<AnyListener>(listenerRemovedEvent.data.listener);
 		const oncePromise = ee.once('anotherEvent');
 		oncePromise.off();
 		await oncePromise;

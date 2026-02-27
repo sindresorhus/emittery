@@ -111,7 +111,12 @@ test('off() - isDebug logs output', t => {
 			name: 'testEmitter',
 			enabled: true,
 			logger(type, debugName, eventName, eventData) {
-				eventStore.push({type, debugName, eventName, eventData});
+				eventStore.push({
+					type,
+					debugName,
+					eventName,
+					eventData,
+				});
 			},
 		},
 	});
@@ -365,7 +370,12 @@ test('meta event - rejected thenable override does not open meta emits', async t
 	class CustomEmittery extends Emittery {
 		emit(eventName, eventData) {
 			if (eventName === Emittery.listenerAdded) {
-				super.emit(eventName, eventData).catch(() => {});
+				(async () => {
+					try {
+						await super.emit(eventName, eventData);
+					} catch {}
+				})();
+
 				/* eslint-disable unicorn/no-thenable */
 				return {
 					then(_resolve, reject) {
@@ -630,7 +640,12 @@ test('on() - isDebug logs output', t => {
 			name: 'testEmitter',
 			enabled: true,
 			logger(type, debugName, eventName, eventData) {
-				eventStore.push({type, debugName, eventName, eventData});
+				eventStore.push({
+					type,
+					debugName,
+					eventName,
+					eventData,
+				});
 			},
 		},
 	});
@@ -1048,10 +1063,10 @@ test('once() - filter predicate receives full event object with eventName', asyn
 	t.deepEqual(await oncePromise, {name: eventName, data: 'match'});
 });
 
-test('once() - filter predicate must be a function', t => {
+test('once() - filter predicate must be a function', async t => {
 	const emitter = new Emittery();
-	t.throws(
-		() => emitter.once('data', 'not a function'),
+	await t.throwsAsync(
+		emitter.once('data', 'not a function'),
 		{
 			instanceOf: TypeError,
 			message: 'predicate must be a function',
@@ -1289,7 +1304,12 @@ test('emit() - isDebug logs output', async t => {
 			name: 'testEmitter',
 			enabled: true,
 			logger(type, debugName, eventName, eventData) {
-				eventStore.push({type, debugName, eventName, eventData});
+				eventStore.push({
+					type,
+					debugName,
+					eventName,
+					eventData,
+				});
 			},
 		},
 	});
@@ -1626,7 +1646,12 @@ test('emitSerial() - isDebug logs output', async t => {
 			name: 'testEmitter',
 			enabled: true,
 			logger(type, debugName, eventName, eventData) {
-				eventStore.push({type, debugName, eventName, eventData});
+				eventStore.push({
+					type,
+					debugName,
+					eventName,
+					eventData,
+				});
 			},
 		},
 	});
@@ -1972,7 +1997,12 @@ test('clearListeners() - isDebug logs output', t => {
 			name: 'testEmitter',
 			enabled: true,
 			logger(type, debugName, eventName, eventData) {
-				eventStore.push({type, debugName, eventName, eventData});
+				eventStore.push({
+					type,
+					debugName,
+					eventName,
+					eventData,
+				});
 			},
 		},
 	});
@@ -1993,7 +2023,12 @@ test('onAny() - isDebug logs output', t => {
 			name: 'testEmitter',
 			enabled: true,
 			logger(type, debugName, eventName, eventData) {
-				eventStore.push({type, debugName, eventName, eventData});
+				eventStore.push({
+					type,
+					debugName,
+					eventName,
+					eventData,
+				});
 			},
 		},
 	});
@@ -2013,7 +2048,12 @@ test('offAny() - isDebug logs output', t => {
 			name: 'testEmitter',
 			enabled: true,
 			logger(type, debugName, eventName, eventData) {
-				eventStore.push({type, debugName, eventName, eventData});
+				eventStore.push({
+					type,
+					debugName,
+					eventName,
+					eventData,
+				});
 			},
 		},
 	});
@@ -2304,7 +2344,12 @@ test('isDebug can be turned on globally during runtime', t => {
 			name: 'testEmitter',
 			enabled: false,
 			logger(type, debugName, eventName, eventData) {
-				eventStore.push({type, debugName, eventName, eventData});
+				eventStore.push({
+					type,
+					debugName,
+					eventName,
+					eventData,
+				});
 			},
 		},
 	});
@@ -2327,7 +2372,12 @@ test('isDebug can be turned on for and instance without using the constructor', 
 			name: 'testEmitter',
 			enabled: false,
 			logger(type, debugName, eventName, eventData) {
-				eventStore.push({type, debugName, eventName, eventData});
+				eventStore.push({
+					type,
+					debugName,
+					eventName,
+					eventData,
+				});
 			},
 		},
 	});
