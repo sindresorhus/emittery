@@ -134,6 +134,362 @@ test('on() - listenerAdded offAny', async t => {
 	t.is(eventName, undefined);
 });
 
+test('meta event - works with async emit override in subclass', async t => {
+	class CustomEmittery extends Emittery {
+		async emit(eventName, eventData) {
+			await delay(10);
+			return super.emit(eventName, eventData);
+		}
+	}
+
+	const emitter = new CustomEmittery();
+	const events = [];
+	emitter.on(Emittery.listenerAdded, event => {
+		events.push(event);
+	});
+
+	const listener = () => {};
+	emitter.on('test', listener);
+
+	await delay(50);
+	t.is(events.length, 1);
+	t.is(events[0].data.eventName, 'test');
+	t.is(events[0].data.listener, listener);
+});
+
+test('meta event - works when emit override clones meta event data before forwarding', async t => {
+	class CustomEmittery extends Emittery {
+		emit(eventName, eventData) {
+			if (eventName === Emittery.listenerAdded && eventData && typeof eventData === 'object') {
+				return super.emit(eventName, {...eventData});
+			}
+
+			return super.emit(eventName, eventData);
+		}
+	}
+
+	const emitter = new CustomEmittery();
+	const events = [];
+	emitter.on(Emittery.listenerAdded, event => {
+		events.push(event);
+	});
+
+	const listener = () => {};
+	emitter.on('test', listener);
+
+	await Promise.resolve();
+
+	t.is(events.length, 1);
+	t.is(events[0].data.eventName, 'test');
+	t.is(events[0].data.listener, listener);
+});
+
+test('meta event - userland meta emit is blocked during debug logger reentrancy', async t => {
+	let forgedMetaEmitPromise;
+
+	const emitter = new Emittery({
+		debug: {
+			enabled: true,
+			logger(type, debugName, eventName) {
+				if (type === 'emit' && debugName === 'testEmitter' && eventName === Emittery.listenerAdded && !forgedMetaEmitPromise) {
+					forgedMetaEmitPromise = emitter.emit(Emittery.listenerAdded, {eventName: 'forged', listener() {}});
+				}
+			},
+			name: 'testEmitter',
+		},
+	});
+
+	const events = [];
+	emitter.on(Emittery.listenerAdded, event => {
+		events.push(event);
+	});
+
+	emitter.on('test', () => {});
+
+	await t.throwsAsync(forgedMetaEmitPromise, {instanceOf: TypeError});
+	await Promise.resolve();
+
+	t.is(events.length, 1);
+	t.is(events[0].data.eventName, 'test');
+});
+
+test.serial('meta event - internal emit does not attach catch handler', t => {
+	const originalEmit = Emittery.prototype.emit;
+	const emitter = new Emittery();
+	let catchCalled = false;
+
+	Emittery.prototype.emit = function (eventName, eventData) {
+		if (eventName === Emittery.listenerAdded) {
+			return {
+				catch() {
+					catchCalled = true;
+				},
+			};
+		}
+
+		return originalEmit.call(this, eventName, eventData);
+	};
+
+	try {
+		emitter.on('test', () => {});
+		t.false(catchCalled);
+	} finally {
+		Emittery.prototype.emit = originalEmit;
+	}
+});
+
+test('meta event - userland remains blocked with async emit override present', async t => {
+	class CustomEmittery extends Emittery {
+		async emit(eventName, eventData) {
+			await delay(10);
+			return super.emit(eventName, eventData);
+		}
+	}
+
+	const emitter = new CustomEmittery();
+	const listener = () => {};
+	emitter.on('test', listener);
+
+	await delay(50);
+
+	await t.throwsAsync(emitter.emit(Emittery.listenerAdded), {instanceOf: TypeError});
+	await t.throwsAsync(emitter.emit(Emittery.listenerRemoved), {instanceOf: TypeError});
+});
+
+test('meta event - userland cannot emit reserved events while internal meta emit is pending', async t => {
+	const emitter = new Emittery();
+	emitter.on('test', () => {});
+
+	await t.throwsAsync(emitter.emit(Emittery.listenerAdded), {instanceOf: TypeError});
+});
+
+test('meta event - userland emit is blocked even when override delays meta event', async t => {
+	class CustomEmittery extends Emittery {
+		async emit(eventName, eventData) {
+			if (eventName === Emittery.listenerAdded) {
+				await delay(50);
+			}
+
+			return super.emit(eventName, eventData);
+		}
+	}
+
+	const emitter = new CustomEmittery();
+	emitter.on('test', () => {});
+
+	await t.throwsAsync(Emittery.prototype.emit.call(emitter, Emittery.listenerAdded, {eventName: 'fake', listener() {}}), {instanceOf: TypeError});
+});
+
+test('meta event - rejected thenable override does not open meta emits', async t => {
+	class CustomEmittery extends Emittery {
+		emit(eventName, eventData) {
+			if (eventName === Emittery.listenerAdded) {
+				super.emit(eventName, eventData).catch(() => {});
+				/* eslint-disable unicorn/no-thenable */
+				return {
+					then(_resolve, reject) {
+						reject(new Error('thenable rejection'));
+					},
+				};
+				/* eslint-enable unicorn/no-thenable */
+			}
+
+			return super.emit(eventName, eventData);
+		}
+	}
+
+	const emitter = new CustomEmittery();
+	t.notThrows(() => {
+		emitter.on('test', () => {});
+	});
+
+	await Promise.resolve();
+
+	await t.throwsAsync(Emittery.prototype.emit.call(emitter, Emittery.listenerRemoved, {eventName: 'fake', listener() {}}), {instanceOf: TypeError});
+});
+
+test('meta event - sync throw in emit override does not open meta emits', async t => {
+	class CustomEmittery extends Emittery {
+		emit(eventName, eventData) {
+			if (eventName === Emittery.listenerAdded) {
+				throw new Error('sync override error');
+			}
+
+			return super.emit(eventName, eventData);
+		}
+	}
+
+	const emitter = new CustomEmittery();
+
+	t.notThrows(() => {
+		emitter.on('test', () => {});
+	});
+
+	await t.throwsAsync(emitter.emit(Emittery.listenerRemoved), {instanceOf: TypeError});
+});
+
+test('meta event - ignores non-promise finally method from emit override return value', async t => {
+	class CustomEmittery extends Emittery {
+		emit(eventName, eventData) {
+			if (eventName === Emittery.listenerAdded) {
+				return {
+					finally(callback) {
+						callback();
+						throw new Error('throwing finally');
+					},
+				};
+			}
+
+			return super.emit(eventName, eventData);
+		}
+	}
+
+	const emitter = new CustomEmittery();
+
+	t.notThrows(() => {
+		emitter.on('test', () => {});
+	});
+
+	await Promise.resolve();
+
+	await t.throwsAsync(emitter.emit(Emittery.listenerRemoved), {instanceOf: TypeError});
+});
+
+test('meta event - listenerRemoved works with async emit override in subclass', async t => {
+	class CustomEmittery extends Emittery {
+		async emit(eventName, eventData) {
+			await delay(10);
+			return super.emit(eventName, eventData);
+		}
+	}
+
+	const emitter = new CustomEmittery();
+	const events = [];
+	emitter.on(Emittery.listenerRemoved, event => {
+		events.push(event);
+	});
+
+	const listener = () => {};
+	emitter.on('test', listener);
+	emitter.off('test', listener);
+
+	await delay(50);
+	t.is(events.length, 1);
+	t.is(events[0].data.eventName, 'test');
+	t.is(events[0].data.listener, listener);
+});
+
+test('meta event - concurrent on() calls with async emit override both deliver', async t => {
+	class CustomEmittery extends Emittery {
+		async emit(eventName, eventData) {
+			await delay(10);
+			return super.emit(eventName, eventData);
+		}
+	}
+
+	const emitter = new CustomEmittery();
+	const events = [];
+	emitter.on(Emittery.listenerAdded, event => {
+		events.push(event);
+	});
+
+	const listener1 = () => {};
+	const listener2 = () => {};
+	emitter.on('test', listener1);
+	emitter.on('test', listener2);
+
+	await delay(50);
+	t.is(events.length, 2);
+
+	const reportedListeners = new Set(events.map(event => event.data.listener));
+	t.true(reportedListeners.has(listener1));
+	t.true(reportedListeners.has(listener2));
+
+	await t.throwsAsync(emitter.emit(Emittery.listenerAdded), {instanceOf: TypeError});
+});
+
+test('meta event - onAny() works with async emit override in subclass', async t => {
+	class CustomEmittery extends Emittery {
+		async emit(eventName, eventData) {
+			await delay(10);
+			return super.emit(eventName, eventData);
+		}
+	}
+
+	const emitter = new CustomEmittery();
+	const events = [];
+	emitter.on(Emittery.listenerAdded, event => {
+		events.push(event);
+	});
+
+	const listener = () => {};
+	emitter.onAny(listener);
+
+	await delay(50);
+	t.is(events.length, 1);
+	t.is(events[0].data.eventName, undefined);
+	t.is(events[0].data.listener, listener);
+});
+
+test('meta event - offAny() works with async emit override in subclass', async t => {
+	class CustomEmittery extends Emittery {
+		async emit(eventName, eventData) {
+			await delay(10);
+			return super.emit(eventName, eventData);
+		}
+	}
+
+	const emitter = new CustomEmittery();
+	const events = [];
+	emitter.on(Emittery.listenerRemoved, event => {
+		events.push(event);
+	});
+
+	const listener = () => {};
+	emitter.onAny(listener);
+	emitter.offAny(listener);
+
+	await delay(50);
+	t.is(events.length, 1);
+	t.is(events[0].data.eventName, undefined);
+	t.is(events[0].data.listener, listener);
+});
+
+test('meta event - multiple emitters have independent counters', async t => {
+	class CustomEmittery extends Emittery {
+		async emit(eventName, eventData) {
+			await delay(10);
+			return super.emit(eventName, eventData);
+		}
+	}
+
+	const emitter1 = new CustomEmittery();
+	const emitter2 = new CustomEmittery();
+	const events1 = [];
+	const events2 = [];
+
+	emitter1.on(Emittery.listenerAdded, event => {
+		events1.push(event);
+	});
+	emitter2.on(Emittery.listenerAdded, event => {
+		events2.push(event);
+	});
+
+	const listener = () => {};
+	emitter1.on('test', listener);
+	emitter2.on('test', listener);
+
+	await delay(50);
+	t.is(events1.length, 1);
+	t.is(events2.length, 1);
+	t.is(events1[0].data.listener, listener);
+	t.is(events2[0].data.listener, listener);
+
+	// Both counters settle independently - userland is blocked on both
+	await t.throwsAsync(emitter1.emit(Emittery.listenerAdded), {instanceOf: TypeError});
+	await t.throwsAsync(emitter2.emit(Emittery.listenerAdded), {instanceOf: TypeError});
+});
+
 test('on() - eventName must be a string, symbol, or number', t => {
 	const emitter = new Emittery();
 

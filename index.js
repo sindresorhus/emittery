@@ -7,7 +7,8 @@ const resolvedPromise = Promise.resolve();
 const listenerAdded = Symbol('listenerAdded');
 const listenerRemoved = Symbol('listenerRemoved');
 
-let canEmitMetaEvents = false;
+const metaEventsAllowed = new WeakMap();
+const metaEventsPermitted = new WeakMap();
 let isGlobalDebugEnabled = false;
 
 const isEventKeyType = key => typeof key === 'string' || typeof key === 'symbol' || typeof key === 'number';
@@ -173,15 +174,12 @@ const makeEventObject = (eventName, eventData, hasEventData) =>
 	hasEventData ? {name: eventName, data: eventData} : {name: eventName};
 
 function emitMetaEvent(emitter, eventName, eventData) {
-	if (!isMetaEvent(eventName)) {
-		return;
-	}
-
+	metaEventsAllowed.set(emitter, (metaEventsAllowed.get(emitter) ?? 0) + 1);
+	metaEventsPermitted.set(emitter, (metaEventsPermitted.get(emitter) ?? 0) + 1);
 	try {
-		canEmitMetaEvents = true;
-		emitter.emit(eventName, eventData);
+		Emittery.prototype.emit.call(emitter, eventName, eventData);
 	} finally {
-		canEmitMetaEvents = false;
+		metaEventsAllowed.set(emitter, (metaEventsAllowed.get(emitter) ?? 0) - 1);
 	}
 }
 
@@ -376,8 +374,13 @@ export default class Emittery {
 	async emit(eventName, eventData) {
 		assertEventName(eventName);
 
-		if (isMetaEvent(eventName) && !canEmitMetaEvents) {
-			throw new TypeError('`eventName` cannot be meta event `listenerAdded` or `listenerRemoved`');
+		if (isMetaEvent(eventName)) {
+			const remainingPermits = metaEventsPermitted.get(this) ?? 0;
+			if ((metaEventsAllowed.get(this) ?? 0) === 0 || remainingPermits === 0) {
+				throw new TypeError('`eventName` cannot be meta event `listenerAdded` or `listenerRemoved`');
+			}
+
+			metaEventsPermitted.set(this, remainingPermits - 1);
 		}
 
 		this.logIfDebugEnabled('emit', eventName, eventData);
@@ -409,8 +412,13 @@ export default class Emittery {
 	async emitSerial(eventName, eventData) {
 		assertEventName(eventName);
 
-		if (isMetaEvent(eventName) && !canEmitMetaEvents) {
-			throw new TypeError('`eventName` cannot be meta event `listenerAdded` or `listenerRemoved`');
+		if (isMetaEvent(eventName)) {
+			const remainingPermits = metaEventsPermitted.get(this) ?? 0;
+			if ((metaEventsAllowed.get(this) ?? 0) === 0 || remainingPermits === 0) {
+				throw new TypeError('`eventName` cannot be meta event `listenerAdded` or `listenerRemoved`');
+			}
+
+			metaEventsPermitted.set(this, remainingPermits - 1);
 		}
 
 		this.logIfDebugEnabled('emitSerial', eventName, eventData);
