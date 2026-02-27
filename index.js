@@ -249,6 +249,15 @@ export default class Emittery {
 
 		producersMap.get(this).set(anyProducer, new Set());
 
+		for (const methodName of allEmitteryMethods) {
+			Object.defineProperty(this, methodName, {
+				value: this[methodName].bind(this),
+				writable: true,
+				enumerable: false,
+				configurable: true,
+			});
+		}
+
 		this.debug = options.debug ?? {};
 
 		if (this.debug.enabled === undefined) {

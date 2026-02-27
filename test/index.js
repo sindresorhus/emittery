@@ -2020,6 +2020,24 @@ test('bindMethods() - must bind all methods if no array supplied', t => {
 	t.is(target.listenerCount(), 0);
 });
 
+test('bindMethods() - preserves subclass overrides', async t => {
+	let overrideCalled = false;
+
+	class CustomEmittery extends Emittery {
+		async emit(eventName, eventData) {
+			overrideCalled = true;
+			return super.emit(eventName, eventData);
+		}
+	}
+
+	const emitter = new CustomEmittery();
+	const target = {};
+	emitter.bindMethods(target, ['emit']);
+
+	await target.emit('test', 42);
+	t.true(overrideCalled);
+});
+
 test('bindMethods() - methodNames must only include Emittery methods', t => {
 	const emitter = new Emittery();
 	const target = {};
@@ -2214,4 +2232,63 @@ test('debug mode - handles circular references in event data', async t => {
 	data.circular = data;
 
 	await t.notThrowsAsync(emitter.emit('test', data));
+});
+
+test('subclass emit override is called on instances', async t => {
+	let overrideCalled = false;
+
+	class CustomEmittery extends Emittery {
+		async emit(eventName, eventData) {
+			overrideCalled = true;
+			return super.emit(eventName, eventData);
+		}
+	}
+
+	const emitter = new CustomEmittery();
+	let received;
+	emitter.on('test', event => {
+		received = event;
+	});
+	await emitter.emit('test', 42);
+	t.true(overrideCalled);
+	t.deepEqual(received, {name: 'test', data: 42});
+});
+
+test('works through a Proxy wrapper', async t => {
+	const emitter = new Emittery();
+	// Simulate Vue's reactive()/ref() and Alpine.js: they intercept `get` and
+	// return methods with `this` bound to the proxy, not the original instance.
+	const proxy = new Proxy(emitter, {
+		get(target, property, receiver) {
+			const value = Reflect.get(target, property, receiver);
+			return typeof value === 'function' ? value.bind(receiver) : value;
+		},
+	});
+	const calls = [];
+
+	const off = proxy.on('🦄', () => {
+		calls.push('on');
+	});
+	proxy.onAny(() => {
+		calls.push('onAny');
+	});
+	await proxy.emit('🦄');
+	t.deepEqual(calls, ['on', 'onAny']);
+
+	// Unsubscribe via the returned off() function and verify listener is removed
+	off();
+	await proxy.emit('🦄');
+	t.deepEqual(calls, ['on', 'onAny', 'onAny']);
+
+	// Verify once() resolves and auto-unsubscribes through the proxy
+	const unicornPromise = proxy.once('🦄');
+	await proxy.emit('🦄');
+	t.deepEqual(await unicornPromise, {name: '🦄'});
+	// Once() listener was removed; only the onAny listener from above remains
+	t.is(proxy.listenerCount('🦄'), 1);
+
+	// Verify clearListeners() works through the proxy
+	proxy.onAny(() => {});
+	proxy.clearListeners();
+	t.is(proxy.listenerCount(), 0);
 });
