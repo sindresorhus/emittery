@@ -406,7 +406,7 @@ export default class Emittery {
 		const staticAnyListeners = isMetaEvent(eventName) ? [] : [...anyListeners];
 
 		await resolvedPromise;
-		await Promise.all([
+		const results = await Promise.allSettled([
 			...staticListeners.map(async listener => {
 				if (listeners.has(listener)) {
 					return listener(makeEventObject(eventName, eventData, hasEventData));
@@ -418,6 +418,14 @@ export default class Emittery {
 				}
 			}),
 		]);
+
+		const errors = results
+			.filter(result => result.status === 'rejected')
+			.map(result => result.reason);
+
+		if (errors.length > 0) {
+			throw new AggregateError(errors, 'One or more listeners threw an error');
+		}
 	}
 
 	async emitSerial(eventName, eventData) {

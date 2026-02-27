@@ -1313,18 +1313,93 @@ test('emit() - returns undefined', async t => {
 	t.is(await emitter.emit('🦄🦄'), undefined);
 });
 
-test('emit() - throws an error if any listener throws', async t => {
+test('emit() - throws an AggregateError if any listener throws', async t => {
 	const emitter = new Emittery();
 
 	emitter.on('🦄', () => {
 		throw new Error('🌈');
 	});
-	await t.throwsAsync(emitter.emit('🦄'), {instanceOf: Error});
+	const error = await t.throwsAsync(emitter.emit('🦄'), {instanceOf: AggregateError});
+	t.is(error.errors.length, 1);
+	t.is(error.errors[0].message, '🌈');
 
-	emitter.on('🦄🦄', async () => {
+	const emitter2 = new Emittery();
+	emitter2.on('🦄🦄', async () => {
 		throw new Error('🌈');
 	});
-	await t.throwsAsync(emitter.emit('🦄🦄'), {instanceOf: Error});
+	const error2 = await t.throwsAsync(emitter2.emit('🦄🦄'), {instanceOf: AggregateError});
+	t.is(error2.errors.length, 1);
+	t.is(error2.errors[0].message, '🌈');
+});
+
+test('emit() - collects all listener errors into AggregateError', async t => {
+	const emitter = new Emittery();
+
+	emitter.on('🦄', () => {
+		throw new Error('first');
+	});
+	emitter.on('🦄', () => {
+		throw new Error('second');
+	});
+
+	const error = await t.throwsAsync(emitter.emit('🦄'), {instanceOf: AggregateError});
+	t.is(error.errors.length, 2);
+	const messages = new Set(error.errors.map(error_ => error_.message));
+	t.true(messages.has('first'));
+	t.true(messages.has('second'));
+});
+
+test('emit() - all listeners run even when one throws', async t => {
+	const emitter = new Emittery();
+	const executed = [];
+
+	emitter.on('🦄', () => {
+		executed.push('first');
+		throw new Error('first fails');
+	});
+	emitter.on('🦄', () => {
+		executed.push('second');
+	});
+	emitter.on('🦄', () => {
+		executed.push('third');
+	});
+
+	await t.throwsAsync(emitter.emit('🦄'), {instanceOf: AggregateError});
+	t.is(executed.length, 3);
+});
+
+test('emit() - collects errors from both on() and onAny() listeners', async t => {
+	const emitter = new Emittery();
+
+	emitter.on('🦄', () => {
+		throw new Error('regular listener error');
+	});
+	emitter.onAny(() => {
+		throw new Error('any listener error');
+	});
+
+	const error = await t.throwsAsync(emitter.emit('🦄'), {instanceOf: AggregateError});
+	t.is(error.errors.length, 2);
+	const messages = new Set(error.errors.map(error_ => error_.message));
+	t.true(messages.has('regular listener error'));
+	t.true(messages.has('any listener error'));
+});
+
+test('emit() - collects errors from both sync and async throwing listeners', async t => {
+	const emitter = new Emittery();
+
+	emitter.on('🦄', () => {
+		throw new Error('sync error');
+	});
+	emitter.on('🦄', async () => {
+		throw new Error('async error');
+	});
+
+	const error = await t.throwsAsync(emitter.emit('🦄'), {instanceOf: AggregateError});
+	t.is(error.errors.length, 2);
+	const messages = new Set(error.errors.map(error_ => error_.message));
+	t.true(messages.has('sync error'));
+	t.true(messages.has('async error'));
 });
 
 test('emitSerial()', async t => {
@@ -1347,6 +1422,34 @@ test('emitSerial()', async t => {
 	await promise;
 
 	t.deepEqual(values, [1, 2, 3, 4, 5]);
+});
+
+test('emitSerial() - throws listener error directly (not AggregateError)', async t => {
+	const emitter = new Emittery();
+
+	emitter.on('🦄', () => {
+		throw new Error('🌈');
+	});
+
+	const error = await t.throwsAsync(emitter.emitSerial('🦄'), {instanceOf: Error});
+	t.is(error.message, '🌈');
+	t.false(error instanceof AggregateError);
+});
+
+test('emitSerial() - stops on first listener error', async t => {
+	const emitter = new Emittery();
+	const executed = [];
+
+	emitter.on('🦄', () => {
+		executed.push('first');
+		throw new Error('first error');
+	});
+	emitter.on('🦄', () => {
+		executed.push('second');
+	});
+
+	await t.throwsAsync(emitter.emitSerial('🦄'), {instanceOf: Error});
+	t.deepEqual(executed, ['first']);
 });
 
 test('emitSerial() - eventName must be a string, symbol, or number', async t => {
