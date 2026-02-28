@@ -602,9 +602,54 @@ export default class Emittery<
 	/**
 	Clear all event listeners on the instance.
 
-	If `eventName` is given, only the listeners for that event are cleared.
+	If `eventNames` is given, only the listeners for those events are cleared.
 	*/
 	clearListeners<Name extends keyof EventData>(eventName?: Name | readonly Name[]): void;
+
+	/**
+	Register a function to be called when the first `.on()` listener subscribes to `eventName`. The `initFn` can optionally return a cleanup (deinit) function, which is called when the last `.on()` listener unsubscribes (or when `clearListeners()` removes all listeners for that event).
+
+	If `.on()` listeners already exist when `init()` is called, `initFn` is called immediately.
+
+	Note: Lifecycle hooks only apply to `.on()` listeners. Subscriptions via `.events()` async iterators do not trigger the init or deinit functions.
+
+	@returns An unsubscribe function. Calling it removes the init/deinit hooks, and if the init is currently active, it calls deinit immediately.
+
+	@example
+	```
+	import Emittery from 'emittery';
+
+	const emitter = new Emittery();
+
+	emitter.init('mouse', () => {
+		terminal.grabInput({mouse: 'button'});
+
+		terminal.on('mouse', (name, data) => {
+			emitter.emit('mouse', data);
+		});
+
+		return () => {
+			terminal.releaseInput();
+		};
+	});
+
+	// Init is called when the first listener subscribes
+	const off = emitter.on('mouse', handler);
+
+	// Adding more listeners does not call init again
+	emitter.on('mouse', anotherHandler);
+
+	// Removing one listener does not call deinit yet
+	off();
+
+	// Deinit is called when the last listener unsubscribes
+	emitter.off('mouse', anotherHandler);
+	```
+	*/
+	init<Name extends keyof EventData>(
+		eventName: Name,
+		initFn: () => (() => void) | void
+	): UnsubscribeFunction;
 
 	/**
 	The number of listeners for the `eventName` or all events if not specified.

@@ -2015,6 +2015,48 @@ test('clearListeners() - isDebug logs output', t => {
 	t.is(eventStore[1].debugName, 'testEmitter');
 });
 
+test('clearListeners() - debug logger throw does not skip lifecycle deinit cleanup', t => {
+	const loggerError = new Error('logger failed');
+	const emitter = new Emittery({
+		debug: {
+			name: 'testEmitter',
+			enabled: true,
+			logger(type) {
+				if (type === 'clear') {
+					throw loggerError;
+				}
+			},
+		},
+	});
+	let deinitCallCount = 0;
+	emitter.init('🦄', () => () => {
+		deinitCallCount++;
+	});
+
+	emitter.on('🦄', () => {});
+	t.throws(() => {
+		emitter.clearListeners('🦄');
+	}, {is: loggerError});
+
+	t.is(deinitCallCount, 1);
+	t.is(emitter.listenerCount('🦄'), 0);
+});
+
+test('clearListeners() - anyEvent() works after clearing all listeners', async t => {
+	const emitter = new Emittery();
+	emitter.clearListeners();
+
+	const iterator = emitter.anyEvent();
+	t.is(emitter.listenerCount(), 1);
+
+	await emitter.emit('🦄', '🌟');
+
+	const result = await Promise.race([iterator.next(), delay(50, {value: 'timeout'})]);
+	t.not(result, 'timeout');
+	t.deepEqual(result, {done: false, value: {name: '🦄', data: '🌟'}});
+	await iterator.return();
+});
+
 test('onAny() - isDebug logs output', t => {
 	const eventStore = [];
 
@@ -2165,7 +2207,7 @@ test('bindMethods() - methodNames must be array of strings or undefined', t => {
 });
 
 test('bindMethods() - must bind all methods if no array supplied', t => {
-	const methodsExpected = ['on', 'off', 'once', 'events', 'emit', 'emitSerial', 'onAny', 'anyEvent', 'offAny', 'clearListeners', 'listenerCount', 'bindMethods', 'logIfDebugEnabled'];
+	const methodsExpected = ['on', 'off', 'once', 'events', 'emit', 'emitSerial', 'onAny', 'anyEvent', 'offAny', 'clearListeners', 'init', 'listenerCount', 'bindMethods', 'logIfDebugEnabled'];
 
 	const emitter = new Emittery();
 	const target = {};
@@ -2282,7 +2324,7 @@ test('mixin() - methodNames must be array of strings or undefined', t => {
 });
 
 test('mixin() - must mixin all methods if no array supplied', t => {
-	const methodsExpected = ['on', 'off', 'once', 'events', 'emit', 'emitSerial', 'onAny', 'anyEvent', 'offAny', 'clearListeners', 'listenerCount', 'bindMethods', 'logIfDebugEnabled'];
+	const methodsExpected = ['on', 'off', 'once', 'events', 'emit', 'emitSerial', 'onAny', 'anyEvent', 'offAny', 'clearListeners', 'init', 'listenerCount', 'bindMethods', 'logIfDebugEnabled'];
 
 	class TestClass {}
 
@@ -2463,4 +2505,1420 @@ test('works through a Proxy wrapper', async t => {
 	proxy.onAny(() => {});
 	proxy.clearListeners();
 	t.is(proxy.listenerCount(), 0);
+});
+
+test('init() - calls init on first on(), deinit on last off()', t => {
+	const emitter = new Emittery();
+	const calls = [];
+
+	emitter.init('🦄', () => {
+		calls.push('init');
+		return () => {
+			calls.push('deinit');
+		};
+	});
+
+	t.deepEqual(calls, []);
+
+	const off1 = emitter.on('🦄', () => {});
+	t.deepEqual(calls, ['init']);
+
+	const off2 = emitter.on('🦄', () => {});
+	t.deepEqual(calls, ['init']); // No second init
+
+	off1();
+	t.deepEqual(calls, ['init']); // No deinit yet
+
+	off2();
+	t.deepEqual(calls, ['init', 'deinit']);
+});
+
+test('init() - no deinit if initFn returns void', t => {
+	const emitter = new Emittery();
+	const calls = [];
+
+	emitter.init('🦄', () => {
+		calls.push('init');
+	});
+
+	const off = emitter.on('🦄', () => {});
+	t.deepEqual(calls, ['init']);
+	off();
+	t.deepEqual(calls, ['init']); // No deinit
+});
+
+test('init() - called immediately if listeners already exist', t => {
+	const emitter = new Emittery();
+	const calls = [];
+
+	emitter.on('🦄', () => {});
+
+	emitter.init('🦄', () => {
+		calls.push('init');
+		return () => {
+			calls.push('deinit');
+		};
+	});
+
+	t.deepEqual(calls, ['init']);
+});
+
+test('init() - returns unsubscribe; calling it invokes deinit and removes hooks', t => {
+	const emitter = new Emittery();
+	const calls = [];
+
+	const removeInit = emitter.init('🦄', () => {
+		calls.push('init');
+		return () => {
+			calls.push('deinit');
+		};
+	});
+
+	emitter.on('🦄', () => {});
+	t.deepEqual(calls, ['init']);
+
+	removeInit(); // Should call deinit and remove the hooks
+	t.deepEqual(calls, ['init', 'deinit']);
+
+	// Adding a new listener after removeInit() should NOT call init again
+	emitter.on('🦄', () => {});
+	t.deepEqual(calls, ['init', 'deinit']);
+});
+
+test('init() - clearListeners() triggers deinit', t => {
+	const emitter = new Emittery();
+	const calls = [];
+
+	emitter.init('🦄', () => {
+		calls.push('init');
+		return () => {
+			calls.push('deinit');
+		};
+	});
+
+	emitter.on('🦄', () => {});
+	t.deepEqual(calls, ['init']);
+
+	emitter.clearListeners('🦄');
+	t.deepEqual(calls, ['init', 'deinit']);
+});
+
+test('init() - clearListeners() with no arg triggers deinit for all events', t => {
+	const emitter = new Emittery();
+	const calls = [];
+
+	emitter.init('🦄', () => {
+		calls.push('init:unicorn');
+		return () => {
+			calls.push('deinit:unicorn');
+		};
+	});
+
+	emitter.init('🌈', () => {
+		calls.push('init:rainbow');
+		return () => {
+			calls.push('deinit:rainbow');
+		};
+	});
+
+	emitter.on('🦄', () => {});
+	emitter.on('🌈', () => {});
+	t.deepEqual(calls, ['init:unicorn', 'init:rainbow']);
+
+	emitter.clearListeners();
+	t.deepEqual(calls, ['init:unicorn', 'init:rainbow', 'deinit:unicorn', 'deinit:rainbow']);
+});
+
+test('init() - throws if registered twice for same event', t => {
+	const emitter = new Emittery();
+
+	emitter.init('🦄', () => {});
+
+	t.throws(() => {
+		emitter.init('🦄', () => {});
+	}, {instanceOf: Error});
+});
+
+test('init() - throws for meta event names', t => {
+	const emitter = new Emittery();
+
+	t.throws(() => {
+		emitter.init(Emittery.listenerAdded, () => {});
+	}, {instanceOf: TypeError});
+
+	t.throws(() => {
+		emitter.init(Emittery.listenerRemoved, () => {});
+	}, {instanceOf: TypeError});
+});
+
+test('init() - throws if initFn is not a function', t => {
+	const emitter = new Emittery();
+
+	t.throws(() => {
+		emitter.init('🦄', 'notAFunction');
+	}, {instanceOf: TypeError});
+});
+
+test('init() - duplicate listener does not trigger init again', t => {
+	const emitter = new Emittery();
+	const calls = [];
+
+	emitter.init('🦄', () => {
+		calls.push('init');
+		return () => {
+			calls.push('deinit');
+		};
+	});
+
+	const listener = () => {};
+	emitter.on('🦄', listener);
+	t.deepEqual(calls, ['init']);
+
+	// Adding the same listener again is a no-op; init must not fire again
+	emitter.on('🦄', listener);
+	t.deepEqual(calls, ['init']);
+});
+
+test('init() - once().off() (manual cancel) triggers deinit', t => {
+	const emitter = new Emittery();
+	const calls = [];
+
+	emitter.init('🦄', () => {
+		calls.push('init');
+		return () => {
+			calls.push('deinit');
+		};
+	});
+
+	const promise = emitter.once('🦄');
+	t.deepEqual(calls, ['init']);
+
+	// Cancel before the event fires — deinit must run since no listeners remain
+	promise.off();
+	t.deepEqual(calls, ['init', 'deinit']);
+});
+
+test('init() - works with once() (deinit fires when once-listener auto-removes)', async t => {
+	const emitter = new Emittery();
+	const calls = [];
+
+	emitter.init('🦄', () => {
+		calls.push('init');
+		return () => {
+			calls.push('deinit');
+		};
+	});
+
+	const promise = emitter.once('🦄');
+	t.deepEqual(calls, ['init']);
+
+	await emitter.emit('🦄', '🌈');
+	await promise;
+	t.deepEqual(calls, ['init', 'deinit']);
+});
+
+test('init() - clearListeners() then on() triggers init again', t => {
+	const emitter = new Emittery();
+	const calls = [];
+
+	emitter.init('🦄', () => {
+		calls.push('init');
+		return () => {
+			calls.push('deinit');
+		};
+	});
+
+	const off = emitter.on('🦄', () => {});
+	t.deepEqual(calls, ['init']);
+
+	emitter.clearListeners('🦄');
+	t.deepEqual(calls, ['init', 'deinit']);
+
+	// The lifecycle hook is still registered — a new listener should trigger init again
+	emitter.on('🦄', () => {});
+	t.deepEqual(calls, ['init', 'deinit', 'init']);
+
+	off(); // Off() for an already-cleared listener is a no-op (set doesn't have it)
+	t.deepEqual(calls, ['init', 'deinit', 'init']); // Deinit not called again
+});
+
+test('init() - can be re-registered after unsubscribing the hook', t => {
+	const emitter = new Emittery();
+	const calls = [];
+
+	const removeInit = emitter.init('🦄', () => {
+		calls.push('init1');
+	});
+
+	const off = emitter.on('🦄', () => {});
+	t.deepEqual(calls, ['init1']);
+
+	removeInit(); // Hook removed; init1 had no deinit
+
+	// Re-register for the same event; fires immediately since a listener is still active
+	emitter.init('🦄', () => {
+		calls.push('init2');
+		return () => {
+			calls.push('deinit2');
+		};
+	});
+	t.deepEqual(calls, ['init1', 'init2']);
+
+	off(); // Last listener removed → deinit2 fires
+	t.deepEqual(calls, ['init1', 'init2', 'deinit2']);
+});
+
+test('init() - works with on() using array of event names', t => {
+	const emitter = new Emittery();
+	const calls = [];
+
+	emitter.init('🦄', () => {
+		calls.push('init:unicorn');
+		return () => {
+			calls.push('deinit:unicorn');
+		};
+	});
+
+	emitter.init('🌈', () => {
+		calls.push('init:rainbow');
+		return () => {
+			calls.push('deinit:rainbow');
+		};
+	});
+
+	// Single listener subscribed to both events
+	const off = emitter.on(['🦄', '🌈'], () => {});
+	t.deepEqual(calls, ['init:unicorn', 'init:rainbow']);
+
+	off();
+	t.deepEqual(calls, ['init:unicorn', 'init:rainbow', 'deinit:unicorn', 'deinit:rainbow']);
+});
+
+test('init() - abort signal triggers deinit when signal aborts', t => {
+	const emitter = new Emittery();
+	const calls = [];
+
+	emitter.init('🦄', () => {
+		calls.push('init');
+		return () => {
+			calls.push('deinit');
+		};
+	});
+
+	const abortController = new AbortController();
+	emitter.on('🦄', () => {}, {signal: abortController.signal});
+	t.deepEqual(calls, ['init']);
+
+	abortController.abort();
+	t.deepEqual(calls, ['init', 'deinit']);
+});
+
+test('init() - events() iterator does not trigger lifecycle', async t => {
+	const emitter = new Emittery();
+	const calls = [];
+
+	emitter.init('🦄', () => {
+		calls.push('init');
+		return () => {
+			calls.push('deinit');
+		};
+	});
+
+	// Events() registers a producer, not a listener — lifecycle must not fire
+	const iterator = emitter.events('🦄');
+	t.deepEqual(calls, []);
+
+	await iterator.return();
+	t.deepEqual(calls, []); // Deinit also never fires
+});
+
+test('init() - initFn throwing during on() rolls back the listener', t => {
+	const emitter = new Emittery();
+	const error = new Error('init failed');
+	const calls = [];
+
+	emitter.init('🦄', () => {
+		calls.push('init');
+		throw error;
+	});
+
+	t.throws(() => {
+		emitter.on('🦄', () => {});
+	}, {is: error});
+
+	t.deepEqual(calls, ['init']);
+	t.is(emitter.listenerCount('🦄'), 0); // Listener rolled back
+	t.is(eventsMap.get(emitter).get('🦄'), undefined);
+});
+
+test('init() - initFn throwing during on() with event name array rolls back earlier subscriptions', t => {
+	const emitter = new Emittery();
+	const error = new Error('init failed');
+	const calls = [];
+	const listener = () => {};
+
+	emitter.init('🦄', () => {
+		calls.push('init:unicorn');
+		return () => {
+			calls.push('deinit:unicorn');
+		};
+	});
+
+	emitter.init('🌈', () => {
+		calls.push('init:rainbow');
+		throw error;
+	});
+
+	t.throws(() => {
+		emitter.on(['🦄', '🌈'], listener);
+	}, {is: error});
+
+	t.deepEqual(calls, ['init:unicorn', 'init:rainbow', 'deinit:unicorn']);
+	t.is(emitter.listenerCount('🦄'), 0);
+	t.is(emitter.listenerCount('🌈'), 0);
+	t.is(eventsMap.get(emitter).get('🦄'), undefined);
+	t.is(eventsMap.get(emitter).get('🌈'), undefined);
+});
+
+test('init() - failed on() with event name array keeps pre-existing listener subscriptions', t => {
+	const emitter = new Emittery();
+	const error = new Error('init failed');
+	const listener = () => {};
+
+	emitter.on('🦄', listener);
+	emitter.init('🌈', () => {
+		throw error;
+	});
+
+	t.throws(() => {
+		emitter.on(['🦄', '🌈'], listener);
+	}, {is: error});
+
+	t.is(emitter.listenerCount('🦄'), 1);
+	t.true(eventsMap.get(emitter).get('🦄').has(listener));
+	t.is(emitter.listenerCount('🌈'), 0);
+	t.is(eventsMap.get(emitter).get('🌈'), undefined);
+});
+
+test('init() - rollback keeps running and throws original error when deinit throws', t => {
+	const emitter = new Emittery();
+	const initError = new Error('init failed');
+	const deinitError = new Error('deinit failed');
+	const listener = () => {};
+
+	emitter.init('🦄', () => () => {
+		throw deinitError;
+	});
+
+	emitter.init('🌈', () => () => {});
+
+	emitter.init('🦊', () => {
+		throw initError;
+	});
+
+	t.throws(() => {
+		emitter.on(['🦄', '🌈', '🦊'], listener);
+	}, {is: initError});
+
+	t.is(emitter.listenerCount('🦄'), 0);
+	t.is(emitter.listenerCount('🌈'), 0);
+	t.is(eventsMap.get(emitter).get('🦄'), undefined);
+	t.is(eventsMap.get(emitter).get('🌈'), undefined);
+});
+
+test('init() - rollback removes same-listener re-subscription triggered by deinit', t => {
+	const emitter = new Emittery();
+	const initError = new Error('init failed');
+	const listener = () => {};
+
+	emitter.init('🦄', () => () => {
+		emitter.on('🦄', listener);
+	});
+
+	emitter.init('🌈', () => {
+		throw initError;
+	});
+
+	t.throws(() => {
+		emitter.on(['🦄', '🌈'], listener);
+	}, {is: initError});
+
+	t.is(emitter.listenerCount('🦄'), 0);
+	t.is(eventsMap.get(emitter).get('🦄'), undefined);
+});
+
+test('init() - rollback does not emit listenerRemoved for already-removed event entry', async t => {
+	const emitter = new Emittery();
+	const initError = new Error('init failed');
+	const listener = () => {};
+	const removedEventNames = [];
+
+	emitter.on(Emittery.listenerRemoved, ({data}) => {
+		if (data.eventName) {
+			removedEventNames.push(data.eventName);
+		}
+	});
+
+	emitter.init('🦄', () => () => {
+		emitter.off('🌈', listener);
+	});
+
+	emitter.init('🌈', () => () => {});
+
+	emitter.init('🦊', () => {
+		throw initError;
+	});
+
+	t.throws(() => {
+		emitter.on(['🦄', '🌈', '🦊'], listener);
+	}, {is: initError});
+
+	await Promise.resolve();
+	t.deepEqual(removedEventNames, ['🌈', '🦄']);
+});
+
+test('init() - rollback still emits listenerRemoved when debug logger throws', async t => {
+	const initError = new Error('init failed');
+	const listener = () => {};
+	const removedEventNames = [];
+	const emitter = new Emittery({
+		debug: {
+			enabled: true,
+			logger(type) {
+				if (type === 'unsubscribe') {
+					throw new Error('debug failed');
+				}
+			},
+		},
+	});
+
+	emitter.on(Emittery.listenerRemoved, ({data}) => {
+		if (data.eventName) {
+			removedEventNames.push(data.eventName);
+		}
+	});
+
+	emitter.init('🦄', () => () => {});
+	emitter.init('🌈', () => {
+		throw initError;
+	});
+
+	t.throws(() => {
+		emitter.on(['🦄', '🌈'], listener);
+	}, {is: initError});
+
+	await Promise.resolve();
+	t.deepEqual(removedEventNames, ['🦄']);
+});
+
+test('init() - initFn returning a non-function is silently ignored', t => {
+	const emitter = new Emittery();
+
+	emitter.init('🦄', () => 42); // Returns a number, not a function or void
+
+	const off = emitter.on('🦄', () => {});
+	t.notThrows(() => off()); // Must not throw — no deinitFn stored
+	t.is(emitter.listenerCount('🦄'), 0);
+});
+
+test('init() - immediate init throw does not keep a broken registration', t => {
+	const emitter = new Emittery();
+	const error = new Error('init failed');
+
+	emitter.on('🦄', () => {});
+
+	t.throws(() => {
+		emitter.init('🦄', () => {
+			throw error;
+		});
+	}, {is: error});
+
+	t.notThrows(() => {
+		emitter.init('🦄', () => {});
+	});
+});
+
+test('init() - clearListeners(eventName) runs deinit after listeners are removed', t => {
+	const emitter = new Emittery();
+	const listenerCountsSeenInDeinit = [];
+
+	emitter.init('🦄', () => () => {
+		listenerCountsSeenInDeinit.push(emitter.listenerCount('🦄'));
+	});
+
+	emitter.on('🦄', () => {});
+	emitter.clearListeners('🦄');
+
+	t.deepEqual(listenerCountsSeenInDeinit, [0]);
+	t.is(emitter.listenerCount('🦄'), 0);
+});
+
+test('init() - clearListeners(eventName) stays cleared if deinit re-subscribes', t => {
+	const emitter = new Emittery();
+	let deinitCallCount = 0;
+
+	emitter.init('🦄', () => () => {
+		deinitCallCount++;
+		emitter.on('🦄', () => {});
+	});
+
+	emitter.on('🦄', () => {});
+	emitter.clearListeners('🦄');
+
+	t.is(deinitCallCount, 1);
+	t.is(emitter.listenerCount('🦄'), 0);
+});
+
+test('init() - clearListeners() runs deinit after listeners are removed for each event', t => {
+	const emitter = new Emittery();
+	const listenerCountsSeenInDeinit = [];
+
+	emitter.init('🦄', () => () => {
+		listenerCountsSeenInDeinit.push(['🦄', emitter.listenerCount('🦄')]);
+	});
+
+	emitter.init('🌈', () => () => {
+		listenerCountsSeenInDeinit.push(['🌈', emitter.listenerCount('🌈')]);
+	});
+
+	emitter.on('🦄', () => {});
+	emitter.on('🌈', () => {});
+	emitter.clearListeners();
+
+	t.deepEqual(listenerCountsSeenInDeinit, [['🦄', 0], ['🌈', 0]]);
+});
+
+test('init() - clearListeners() stays cleared if deinit re-subscribes onAny()', t => {
+	const emitter = new Emittery();
+
+	emitter.init('🦄', () => () => {
+		emitter.onAny(() => {});
+	});
+
+	emitter.on('🦄', () => {});
+	emitter.clearListeners();
+
+	t.is(emitter.listenerCount(), 0);
+});
+
+test('init() - clearListeners() stays cleared if deinit re-subscribes to a different event', t => {
+	const emitter = new Emittery();
+
+	emitter.init('🦄', () => () => {
+		emitter.on('🌈', () => {});
+	});
+
+	emitter.on('🦄', () => {});
+	emitter.clearListeners();
+
+	t.is(emitter.listenerCount(), 0);
+	t.false(eventsMap.get(emitter).has('🌈'));
+});
+
+test('init() - clearListeners(eventName) does not re-enter deinit via removeInit()', t => {
+	const emitter = new Emittery();
+	let deinitCallCount = 0;
+	const removeInit = emitter.init('🦄', () => () => {
+		deinitCallCount++;
+		if (deinitCallCount === 1) {
+			removeInit();
+		}
+	});
+
+	emitter.on('🦄', () => {});
+	emitter.clearListeners('🦄');
+
+	t.is(deinitCallCount, 1);
+});
+
+test('init() - removeInit() does not re-enter deinit cleanup', t => {
+	const emitter = new Emittery();
+	let deinitCallCount = 0;
+	const listener = () => {};
+
+	const removeInit = emitter.init('🦄', () => () => {
+		deinitCallCount++;
+		if (deinitCallCount === 1) {
+			emitter.off('🦄', listener);
+		}
+	});
+
+	emitter.on('🦄', listener);
+	removeInit();
+
+	t.is(deinitCallCount, 1);
+});
+
+test('init() - clearListeners(eventName) does not leak deinit emissions to events() iterators', async t => {
+	const emitter = new Emittery();
+	emitter.init('🦄', () => () => {
+		emitter.emit('🦄', 'from-deinit');
+	});
+
+	const iterator = emitter.events('🦄');
+	emitter.on('🦄', () => {});
+	emitter.clearListeners('🦄');
+
+	t.deepEqual(await iterator.next(), {done: true});
+});
+
+test('init() - clearListeners() does not leak deinit emissions to anyEvent() iterators', async t => {
+	const emitter = new Emittery();
+	emitter.init('🦄', () => () => {
+		emitter.emit('🦄', 'from-deinit');
+	});
+
+	emitter.on('🦄', () => {});
+	const anyIterator = emitter.anyEvent();
+	emitter.clearListeners();
+
+	t.deepEqual(await anyIterator.next(), {done: true});
+});
+
+test('init() - clearListeners(eventName) blocks deinit emissions for iterators created in deinit', async t => {
+	const emitter = new Emittery();
+	let iteratorCreatedInDeinit;
+	emitter.init('🦄', () => () => {
+		iteratorCreatedInDeinit = emitter.events('🦄');
+		emitter.emit('🦄', 'from-deinit');
+	});
+
+	emitter.on('🦄', () => {});
+	emitter.clearListeners('🦄');
+
+	t.truthy(iteratorCreatedInDeinit);
+	t.deepEqual(await iteratorCreatedInDeinit.next(), {done: true});
+});
+
+test('init() - clearListeners() blocks deinit emissions for anyEvent() iterators created in deinit', async t => {
+	const emitter = new Emittery();
+	let iteratorCreatedInDeinit;
+	emitter.init('🦄', () => () => {
+		iteratorCreatedInDeinit = emitter.anyEvent();
+		emitter.emit('🦄', 'from-deinit');
+	});
+
+	emitter.on('🦄', () => {});
+	emitter.clearListeners();
+
+	t.truthy(iteratorCreatedInDeinit);
+	t.deepEqual(await iteratorCreatedInDeinit.next(), {done: true});
+});
+
+test('init() - removeInit() unregisters lifecycle even if deinit throws', t => {
+	const emitter = new Emittery();
+	const deinitError = new Error('deinit failed');
+	let initCallCount = 0;
+
+	const removeInit = emitter.init('🦄', () => {
+		initCallCount++;
+		return () => {
+			throw deinitError;
+		};
+	});
+
+	const off = emitter.on('🦄', () => {});
+	t.is(initCallCount, 1);
+
+	t.throws(() => {
+		removeInit();
+	}, {is: deinitError});
+
+	off();
+	emitter.on('🦄', () => {});
+	t.is(initCallCount, 1);
+});
+
+test('init() - clearListeners(eventName) suppression does not block other events', async t => {
+	const emitter = new Emittery();
+	emitter.init('🦄', () => () => {
+		emitter.emit('🌈', 'from-deinit');
+	});
+
+	emitter.on('🦄', () => {});
+	const anyIterator = emitter.anyEvent();
+	emitter.clearListeners('🦄');
+
+	t.deepEqual(await anyIterator.next(), {done: false, value: {name: '🌈', data: 'from-deinit'}});
+	await anyIterator.return();
+});
+
+test('init() - clearListeners(eventName) restores enqueue behavior when deinit throws', async t => {
+	const emitter = new Emittery();
+	const deinitError = new Error('deinit failed');
+	emitter.init('🦄', () => () => {
+		throw deinitError;
+	});
+
+	emitter.on('🦄', () => {});
+	t.throws(() => {
+		emitter.clearListeners('🦄');
+	}, {is: deinitError});
+
+	const iterator = emitter.events('🦄');
+	await emitter.emit('🦄', 'after-throw');
+	t.deepEqual(await iterator.next(), {done: false, value: {name: '🦄', data: 'after-throw'}});
+	await iterator.return();
+});
+
+test('init() - clearListeners() restores enqueue behavior when deinit throws', async t => {
+	const emitter = new Emittery();
+	const deinitError = new Error('deinit failed');
+	emitter.init('🦄', () => () => {
+		throw deinitError;
+	});
+
+	emitter.on('🦄', () => {});
+	t.throws(() => {
+		emitter.clearListeners();
+	}, {is: deinitError});
+
+	const anyIterator = emitter.anyEvent();
+	const rainbowIterator = emitter.events('🌈');
+	await emitter.emit('🌈', 'after-throw');
+	t.deepEqual(await anyIterator.next(), {done: false, value: {name: '🌈', data: 'after-throw'}});
+	t.deepEqual(await rainbowIterator.next(), {done: false, value: {name: '🌈', data: 'after-throw'}});
+	await anyIterator.return();
+	await rainbowIterator.return();
+});
+
+test('init() - clearListeners(eventName) rethrows falsy deinit throw values', t => {
+	const emitter = new Emittery();
+	const throwValue = value => {
+		throw value;
+	};
+
+	emitter.init('🦄', () => () => {
+		throwValue(0);
+	});
+
+	emitter.on('🦄', () => {});
+	let thrownError = Symbol('not-thrown');
+	try {
+		emitter.clearListeners('🦄');
+	} catch (error) {
+		thrownError = error;
+	}
+
+	t.is(thrownError, 0);
+	t.is(emitter.listenerCount('🦄'), 0);
+});
+
+test('init() - clearListeners(eventName) stays authoritative when deinit re-subscribes and throws', t => {
+	const emitter = new Emittery();
+	const deinitError = new Error('deinit failed');
+	emitter.init('🦄', () => () => {
+		emitter.on('🦄', () => {});
+		throw deinitError;
+	});
+
+	emitter.on('🦄', () => {});
+	t.throws(() => {
+		emitter.clearListeners('🦄');
+	}, {is: deinitError});
+
+	t.is(emitter.listenerCount('🦄'), 0);
+	t.false(eventsMap.get(emitter).has('🦄'));
+});
+
+test('init() - clearListeners() stays authoritative when deinit re-subscribes and throws', t => {
+	const emitter = new Emittery();
+	const deinitError = new Error('deinit failed');
+	emitter.init('🦄', () => () => {
+		emitter.on('🦄', () => {});
+		throw deinitError;
+	});
+
+	emitter.on('🦄', () => {});
+	t.throws(() => {
+		emitter.clearListeners();
+	}, {is: deinitError});
+
+	t.is(emitter.listenerCount('🦄'), 0);
+	t.false(eventsMap.get(emitter).has('🦄'));
+});
+
+test('init() - clearListeners() stays authoritative when later deinit re-subscribes earlier event and throws', t => {
+	const emitter = new Emittery();
+	const deinitError = new Error('deinit failed');
+	emitter.init('🦄', () => () => {});
+	emitter.init('🌈', () => () => {
+		emitter.on('🦄', () => {});
+		throw deinitError;
+	});
+
+	emitter.on('🦄', () => {});
+	emitter.on('🌈', () => {});
+	t.throws(() => {
+		emitter.clearListeners();
+	}, {is: deinitError});
+
+	t.is(emitter.listenerCount('🦄'), 0);
+	t.is(emitter.listenerCount('🌈'), 0);
+	t.is(emitter.listenerCount(), 0);
+	t.false(eventsMap.get(emitter).has('🦄'));
+	t.false(eventsMap.get(emitter).has('🌈'));
+});
+
+test('init() - clearListeners() continues deinit for later events when earlier deinit throws', t => {
+	const emitter = new Emittery();
+	const deinitError = new Error('deinit failed');
+	let rainbowInitCallCount = 0;
+	let rainbowDeinitCallCount = 0;
+
+	emitter.init('🦄', () => () => {
+		throw deinitError;
+	});
+
+	emitter.init('🌈', () => {
+		rainbowInitCallCount++;
+		if (rainbowInitCallCount === 1) {
+			return () => {
+				rainbowDeinitCallCount++;
+			};
+		}
+	});
+
+	emitter.on('🦄', () => {});
+	emitter.on('🌈', () => {});
+	t.throws(() => {
+		emitter.clearListeners();
+	}, {is: deinitError});
+	t.is(rainbowDeinitCallCount, 1);
+
+	const offRainbow = emitter.on('🌈', () => {});
+	offRainbow();
+
+	t.is(rainbowInitCallCount, 2);
+	t.is(rainbowDeinitCallCount, 1);
+});
+
+test('init() - clearListeners([...]) continues deinit for later events when earlier deinit throws', t => {
+	const emitter = new Emittery();
+	const deinitError = new Error('deinit failed');
+	let rainbowInitCallCount = 0;
+	let rainbowDeinitCallCount = 0;
+
+	emitter.init('🦄', () => () => {
+		throw deinitError;
+	});
+
+	emitter.init('🌈', () => {
+		rainbowInitCallCount++;
+		if (rainbowInitCallCount === 1) {
+			return () => {
+				rainbowDeinitCallCount++;
+			};
+		}
+	});
+
+	emitter.on('🦄', () => {});
+	emitter.on('🌈', () => {});
+	t.throws(() => {
+		emitter.clearListeners(['🦄', '🌈']);
+	}, {is: deinitError});
+	t.is(rainbowDeinitCallCount, 1);
+
+	const offRainbow = emitter.on('🌈', () => {});
+	offRainbow();
+
+	t.is(rainbowInitCallCount, 2);
+	t.is(rainbowDeinitCallCount, 1);
+});
+
+test('init() - clearListeners([...]) suppresses deinit emissions for each cleared event', async t => {
+	const emitter = new Emittery();
+	let unicornDeinitCount = 0;
+	let rainbowDeinitCount = 0;
+	emitter.init('🦄', () => () => {
+		unicornDeinitCount++;
+		emitter.emit('🦄', 'from-deinit');
+	});
+	emitter.init('🌈', () => () => {
+		rainbowDeinitCount++;
+		emitter.emit('🌈', 'from-deinit');
+	});
+
+	const unicornIterator = emitter.events('🦄');
+	const rainbowIterator = emitter.events('🌈');
+	emitter.on('🦄', () => {});
+	emitter.on('🌈', () => {});
+	emitter.clearListeners(['🦄', '🌈']);
+
+	t.is(unicornDeinitCount, 1);
+	t.is(rainbowDeinitCount, 1);
+	t.deepEqual(await unicornIterator.next(), {done: true});
+	t.deepEqual(await rainbowIterator.next(), {done: true});
+});
+
+test('init() - clearListeners(eventName) does not leave reinitialized lifecycle active', t => {
+	const emitter = new Emittery();
+	let activeLifecycleCount = 0;
+
+	emitter.init('🦄', () => {
+		activeLifecycleCount++;
+		return () => {
+			activeLifecycleCount--;
+			emitter.on('🦄', () => {});
+		};
+	});
+
+	emitter.on('🦄', () => {});
+	emitter.clearListeners('🦄');
+
+	t.is(emitter.listenerCount('🦄'), 0);
+	t.is(activeLifecycleCount, 0);
+});
+
+test('init() - clearListeners([...]) suppresses cross-event deinit emissions', async t => {
+	const emitter = new Emittery();
+	emitter.init('🦄', () => () => {
+		emitter.emit('🌈', 'cross-event');
+	});
+
+	const rainbowIterator = emitter.events('🌈');
+	emitter.on('🦄', () => {});
+	emitter.on('🌈', () => {});
+	emitter.clearListeners(['🦄', '🌈']);
+
+	t.deepEqual(await rainbowIterator.next(), {done: true});
+});
+
+test('init() - clearListeners([...]) stays authoritative when later deinit re-subscribes earlier event', t => {
+	const emitter = new Emittery();
+	emitter.init('🦄', () => () => {});
+	emitter.init('🌈', () => () => {
+		emitter.on('🦄', () => {});
+	});
+
+	emitter.on('🦄', () => {});
+	emitter.on('🌈', () => {});
+	emitter.clearListeners(['🦄', '🌈']);
+
+	t.is(emitter.listenerCount('🦄'), 0);
+	t.is(emitter.listenerCount('🌈'), 0);
+});
+
+test('clearListeners(eventName) - removes eventsMap entry', t => {
+	const emitter = new Emittery();
+	emitter.on('🦄', () => {});
+	t.truthy(eventsMap.get(emitter).has('🦄'));
+
+	emitter.clearListeners('🦄');
+	t.false(eventsMap.get(emitter).has('🦄'));
+});
+
+test('clearListeners() - handles large event name arrays without stack overflow', t => {
+	const emitter = new Emittery();
+	const eventNames = Array.from({length: 5000}, (_, index) => `event-${index}`);
+
+	t.notThrows(() => {
+		emitter.clearListeners(eventNames);
+	});
+});
+
+test('init() - removeInit() called twice is safe', t => {
+	const emitter = new Emittery();
+	let deinitCallCount = 0;
+
+	const removeInit = emitter.init('🦄', () => () => {
+		deinitCallCount++;
+	});
+
+	emitter.on('🦄', () => {});
+	removeInit();
+	t.is(deinitCallCount, 1);
+
+	// Second call is a no-op
+	removeInit();
+	t.is(deinitCallCount, 1);
+});
+
+test('init() - removeInit() called twice after re-registration does not delete new lifecycle', t => {
+	const emitter = new Emittery();
+	const calls = [];
+
+	const removeInit1 = emitter.init('🦄', () => {
+		calls.push('init1');
+		return () => {
+			calls.push('deinit1');
+		};
+	});
+
+	emitter.on('🦄', () => {});
+	t.deepEqual(calls, ['init1']);
+
+	removeInit1();
+	t.deepEqual(calls, ['init1', 'deinit1']);
+
+	// Re-register a new lifecycle for the same event
+	emitter.init('🦄', () => {
+		calls.push('init2');
+		return () => {
+			calls.push('deinit2');
+		};
+	});
+
+	emitter.on('🦄', () => {});
+	t.deepEqual(calls, ['init1', 'deinit1', 'init2']);
+
+	// Calling the OLD removeInit again must NOT delete the new lifecycle
+	removeInit1();
+	t.deepEqual(calls, ['init1', 'deinit1', 'init2']); // No deinit2
+
+	// Prove the new lifecycle is still active by clearing all listeners
+	emitter.clearListeners('🦄');
+	t.deepEqual(calls, ['init1', 'deinit1', 'init2', 'deinit2']);
+});
+
+test('init() - deinitFn throwing during off() still removes the listener', t => {
+	const emitter = new Emittery();
+	const deinitError = new Error('deinit failed');
+
+	emitter.init('🦄', () => () => {
+		throw deinitError;
+	});
+
+	const listener = () => {};
+	emitter.on('🦄', listener);
+	t.is(emitter.listenerCount('🦄'), 1);
+
+	t.throws(() => {
+		emitter.off('🦄', listener);
+	}, {is: deinitError});
+
+	// Listener was removed despite the throw
+	t.is(emitter.listenerCount('🦄'), 0);
+});
+
+test('init() - works with Symbol event names', t => {
+	const emitter = new Emittery();
+	const myEvent = Symbol('myEvent');
+	const calls = [];
+
+	emitter.init(myEvent, () => {
+		calls.push('init');
+		return () => {
+			calls.push('deinit');
+		};
+	});
+
+	const off = emitter.on(myEvent, () => {});
+	t.deepEqual(calls, ['init']);
+
+	off();
+	t.deepEqual(calls, ['init', 'deinit']);
+});
+
+test('init() - works with number event names', t => {
+	const emitter = new Emittery();
+	const calls = [];
+
+	emitter.init(42, () => {
+		calls.push('init');
+		return () => {
+			calls.push('deinit');
+		};
+	});
+
+	const off = emitter.on(42, () => {});
+	t.deepEqual(calls, ['init']);
+
+	off();
+	t.deepEqual(calls, ['init', 'deinit']);
+});
+
+test('init() - multiple inits, off() for one event only triggers that deinit', t => {
+	const emitter = new Emittery();
+	const calls = [];
+
+	emitter.init('🦄', () => {
+		calls.push('init:unicorn');
+		return () => {
+			calls.push('deinit:unicorn');
+		};
+	});
+
+	emitter.init('🌈', () => {
+		calls.push('init:rainbow');
+		return () => {
+			calls.push('deinit:rainbow');
+		};
+	});
+
+	const offUnicorn = emitter.on('🦄', () => {});
+	emitter.on('🌈', () => {});
+	t.deepEqual(calls, ['init:unicorn', 'init:rainbow']);
+
+	offUnicorn();
+	t.deepEqual(calls, ['init:unicorn', 'init:rainbow', 'deinit:unicorn']);
+	// Rainbow deinit NOT called — still has a listener
+});
+
+test('init() - listenerAdded meta event still fires when init is registered', async t => {
+	const emitter = new Emittery();
+	const events = [];
+
+	emitter.on(Emittery.listenerAdded, ({data}) => {
+		if (data.eventName === '🦄') {
+			events.push('listenerAdded');
+		}
+	});
+
+	emitter.init('🦄', () => {
+		events.push('init');
+	});
+
+	emitter.on('🦄', () => {});
+
+	// Init fires synchronously, listenerAdded fires asynchronously
+	t.deepEqual(events, ['init']);
+	await Promise.resolve();
+	t.deepEqual(events, ['init', 'listenerAdded']);
+});
+
+test('init() - listenerRemoved meta event still fires when deinit runs', async t => {
+	const emitter = new Emittery();
+	const events = [];
+
+	emitter.on(Emittery.listenerRemoved, ({data}) => {
+		if (data.eventName === '🦄') {
+			events.push('listenerRemoved');
+		}
+	});
+
+	emitter.init('🦄', () => () => {
+		events.push('deinit');
+	});
+
+	const off = emitter.on('🦄', () => {});
+	off();
+
+	// Deinit fires synchronously, listenerRemoved fires asynchronously
+	t.deepEqual(events, ['deinit']);
+	await Promise.resolve();
+	t.deepEqual(events, ['deinit', 'listenerRemoved']);
+});
+
+test('init() - async initFn silently discards the resolved cleanup function', async t => {
+	const emitter = new Emittery();
+	const calls = [];
+
+	emitter.init('🦄', async () => {
+		calls.push('init');
+		return () => {
+			calls.push('deinit');
+		};
+	});
+
+	const off = emitter.on('🦄', () => {});
+	// An async initFn returns a Promise instance (typeof 'object'),
+	// so the resolved cleanup function is never stored as deinitFn.
+	t.deepEqual(calls, ['init']);
+
+	// Let the promise settle to confirm the cleanup is truly discarded
+	await Promise.resolve();
+
+	off();
+	// Deinit is never called even after the promise resolved
+	t.deepEqual(calls, ['init']);
+});
+
+test('init() - once() with predicate keeps lifecycle active until predicate matches', async t => {
+	const emitter = new Emittery();
+	const calls = [];
+
+	emitter.init('🦄', () => {
+		calls.push('init');
+		return () => {
+			calls.push('deinit');
+		};
+	});
+
+	const promise = emitter.once('🦄', ({data}) => data === '🌈');
+	t.deepEqual(calls, ['init']);
+
+	// Non-matching emit — listener stays, no deinit
+	await emitter.emit('🦄', '❌');
+	t.deepEqual(calls, ['init']);
+
+	// Matching emit — listener self-removes, deinit fires
+	await emitter.emit('🦄', '🌈');
+	await promise;
+	t.deepEqual(calls, ['init', 'deinit']);
+});
+
+test('init() - works through a Proxy wrapper', t => {
+	const emitter = new Emittery();
+	const proxy = new Proxy(emitter, {});
+	const calls = [];
+
+	proxy.init('🦄', () => {
+		calls.push('init');
+		return () => {
+			calls.push('deinit');
+		};
+	});
+
+	const off = proxy.on('🦄', () => {});
+	t.deepEqual(calls, ['init']);
+
+	off();
+	t.deepEqual(calls, ['init', 'deinit']);
+});
+
+test('init() - onAny() does not trigger lifecycle', t => {
+	const emitter = new Emittery();
+	const calls = [];
+
+	emitter.init('🦄', () => {
+		calls.push('init');
+		return () => {
+			calls.push('deinit');
+		};
+	});
+
+	const offAny = emitter.onAny(() => {});
+	t.deepEqual(calls, []);
+
+	offAny();
+	t.deepEqual(calls, []);
+});
+
+test('init() - full re-init cycle via off()', t => {
+	const emitter = new Emittery();
+	const calls = [];
+
+	emitter.init('🦄', () => {
+		calls.push('init');
+		return () => {
+			calls.push('deinit');
+		};
+	});
+
+	const off1 = emitter.on('🦄', () => {});
+	t.deepEqual(calls, ['init']);
+
+	off1();
+	t.deepEqual(calls, ['init', 'deinit']);
+
+	// Second cycle
+	const off2 = emitter.on('🦄', () => {});
+	t.deepEqual(calls, ['init', 'deinit', 'init']);
+
+	off2();
+	t.deepEqual(calls, ['init', 'deinit', 'init', 'deinit']);
+});
+
+test('init() - once() with multiple event names triggers init for both, deinit for both on fire', async t => {
+	const emitter = new Emittery();
+	const calls = [];
+
+	emitter.init('🦄', () => {
+		calls.push('init:unicorn');
+		return () => {
+			calls.push('deinit:unicorn');
+		};
+	});
+
+	emitter.init('🌈', () => {
+		calls.push('init:rainbow');
+		return () => {
+			calls.push('deinit:rainbow');
+		};
+	});
+
+	const promise = emitter.once(['🦄', '🌈']);
+	t.deepEqual(calls, ['init:unicorn', 'init:rainbow']);
+
+	// Firing one event removes the listener from both events
+	await emitter.emit('🦄', '🌟');
+	await promise;
+	t.deepEqual(calls, ['init:unicorn', 'init:rainbow', 'deinit:unicorn', 'deinit:rainbow']);
+});
+
+test('init() - removeInit() with no listeners ever added is a no-op', t => {
+	const emitter = new Emittery();
+	const calls = [];
+
+	const removeInit = emitter.init('🦄', () => {
+		calls.push('init');
+		return () => {
+			calls.push('deinit');
+		};
+	});
+
+	// InitFn was never called, so removeInit should be a clean no-op
+	removeInit();
+	t.deepEqual(calls, []);
+});
+
+test('init() - off() on event with no listeners does not trigger deinit for other events', t => {
+	const emitter = new Emittery();
+	const calls = [];
+
+	emitter.init('🦄', () => {
+		calls.push('init');
+		return () => {
+			calls.push('deinit');
+		};
+	});
+
+	emitter.on('🦄', () => {});
+	t.deepEqual(calls, ['init']);
+
+	// Off on a different event should not affect 🦄's lifecycle
+	const listener = () => {};
+	emitter.off('🌈', listener);
+	t.deepEqual(calls, ['init']);
+});
+
+test('init() - events() iterator does not prevent deinit when last on() listener removed', async t => {
+	const emitter = new Emittery();
+	const calls = [];
+
+	emitter.init('🦄', () => {
+		calls.push('init');
+		return () => {
+			calls.push('deinit');
+		};
+	});
+
+	const iterator = emitter.events('🦄');
+	const off = emitter.on('🦄', () => {});
+	t.deepEqual(calls, ['init']);
+
+	off();
+	// Deinit should fire because the last on() listener was removed,
+	// even though an events() iterator still exists
+	t.deepEqual(calls, ['init', 'deinit']);
+
+	await iterator.return();
+});
+
+test('init() - rollback deinit re-subscription does not leak orphaned deinitFn', t => {
+	const emitter = new Emittery();
+	const calls = [];
+	const listener = () => {};
+
+	emitter.init('🦄', () => {
+		calls.push('init:unicorn');
+		return () => {
+			calls.push('deinit:unicorn');
+			emitter.on('🦄', listener);
+		};
+	});
+
+	emitter.init('🌈', () => {
+		calls.push('init:rainbow');
+		throw new Error('init failed');
+	});
+
+	t.throws(() => {
+		emitter.on(['🦄', '🌈'], listener);
+	});
+
+	// Init should NOT fire a second time during rollback (suppressed)
+	t.deepEqual(calls, ['init:unicorn', 'init:rainbow', 'deinit:unicorn']);
+	t.is(emitter.listenerCount('🦄'), 0);
 });

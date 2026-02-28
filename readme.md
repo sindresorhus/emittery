@@ -472,7 +472,49 @@ In the same way as for `events`, you can subscribe by using the `for await` stat
 
 Clear all event listeners on the instance.
 
-If `eventNames` is given, only the listeners for that events are cleared.
+If `eventNames` is given, only the listeners for those events are cleared.
+
+#### init(eventName, initFn)
+
+Register a function to be called when the first `.on()` listener subscribes to `eventName`. The `initFn` can optionally return a cleanup (deinit) function, which is called when the last `.on()` listener unsubscribes (or when `clearListeners()` removes all listeners for that event).
+
+If `.on()` listeners already exist when `init()` is called, `initFn` is called immediately.
+
+Returns an unsubscribe function. Calling it removes the init/deinit hooks, and if the init is currently active, it calls deinit immediately.
+
+> [!NOTE]
+> Lifecycle hooks only apply to `.on()` listeners. Subscriptions via `.events()` async iterators do not trigger the init or deinit functions.
+
+```js
+import Emittery from 'emittery';
+
+const emitter = new Emittery();
+
+emitter.init('mouse', () => {
+	terminal.grabInput({mouse: 'button'});
+
+	terminal.on('mouse', (name, data) => {
+		emitter.emit('mouse', data);
+	});
+
+	// Optional: return cleanup (deinit) function
+	return () => {
+		terminal.releaseInput();
+	};
+});
+
+// Init is called when the first listener subscribes
+const off = emitter.on('mouse', handler);
+
+// Adding more listeners does not call init again
+emitter.on('mouse', anotherHandler);
+
+// Removing one listener does not call deinit yet
+off();
+
+// Deinit is called when the last listener unsubscribes
+emitter.off('mouse', anotherHandler);
+```
 
 #### listenerCount(eventNames?)
 
