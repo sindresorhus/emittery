@@ -237,6 +237,22 @@ abortController.abort();
 emitter.emit('🐗', '🍞'); // nothing happens
 ```
 
+##### Namespaced string events
+
+Namespaced string events are matched from most specific to least specific. Emitting `show.bs.modal` will invoke listeners for:
+
+- `show.bs.modal`
+- `show.bs`
+- `show`
+
+```js
+emitter.on('show', () => {
+	console.log('base show event');
+});
+
+await emitter.emit('show.bs.modal');
+```
+
 ##### Custom subscribable events
 
 Emittery exports some symbols which represent "meta" events that can be passed to `Emitter.on` and similar methods.

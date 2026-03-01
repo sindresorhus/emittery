@@ -43,11 +43,27 @@ function getEventProducers(instance, eventName) {
 	return producers.get(key);
 }
 
+function getRelatedEventNames(eventName) {
+	if (typeof eventName !== 'string' || !eventName.includes('.')) {
+		return [eventName];
+	}
+
+	const segments = eventName.split('.');
+	const relatedEventNames = [];
+	for (let index = segments.length; index > 0; index--) {
+		relatedEventNames.push(segments.slice(0, index).join('.'));
+	}
+
+	return relatedEventNames;
+}
+
 function enqueueProducers(instance, eventName, eventData) {
 	const producers = producersMap.get(instance);
-	if (producers.has(eventName)) {
-		for (const producer of producers.get(eventName)) {
-			producer.enqueue(eventData);
+	for (const relatedEventName of getRelatedEventNames(eventName)) {
+		if (producers.has(relatedEventName)) {
+			for (const producer of producers.get(relatedEventName)) {
+				producer.enqueue(eventData);
+			}
 		}
 	}
 
@@ -57,6 +73,10 @@ function enqueueProducers(instance, eventName, eventData) {
 			producer.enqueue(item);
 		}
 	}
+}
+
+function hasListener(listenerSets, listener) {
+	return listenerSets.some(set => set.has(listener));
 }
 
 function iterator(instance, eventNames) {
@@ -376,15 +396,17 @@ export default class Emittery {
 
 		enqueueProducers(this, eventName, eventData);
 
-		const listeners = getListeners(this, eventName) ?? new Set();
+		const listenerSets = getRelatedEventNames(eventName)
+			.map(relatedEventName => getListeners(this, relatedEventName))
+			.filter(Boolean);
 		const anyListeners = anyMap.get(this);
-		const staticListeners = [...listeners];
+		const staticListeners = listenerSets.flatMap(listeners => [...listeners]);
 		const staticAnyListeners = isMetaEvent(eventName) ? [] : [...anyListeners];
 
 		await resolvedPromise;
 		await Promise.all([
 			...staticListeners.map(async listener => {
-				if (listeners.has(listener)) {
+				if (hasListener(listenerSets, listener)) {
 					return listener(eventData);
 				}
 			}),
@@ -407,15 +429,17 @@ export default class Emittery {
 
 		enqueueProducers(this, eventName, eventData);
 
-		const listeners = getListeners(this, eventName) ?? new Set();
+		const listenerSets = getRelatedEventNames(eventName)
+			.map(relatedEventName => getListeners(this, relatedEventName))
+			.filter(Boolean);
 		const anyListeners = anyMap.get(this);
-		const staticListeners = [...listeners];
+		const staticListeners = listenerSets.flatMap(listeners => [...listeners]);
 		const staticAnyListeners = isMetaEvent(eventName) ? [] : [...anyListeners];
 
 		await resolvedPromise;
 		/* eslint-disable no-await-in-loop */
 		for (const listener of staticListeners) {
-			if (listeners.has(listener)) {
+			if (hasListener(listenerSets, listener)) {
 				await listener(eventData);
 			}
 		}

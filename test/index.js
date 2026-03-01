@@ -43,6 +43,50 @@ test('on() - multiple event names', async t => {
 	t.is(count, 3);
 });
 
+test('on() - supports namespaced events via parent event', async t => {
+	const emitter = new Emittery();
+	const calls = [];
+
+	emitter.on('show', value => {
+		calls.push(['show', value]);
+	});
+	emitter.on('show.bs', value => {
+		calls.push(['show.bs', value]);
+	});
+	emitter.on('show.bs.modal', value => {
+		calls.push(['show.bs.modal', value]);
+	});
+
+	await emitter.emit('show.bs.modal', 'payload');
+
+	t.deepEqual(calls, [
+		['show.bs.modal', 'payload'],
+		['show.bs', 'payload'],
+		['show', 'payload'],
+	]);
+});
+
+test('events() - receives namespaced events for parent event', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.events('show');
+
+	await emitter.emit('show.bs.modal', 'payload');
+	const result = await iterator.next();
+	t.deepEqual(result, {done: false, value: 'payload'});
+	await iterator.return();
+});
+
+test('on() - base event does not trigger namespaced listeners', async t => {
+	const emitter = new Emittery();
+	const calls = [];
+	emitter.on('show.bs', () => {
+		calls.push('show.bs');
+	});
+
+	await emitter.emit('show');
+	t.deepEqual(calls, []);
+});
+
 test('on() - symbol eventName', async t => {
 	const emitter = new Emittery();
 	const eventName = Symbol('eventName');
