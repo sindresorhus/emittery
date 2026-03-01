@@ -1466,3 +1466,42 @@ test('debug mode - handles circular references in event data', async t => {
 
 	await t.notThrowsAsync(emitter.emit('test', data));
 });
+
+test('emit() - base event emits namespaced listeners', async t => {
+	const emitter = new Emittery();
+	const calls = [];
+
+	emitter.on('show', () => {
+		calls.push('base');
+	});
+	emitter.on('show.bs.modal', () => {
+		calls.push('namespaced');
+	});
+
+	await emitter.emit('show');
+	t.deepEqual(calls, ['base', 'namespaced']);
+});
+
+test('emitSerial() - base event emits namespaced listeners in registration order', async t => {
+	const emitter = new Emittery();
+	const calls = [];
+
+	emitter.on('show', async () => {
+		calls.push('base');
+	});
+	emitter.on('show.bs.modal', async () => {
+		calls.push('namespaced');
+	});
+
+	await emitter.emitSerial('show');
+	t.deepEqual(calls, ['base', 'namespaced']);
+});
+
+test.serial('events() - namespaced iterator receives base events', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.events('show.bs.modal');
+
+	await emitter.emit('show', 'payload');
+	t.deepEqual(await iterator.next(), {done: false, value: 'payload'});
+	await iterator.return();
+});

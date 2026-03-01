@@ -45,8 +45,8 @@ function getEventProducers(instance, eventName) {
 
 function enqueueProducers(instance, eventName, eventData) {
 	const producers = producersMap.get(instance);
-	if (producers.has(eventName)) {
-		for (const producer of producers.get(eventName)) {
+	for (const producerSet of getMatchedProducerSets(instance, eventName)) {
+		for (const producer of producerSet) {
 			producer.enqueue(eventData);
 		}
 	}
@@ -57,6 +57,57 @@ function enqueueProducers(instance, eventName, eventData) {
 			producer.enqueue(item);
 		}
 	}
+}
+
+function getMatchedEventListenerTuples(instance, eventName) {
+	const events = eventsMap.get(instance);
+	const matchedListeners = [];
+
+	if (typeof eventName === 'string') {
+		const namespacePrefix = `${eventName}.`;
+		for (const [registeredEventName, listeners] of events.entries()) {
+			if (registeredEventName === eventName || (typeof registeredEventName === 'string' && registeredEventName.startsWith(namespacePrefix))) {
+				for (const listener of listeners) {
+					matchedListeners.push([listeners, listener]);
+				}
+			}
+		}
+
+		return matchedListeners;
+	}
+
+	const listeners = events.get(eventName);
+	if (!listeners) {
+		return matchedListeners;
+	}
+
+	for (const listener of listeners) {
+		matchedListeners.push([listeners, listener]);
+	}
+
+	return matchedListeners;
+}
+
+function getMatchedProducerSets(instance, eventName) {
+	const producers = producersMap.get(instance);
+	const matchedProducerSets = [];
+
+	if (typeof eventName === 'string') {
+		const namespacePrefix = `${eventName}.`;
+		for (const [registeredEventName, producerSet] of producers.entries()) {
+			if (registeredEventName === eventName || (typeof registeredEventName === 'string' && registeredEventName.startsWith(namespacePrefix))) {
+				matchedProducerSets.push(producerSet);
+			}
+		}
+
+		return matchedProducerSets;
+	}
+
+	if (producers.has(eventName)) {
+		matchedProducerSets.push(producers.get(eventName));
+	}
+
+	return matchedProducerSets;
 }
 
 function iterator(instance, eventNames) {
@@ -376,14 +427,13 @@ export default class Emittery {
 
 		enqueueProducers(this, eventName, eventData);
 
-		const listeners = getListeners(this, eventName) ?? new Set();
+		const matchedListeners = getMatchedEventListenerTuples(this, eventName);
 		const anyListeners = anyMap.get(this);
-		const staticListeners = [...listeners];
 		const staticAnyListeners = isMetaEvent(eventName) ? [] : [...anyListeners];
 
 		await resolvedPromise;
 		await Promise.all([
-			...staticListeners.map(async listener => {
+			...matchedListeners.map(async ([listeners, listener]) => {
 				if (listeners.has(listener)) {
 					return listener(eventData);
 				}
@@ -407,14 +457,13 @@ export default class Emittery {
 
 		enqueueProducers(this, eventName, eventData);
 
-		const listeners = getListeners(this, eventName) ?? new Set();
+		const matchedListeners = getMatchedEventListenerTuples(this, eventName);
 		const anyListeners = anyMap.get(this);
-		const staticListeners = [...listeners];
 		const staticAnyListeners = isMetaEvent(eventName) ? [] : [...anyListeners];
 
 		await resolvedPromise;
 		/* eslint-disable no-await-in-loop */
-		for (const listener of staticListeners) {
+		for (const [listeners, listener] of matchedListeners) {
 			if (listeners.has(listener)) {
 				await listener(eventData);
 			}
