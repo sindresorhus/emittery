@@ -20,6 +20,40 @@ let isGlobalDebugEnabled = false;
 
 const isEventKeyType = key => typeof key === 'string' || typeof key === 'symbol' || typeof key === 'number';
 
+function makeDisposable(function_) {
+	function_[Symbol.dispose] = function_;
+	return function_;
+}
+
+function addAbortListener(signal, listener, {swallowErrors = false} = {}) {
+	if (!signal) {
+		return () => {};
+	}
+
+	const onAbort = () => {
+		if (swallowErrors) {
+			try {
+				listener();
+			} catch {}
+
+			return;
+		}
+
+		listener();
+	};
+
+	if (signal.aborted) {
+		onAbort();
+		return () => {};
+	}
+
+	signal.addEventListener('abort', onAbort, {once: true});
+
+	return () => {
+		signal.removeEventListener('abort', onAbort);
+	};
+}
+
 function assertEventName(eventName) {
 	if (!isEventKeyType(eventName)) {
 		throw new TypeError('`eventName` must be a string, symbol, or number');
@@ -77,12 +111,13 @@ function enqueueProducers(instance, eventName, eventData, hasEventData) {
 	}
 }
 
-function iterator(instance, eventNames) {
+function iterator(instance, eventNames, {signal} = {}) {
 	eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
 
 	let isFinished = false;
 	let flush = () => {};
 	let queue = [];
+	let removeAbortListener = () => {};
 
 	const producer = {
 		enqueue(item) {
@@ -91,6 +126,7 @@ function iterator(instance, eventNames) {
 		},
 		finish() {
 			isFinished = true;
+			removeAbortListener();
 			flush();
 		},
 	};
@@ -107,6 +143,34 @@ function iterator(instance, eventNames) {
 		set.add(producer);
 	}
 
+	const removeProducer = () => {
+		for (const eventName of eventNames) {
+			const producerKey = isEventKeyType(eventName) ? eventName : anyProducer;
+			const set = getEventProducers(instance, eventName);
+			if (set) {
+				set.delete(producer);
+				if (set.size === 0) {
+					const producers = producersMap.get(instance);
+					producers.delete(producerKey);
+				}
+			}
+		}
+	};
+
+	const stop = () => {
+		if (!queue) {
+			return;
+		}
+
+		queue = undefined;
+		removeAbortListener();
+
+		removeProducer();
+		flush();
+	};
+
+	removeAbortListener = addAbortListener(signal, stop);
+
 	return {
 		async next() {
 			if (!queue) {
@@ -115,7 +179,7 @@ function iterator(instance, eventNames) {
 
 			if (queue.length === 0) {
 				if (isFinished) {
-					queue = undefined;
+					stop();
 					return this.next();
 				}
 
@@ -133,21 +197,7 @@ function iterator(instance, eventNames) {
 		},
 
 		async return(value) {
-			queue = undefined;
-
-			for (const eventName of eventNames) {
-				const producerKey = isEventKeyType(eventName) ? eventName : anyProducer;
-				const set = getEventProducers(instance, eventName);
-				if (set) {
-					set.delete(producer);
-					if (set.size === 0) {
-						const producers = producersMap.get(instance);
-						producers.delete(producerKey);
-					}
-				}
-			}
-
-			flush();
+			stop();
 
 			return arguments.length > 0
 				? {done: true, value: await value}
@@ -156,6 +206,10 @@ function iterator(instance, eventNames) {
 
 		[Symbol.asyncIterator]() {
 			return this;
+		},
+
+		async [Symbol.asyncDispose]() {
+			await this.return();
 		},
 	};
 }
@@ -526,18 +580,28 @@ export default class Emittery {
 			throw error;
 		}
 
+		let removeAbortListener = () => {};
+		const noError = Symbol('no-error');
 		const off = () => {
-			this.off(eventNames, listener);
-			signal?.removeEventListener('abort', off);
+			removeAbortListener();
+			let firstError = noError;
+
+			for (const eventName of eventNames) {
+				try {
+					this.off(eventName, listener);
+				} catch (error) {
+					firstError = firstError === noError ? error : firstError;
+				}
+			}
+
+			if (firstError !== noError) {
+				throw firstError;
+			}
 		};
 
-		signal?.addEventListener('abort', off, {once: true});
+		removeAbortListener = addAbortListener(signal, off, {swallowErrors: true});
 
-		if (signal?.aborted) {
-			off();
-		}
-
-		return off;
+		return makeDisposable(off);
 	}
 
 	off(eventNames, listener) {
@@ -559,38 +623,118 @@ export default class Emittery {
 		}
 	}
 
-	once(eventNames, predicate) {
+	once(eventNames, predicateOrOptions) {
 		const {promise, resolve, reject} = Promise.withResolvers();
 		let off = () => {};
+		let signal;
+		let isSettled = false;
+		let removeAbortListener = () => {};
+		eventNames = Array.isArray(eventNames) ? [...eventNames] : [eventNames];
 
 		try {
+			let predicate;
+
+			if (typeof predicateOrOptions === 'function') {
+				predicate = predicateOrOptions;
+			} else if (typeof predicateOrOptions === 'object' && predicateOrOptions !== null) {
+				predicate = predicateOrOptions.predicate;
+				signal = predicateOrOptions.signal;
+			} else if (predicateOrOptions !== undefined) {
+				throw new TypeError('predicate must be a function');
+			}
+
 			if (predicate !== undefined && typeof predicate !== 'function') {
 				throw new TypeError('predicate must be a function');
 			}
 
-			off = this.on(eventNames, event => {
+			if (signal?.aborted) {
+				throw signal.reason;
+			}
+
+			let listener = () => {};
+			const unsubscribe = () => {
+				removeAbortListener();
+				const noError = Symbol('no-error');
+				let firstError = noError;
+
+				for (const eventName of eventNames) {
+					try {
+						this.off(eventName, listener);
+					} catch (error) {
+						firstError = firstError === noError ? error : firstError;
+					}
+				}
+
+				if (firstError !== noError) {
+					throw firstError;
+				}
+			};
+
+			const unsubscribeAndSettle = () => {
+				unsubscribe();
+				isSettled = true;
+			};
+
+			listener = event => {
 				if (predicate && !predicate(event)) {
 					return;
 				}
 
-				off();
+				if (isSettled) {
+					return;
+				}
+
+				try {
+					unsubscribeAndSettle();
+				} catch (error) {
+					reject(error);
+					return;
+				}
+
 				resolve(event);
+			};
+
+			this.on(eventNames, listener);
+			off = unsubscribe;
+
+			removeAbortListener = addAbortListener(signal, () => {
+				if (isSettled) {
+					return;
+				}
+
+				try {
+					unsubscribeAndSettle();
+				} catch {}
+
+				isSettled = true;
+				reject(signal.reason);
 			});
+
+			promise.off = () => {
+				if (isSettled) {
+					return;
+				}
+
+				unsubscribeAndSettle();
+			};
 		} catch (error) {
 			reject(error);
 		}
 
-		promise.off = off;
+		if (promise.off === undefined) {
+			promise.off = off;
+		}
+
 		return promise;
 	}
 
-	events(eventNames) {
+	events(eventNames, {signal} = {}) {
 		eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
 		for (const eventName of eventNames) {
 			assertEventName(eventName);
 		}
 
-		return iterator(this, eventNames);
+		return iterator(this, eventNames, {signal});
 	}
 
 	async emit(eventName, eventData) {
@@ -691,22 +835,19 @@ export default class Emittery {
 		anyMap.get(this).add(listener);
 		emitMetaEvent(this, listenerAdded, {listener});
 
+		let removeAbortListener = () => {};
 		const offAny = () => {
+			removeAbortListener();
 			this.offAny(listener);
-			signal?.removeEventListener('abort', offAny);
 		};
 
-		signal?.addEventListener('abort', offAny, {once: true});
+		removeAbortListener = addAbortListener(signal, offAny, {swallowErrors: true});
 
-		if (signal?.aborted) {
-			offAny();
-		}
-
-		return offAny;
+		return makeDisposable(offAny);
 	}
 
-	anyEvent() {
-		return iterator(this);
+	anyEvent({signal} = {}) {
+		return iterator(this, undefined, {signal});
 	}
 
 	offAny(listener) {
@@ -723,22 +864,15 @@ export default class Emittery {
 		const shouldClearAll = eventNames.some(eventName => !isEventKeyType(eventName));
 
 		withSuppressedEnqueue(this, eventNames, () => {
-			let clearError;
-			let hasClearError = false;
-
-			const setClearError = error => {
-				if (!hasClearError) {
-					hasClearError = true;
-					clearError = error;
-				}
-			};
+			const noError = Symbol('no-error');
+			let firstError = noError;
 
 			try {
 				for (const eventName of eventNames) {
 					try {
 						this.logIfDebugEnabled('clear', eventName, undefined);
 					} catch (error) {
-						setClearError(error);
+						firstError = firstError === noError ? error : firstError;
 					}
 
 					if (isEventKeyType(eventName)) {
@@ -751,7 +885,7 @@ export default class Emittery {
 						try {
 							callAndUnsetDeinitFn(lifecycle);
 						} catch (error) {
-							setClearError(error);
+							firstError = firstError === noError ? error : firstError;
 						}
 					} else {
 						anyMap.get(this).clear();
@@ -765,7 +899,7 @@ export default class Emittery {
 							try {
 								callAndUnsetDeinitFn(lifecycle);
 							} catch (error) {
-								setClearError(error);
+								firstError = firstError === noError ? error : firstError;
 							}
 
 							// Re-clear in case deinit re-subscribed.
@@ -800,8 +934,8 @@ export default class Emittery {
 				}
 			}
 
-			if (hasClearError) {
-				throw clearError;
+			if (firstError !== noError) {
+				throw firstError;
 			}
 		});
 	}
@@ -840,7 +974,7 @@ export default class Emittery {
 			}
 		}
 
-		return () => {
+		return makeDisposable(() => {
 			try {
 				callAndUnsetDeinitFn(lifecycle);
 			} finally {
@@ -848,7 +982,7 @@ export default class Emittery {
 					lifecycles.delete(eventName);
 				}
 			}
-		};
+		});
 	}
 
 	listenerCount(eventNames) {

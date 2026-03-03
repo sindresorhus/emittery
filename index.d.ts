@@ -46,7 +46,7 @@ To enable this feature set the `DEBUG` environment variable to `emittery` or `*`
 
 See API for more information on how debugging works.
 */
-export type DebugLogger<EventData, Name extends keyof EventData> = (type: string, debugName: string, eventName?: Name, eventData?: EventData[Name]) => void;
+export type DebugLogger<EventData, Name extends keyof EventData> = (type: string, debugName?: string, eventName?: Name, eventData?: EventData[Name]) => void;
 
 /**
 Configure debug options of an instance.
@@ -74,7 +74,7 @@ export type DebugOptions<EventData> = {
 	//	data: undefined
 	```
 	*/
-	readonly name: string;
+	readonly name?: string;
 
 	/**
 	Toggle debug logging just for this instance.
@@ -111,7 +111,11 @@ export type DebugOptions<EventData> = {
 	@default
 	```
 	(type, debugName, eventName, eventData) => {
-		eventData = JSON.stringify(eventData);
+		try {
+			eventData = JSON.stringify(eventData);
+		} catch {
+			eventData = `Object with the following keys failed to stringify: ${Object.keys(eventData).join(',')}`;
+		}
 
 		if (typeof eventName === 'symbol' || typeof eventName === 'number') {
 			eventName = eventName.toString();
@@ -166,8 +170,24 @@ export type EmitteryOncePromise<T> = {
 
 /**
 Removes an event subscription.
+
+Can be used with the `using` keyword for automatic cleanup:
+
+@example
+```
+import Emittery from 'emittery';
+
+const emitter = new Emittery();
+
+{
+	using off = emitter.on('event', ({data}) => {
+		console.log(data);
+	});
+	// auto-unsubscribes when leaving scope
+}
+```
 */
-export type UnsubscribeFunction = () => void;
+export type UnsubscribeFunction = (() => void) & Disposable;
 
 /**
 The data provided as `eventData` when listening for `Emittery.listenerAdded` or `Emittery.listenerRemoved`.
@@ -343,7 +363,7 @@ export default class Emittery<
 
 	Using the same listener multiple times for the same event will result in only one method call per emitted event.
 
-	@returns An unsubscribe method.
+	@returns An unsubscribe method, which is also {@link Disposable} (can be used with `using`).
 
 	@example
 	```
@@ -362,6 +382,31 @@ export default class Emittery<
 	emitter.emit('🦄', '🌈'); // log => '🌈' and '🦄 🌈'
 	emitter.emit('🐶', '🍖'); // log => '🐶 🍖'
 	```
+
+	@example
+	```
+	// With AbortSignal
+	const abortController = new AbortController();
+
+	emitter.on('🐗', ({data}) => {
+		console.log(data);
+	}, {signal: abortController.signal});
+
+	abortController.abort();
+	```
+
+	@example
+	```
+	// With `using` for automatic cleanup
+	{
+		using off = emitter.on('🦄', ({data}) => {
+			console.log(data);
+		});
+		await emitter.emit('🦄', '🌈'); // Logs '🌈'
+	}
+
+	await emitter.emit('🦄', '🌈'); // Nothing happens
+	```
 	*/
 	on<Name extends keyof AllEventData>(
 		eventName: Name | readonly Name[],
@@ -372,89 +417,46 @@ export default class Emittery<
 	/**
 	Get an async iterator which buffers data each time an event is emitted.
 
-	Call `return()` on the iterator to remove the subscription.
+	Call `return()` on the iterator to remove the subscription. You can also pass an {@link AbortSignal} to cancel the subscription externally, or use `await using` for automatic cleanup.
 
 	@example
 	```
 	import Emittery from 'emittery';
 
 	const emitter = new Emittery();
-	const iterator = emitter.events('🦄');
 
-	emitter.emit('🦄', '🌈1'); // Buffered
-	emitter.emit('🦄', '🌈2'); // Buffered
+	for await (const {data} of emitter.events('🦄')) {
+		console.log(data);
 
-	iterator
-		.next()
-		.then(({value, done}) => {
-			// done === false
-			// value === {name: '🦄', data: '🌈1'}
-			return iterator.next();
-		})
-		.then(({value, done}) => {
-			// done === false
-			// value === {name: '🦄', data: '🌈2'}
-			// Revoke subscription
-			return iterator.return();
-		})
-		.then(({done}) => {
-			// done === true
-		});
-	```
-
-	In practice you would usually consume the events using the [for await](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for-await...of) statement. In that case, to revoke the subscription simply break the loop.
-
-	@example
-	```
-	import Emittery from 'emittery';
-
-	const emitter = new Emittery();
-	const iterator = emitter.events('🦄');
-
-	emitter.emit('🦄', '🌈1'); // Buffered
-	emitter.emit('🦄', '🌈2'); // Buffered
-
-	// In an async context.
-	for await (const {data} of iterator) {
 		if (data === '🌈2') {
-			break; // Revoke the subscription when we see the value `🌈2`.
+			break; // Revoke the subscription when we see the value '🌈2'.
 		}
 	}
 	```
 
-	It accepts multiple event names.
+	@example
+	```
+	// With multiple event names
+	for await (const {name, data} of emitter.events(['🦄', '🦊'])) {
+		console.log(name, data);
+	}
+	```
 
 	@example
 	```
-	import Emittery from 'emittery';
-
-	const emitter = new Emittery();
-	const iterator = emitter.events(['🦄', '🦊']);
-
-	emitter.emit('🦄', '🌈1'); // Buffered
-	emitter.emit('🦊', '🌈2'); // Buffered
-
-	iterator
-		.next()
-		.then(({value, done}) => {
-			// done === false
-			// value === {name: '🦄', data: '🌈1'}
-			return iterator.next();
-		})
-		.then(({value, done}) => {
-			// done === false
-			// value === {name: '🦊', data: '🌈2'}
-			// Revoke subscription
-			return iterator.return();
-		})
-		.then(({done}) => {
-			// done === true
-		});
+	// With `await using` for automatic cleanup
+	{
+		await using iterator = emitter.events('🦄');
+		for await (const {data} of iterator) {
+			console.log(data);
+		}
+	} // Subscription is automatically revoked
 	```
 	*/
 	events<Name extends keyof EventData>(
-		eventName: Name | readonly Name[]
-	): AsyncIterableIterator<EventDataPair<EventData, Name>>;
+		eventName: Name | readonly Name[],
+		options?: {signal?: AbortSignal}
+	): AsyncIterableIterator<EventDataPair<EventData, Name>> & AsyncDisposable;
 
 	/**
 	Remove one or more event subscriptions.
@@ -475,9 +477,9 @@ export default class Emittery<
 	await emitter.emit('🦊', 'c');
 	emitter.off('🦄', listener);
 	emitter.off(['🐶', '🦊'], listener);
-	await emitter.emit('🦄', 'a'); // nothing happens
-	await emitter.emit('🐶', 'b'); // nothing happens
-	await emitter.emit('🦊', 'c'); // nothing happens
+	await emitter.emit('🦄', 'a'); // Nothing happens
+	await emitter.emit('🐶', 'b'); // Nothing happens
+	await emitter.emit('🦊', 'c'); // Nothing happens
 	```
 	*/
 	off<Name extends keyof AllEventData>(
@@ -488,10 +490,9 @@ export default class Emittery<
 	/**
 	Subscribe to one or more events only once. It will be unsubscribed after the first event that matches the predicate (if provided).
 
-	@param eventName - The event name(s) to subscribe to.
-	@param predicate - Optional predicate function to filter event data. The event will only be emitted if the predicate returns true.
+	The second argument can be a predicate function or an options object with `predicate` and/or `signal`.
 
-	@returns The promise of event data when `eventName` is emitted and predicate matches (if provided). This promise is extended with an `off` method.
+	@returns The promise of event data when `eventName` is emitted and predicate matches (if provided). The promise has an `off` method to cancel the subscription.
 
 	@example
 	```
@@ -499,28 +500,50 @@ export default class Emittery<
 
 	const emitter = new Emittery();
 
-	emitter.once('🦄').then(({data}) => {
-		console.log(data);
-		//=> '🌈'
-	});
+	const {data} = await emitter.once('🦄');
+	console.log(data);
+	//=> '🌈'
+	```
 
-	emitter.once(['🦄', '🐶']).then(({name, data}) => {
-		console.log(name, data);
-	});
+	@example
+	```
+	// With multiple event names
+	const {name, data} = await emitter.once(['🦄', '🐶']);
+	console.log(name, data);
+	```
 
+	@example
+	```
 	// With predicate
-	emitter.once('data', ({data}) => data.ok === true).then(({data}) => {
-		console.log(data);
-		//=> {ok: true, value: 42}
-	});
+	const event = await emitter.once('data', ({data}) => data.ok === true);
+	console.log(event.data);
+	//=> {ok: true, value: 42}
+	```
 
-	emitter.emit('🦄', '🌈'); // Logs '🌈', then '🦄 🌈'
-	emitter.emit('🐶', '🍖'); // Nothing happens
-	emitter.emit('data', {ok: false}); // Nothing happens
-	emitter.emit('data', {ok: true, value: 42}); // Logs {ok: true, value: 42}
+	@example
+	```
+	// With AbortSignal for timeout
+	await emitter.once('ready', {signal: AbortSignal.timeout(5000)});
+	```
+
+	@example
+	```
+	// Cancel with .off()
+	const promise = emitter.once('🦄');
+	promise.off();
 	```
 	*/
-	once<Name extends keyof AllEventData>(eventName: Name | readonly Name[], predicate?: (event: EventDataPair<AllEventData, Name>) => boolean): EmitteryOncePromise<EventDataPair<AllEventData, Name>>;
+	once<Name extends keyof AllEventData>(
+		eventName: Name | readonly Name[],
+		predicate?: (event: EventDataPair<AllEventData, Name>) => boolean
+	): EmitteryOncePromise<EventDataPair<AllEventData, Name>>;
+	once<Name extends keyof AllEventData>(
+		eventName: Name | readonly Name[],
+		options?: {
+			predicate?: (event: EventDataPair<AllEventData, Name>) => boolean;
+			signal?: AbortSignal;
+		}
+	): EmitteryOncePromise<EventDataPair<AllEventData, Name>>;
 
 	/**
 	Trigger an event asynchronously, optionally with some data. Listeners are called in the order they were added, but executed concurrently.
@@ -539,6 +562,25 @@ export default class Emittery<
 	If any of the listeners throw/reject, the returned promise will be rejected with the error and the remaining listeners will *not* be called.
 
 	@returns A promise that resolves when all the event listeners are done.
+
+	@example
+	```
+	import Emittery from 'emittery';
+
+	const emitter = new Emittery();
+
+	emitter.on('🦄', async () => {
+		console.log('listener 1 start');
+		await new Promise(resolve => setTimeout(resolve, 100));
+		console.log('listener 1 done');
+	});
+
+	emitter.on('🦄', () => {
+		console.log('listener 2'); // Only runs after listener 1 is done
+	});
+
+	await emitter.emitSerial('🦄');
+	```
 	*/
 	emitSerial<Name extends DatalessEvents>(eventName: Name): Promise<void>;
 	emitSerial<Name extends keyof EventData>(
@@ -549,7 +591,22 @@ export default class Emittery<
 	/**
 	Subscribe to be notified about any event.
 
-	@returns A method to unsubscribe.
+	@returns A method to unsubscribe, which is also {@link Disposable}.
+
+	@example
+	```
+	import Emittery from 'emittery';
+
+	const emitter = new Emittery();
+
+	const off = emitter.onAny(({name, data}) => {
+		console.log(name, data);
+	});
+
+	emitter.emit('🦄', '🌈'); // log => '🦄 🌈'
+
+	off();
+	```
 	*/
 	onAny(
 		listener: (event: EventDataPair<EventData, keyof EventData>) => void | Promise<void>,
@@ -559,38 +616,31 @@ export default class Emittery<
 	/**
 	Get an async iterator which buffers an event object each time an event is emitted.
 
-	Call `return()` on the iterator to remove the subscription.
-
-	In the same way as for `events`, you can subscribe by using the `for await` statement.
+	Call `return()` on the iterator to remove the subscription. You can also pass an {@link AbortSignal} to cancel the subscription externally, or use `await using` for automatic cleanup.
 
 	@example
 	```
 	import Emittery from 'emittery';
 
 	const emitter = new Emittery();
-	const iterator = emitter.anyEvent();
 
-	emitter.emit('🦄', '🌈1'); // Buffered
-	emitter.emit('🌟', '🌈2'); // Buffered
+	for await (const {name, data} of emitter.anyEvent()) {
+		console.log(name, data);
+	}
+	```
 
-	iterator.next()
-		.then(({value, done}) => {
-			// done is false
-			// value is {name: '🦄', data: '🌈1'}
-			return iterator.next();
-		})
-		.then(({value, done}) => {
-			// done is false
-			// value is {name: '🌟', data: '🌈2'}
-			// revoke subscription
-			return iterator.return();
-		})
-		.then(({done}) => {
-			// done is true
-		});
+	@example
+	```
+	// With `await using` for automatic cleanup
+	{
+		await using iterator = emitter.anyEvent();
+		for await (const {name, data} of iterator) {
+			console.log(name, data);
+		}
+	} // Subscription is automatically revoked
 	```
 	*/
-	anyEvent(): AsyncIterableIterator<EventDataPair<EventData, keyof EventData>>;
+	anyEvent(options?: {signal?: AbortSignal}): AsyncIterableIterator<EventDataPair<EventData, keyof EventData>> & AsyncDisposable;
 
 	/**
 	Remove an `onAny` subscription.
@@ -602,7 +652,21 @@ export default class Emittery<
 	/**
 	Clear all event listeners on the instance.
 
-	If `eventNames` is given, only the listeners for those events are cleared.
+	If `eventNames` is given, only the listeners for those events are cleared. Accepts a single event name or an array.
+
+	@example
+	```
+	import Emittery from 'emittery';
+
+	const emitter = new Emittery();
+
+	emitter.on('🦄', listener);
+	emitter.on('🐶', listener);
+
+	emitter.clearListeners('🦄'); // Clear a single event
+	emitter.clearListeners(['🐶', '🦊']); // Clear multiple events
+	emitter.clearListeners(); // Clear all events
+	```
 	*/
 	clearListeners<Name extends keyof EventData>(eventName?: Name | readonly Name[]): void;
 
@@ -645,6 +709,17 @@ export default class Emittery<
 	// Deinit is called when the last listener unsubscribes
 	emitter.off('mouse', anotherHandler);
 	```
+
+	@example
+	```
+	// With `using` for automatic cleanup of hooks
+	{
+		using removeInit = emitter.init('mouse', () => {
+			startListening();
+			return () => stopListening();
+		});
+	} // init/deinit hooks are automatically removed
+	```
 	*/
 	init<Name extends keyof EventData>(
 		eventName: Name,
@@ -653,8 +728,26 @@ export default class Emittery<
 
 	/**
 	The number of listeners for the `eventName` or all events if not specified.
+
+	@example
+	```
+	import Emittery from 'emittery';
+
+	const emitter = new Emittery();
+
+	emitter.on('🦄', listener);
+	emitter.on('🐶', listener);
+
+	emitter.listenerCount('🦄'); // 1
+	emitter.listenerCount(); // 2
+	```
 	*/
 	listenerCount<Name extends keyof EventData>(eventName?: Name | readonly Name[]): number;
+
+	/**
+	Log debug information if debug mode is enabled (either globally via `Emittery.isDebugEnabled` or per-instance via `debug.enabled`).
+	*/
+	logIfDebugEnabled<Name extends keyof EventData>(type: string, eventName?: Name, eventData?: EventData[Name]): void;
 
 	/**
 	Bind the given `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the `target` object.

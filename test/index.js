@@ -601,7 +601,7 @@ test('on() - must have a listener', t => {
 	}, {instanceOf: TypeError});
 });
 
-test('on() - returns a unsubcribe method', async t => {
+test('on() - returns an unsubscribe method', async t => {
 	const emitter = new Emittery();
 	const calls = [];
 	const listener = () => {
@@ -612,6 +612,23 @@ test('on() - returns a unsubcribe method', async t => {
 	await emitter.emit('🦄');
 	t.deepEqual(calls, [1]);
 
+	off();
+	await emitter.emit('🦄');
+	t.deepEqual(calls, [1]);
+});
+
+test('on() - calling off() twice is a safe no-op', async t => {
+	const emitter = new Emittery();
+	const calls = [];
+	const listener = () => {
+		calls.push(1);
+	};
+
+	const off = emitter.on('🦄', listener);
+	await emitter.emit('🦄');
+	t.deepEqual(calls, [1]);
+
+	off();
 	off();
 	await emitter.emit('🦄');
 	t.deepEqual(calls, [1]);
@@ -742,6 +759,94 @@ test('on() - use abort signal', async t => {
 	await emitter.emit('abc');
 
 	t.deepEqual(calls, [1]);
+});
+
+test('on() - pre-aborted signal', async t => {
+	const emitter = new Emittery();
+	const calls = [];
+
+	emitter.on('🦄', () => {
+		calls.push(1);
+	}, {signal: AbortSignal.abort()});
+
+	await emitter.emit('🦄');
+	t.deepEqual(calls, []);
+	t.is(emitter.listenerCount('🦄'), 0);
+});
+
+test('on() - off() removes signal listener even if deinit throws', t => {
+	const emitter = new Emittery();
+	const abortController = new AbortController();
+	const {signal} = abortController;
+	let abortListenerCount = 0;
+	const addEventListener = signal.addEventListener.bind(signal);
+	const removeEventListener = signal.removeEventListener.bind(signal);
+
+	signal.addEventListener = (eventName, listener, options) => {
+		if (eventName === 'abort') {
+			++abortListenerCount;
+		}
+
+		addEventListener(eventName, listener, options);
+	};
+
+	signal.removeEventListener = (eventName, listener, options) => {
+		if (eventName === 'abort') {
+			--abortListenerCount;
+		}
+
+		removeEventListener(eventName, listener, options);
+	};
+
+	emitter.init('🦄', () => () => {
+		throw new Error('deinit boom');
+	});
+
+	const off = emitter.on('🦄', () => {}, {signal});
+	t.is(abortListenerCount, 1);
+	t.throws(() => {
+		off();
+	}, {message: 'deinit boom'});
+	t.is(abortListenerCount, 0);
+});
+
+test('on() - abort signal ignores deinit throw', async t => {
+	const emitter = new Emittery();
+	const abortController = new AbortController();
+
+	emitter.init('🦄', () => () => {
+		throw new Error('deinit boom');
+	});
+
+	emitter.on('🦄', () => {}, {signal: abortController.signal});
+	abortController.abort();
+
+	await delay(0);
+	t.is(emitter.listenerCount('🦄'), 0);
+});
+
+test('on() - abort signal fully unsubscribes multiple event names when one deinit throws', async t => {
+	const emitter = new Emittery();
+	const abortController = new AbortController();
+	const calls = [];
+
+	emitter.init('🦄', () => () => {
+		throw new Error('deinit boom');
+	});
+
+	emitter.init('🌈', () => () => {});
+
+	emitter.on(['🦄', '🌈'], ({name}) => {
+		calls.push(name);
+	}, {signal: abortController.signal});
+
+	abortController.abort();
+	await delay(0);
+
+	t.is(emitter.listenerCount('🦄'), 0);
+	t.is(emitter.listenerCount('🌈'), 0);
+	await emitter.emit('🌈');
+	t.deepEqual(calls, []);
 });
 
 test.serial('events()', async t => {
@@ -1100,6 +1205,19 @@ test('once() - filter predicate can be unsubscribed', async t => {
 	]);
 
 	t.is(await testPromise, 'timeout');
+});
+
+test('once() - supports filter predicate as options object', async t => {
+	const emitter = new Emittery();
+
+	const oncePromise = emitter.once('data', {predicate: ({data}) => data.ok === true});
+	await emitter.emit('data', {ok: false, foo: 'bar'});
+
+	const payload = {ok: true, value: 42};
+
+	await emitter.emit('data', payload);
+
+	t.deepEqual(await oncePromise, {name: 'data', data: payload});
 });
 
 test('emitSerial() - listener receives event object with eventName and data', async t => {
@@ -1831,7 +1949,7 @@ test('anyEvent() - return() called during emit', async t => {
 	t.deepEqual(await iterator.next(), {done: true});
 });
 
-test('anyEvents() - discarded iterators should stop receiving events', async t => {
+test('anyEvent() - discarded iterators should stop receiving events', async t => {
 	const emitter = new Emittery();
 	const iterator = emitter.anyEvent();
 
@@ -3304,6 +3422,28 @@ test('init() - clearListeners(eventName) rethrows falsy deinit throw values', t 
 	t.is(emitter.listenerCount('🦄'), 0);
 });
 
+test('init() - clearListeners(eventName) rethrows undefined deinit throw values', t => {
+	const emitter = new Emittery();
+	const throwValue = value => {
+		throw value;
+	};
+
+	emitter.init('🦄', () => () => {
+		throwValue(undefined);
+	});
+
+	emitter.on('🦄', () => {});
+	let thrownError = Symbol('not-thrown');
+	try {
+		emitter.clearListeners('🦄');
+	} catch (error) {
+		thrownError = error;
+	}
+
+	t.is(thrownError, undefined);
+	t.is(emitter.listenerCount('🦄'), 0);
+});
+
 test('init() - clearListeners(eventName) stays authoritative when deinit re-subscribes and throws', t => {
 	const emitter = new Emittery();
 	const deinitError = new Error('deinit failed');
@@ -3837,6 +3977,48 @@ test('init() - once() with multiple event names triggers init for both, deinit f
 	t.deepEqual(calls, ['init:unicorn', 'init:rainbow', 'deinit:unicorn', 'deinit:rainbow']);
 });
 
+test('init() - once() cleanup removes all subscriptions when off() throws for one of multiple event names', async t => {
+	const emitter = new Emittery();
+	const deinitError = new Error('deinit boom');
+
+	emitter.init('🦄', () => () => {
+		throw deinitError;
+	});
+
+	emitter.init('🌈', () => () => {});
+
+	const promise = emitter.once(['🦄', '🌈']);
+	await emitter.emit('🦄');
+
+	await t.throwsAsync(promise, {is: deinitError});
+	t.is(emitter.listenerCount('🦄'), 0);
+	t.is(emitter.listenerCount('🌈'), 0);
+
+	promise.off();
+	t.is(emitter.listenerCount('🌈'), 0);
+});
+
+test('init() - once() cleanup does not leak listeners when off() throws for one of multiple event names', async t => {
+	const emitter = new Emittery();
+	const deinitError = new Error('deinit boom');
+
+	emitter.init('🦄', () => () => {
+		throw deinitError;
+	});
+
+	emitter.init('🌈', () => () => {});
+
+	const promise = emitter.once(['🦄', '🌈']);
+	await emitter.emit('🦄');
+
+	await t.throwsAsync(promise, {is: deinitError});
+	t.is(emitter.listenerCount('🦄'), 0);
+	t.is(emitter.listenerCount('🌈'), 0);
+
+	await emitter.emit('🌈');
+	t.is(emitter.listenerCount('🌈'), 0);
+});
+
 test('init() - removeInit() with no listeners ever added is a no-op', t => {
 	const emitter = new Emittery();
 	const calls = [];
@@ -3921,4 +4103,433 @@ test('init() - rollback deinit re-subscription does not leak orphaned deinitFn',
 	// Init should NOT fire a second time during rollback (suppressed)
 	t.deepEqual(calls, ['init:unicorn', 'init:rainbow', 'deinit:unicorn']);
 	t.is(emitter.listenerCount('🦄'), 0);
+});
+
+// Dispose tests
+
+test('on() - returns a disposable unsubscribe function', async t => {
+	const emitter = new Emittery();
+	const calls = [];
+	const off = emitter.on('🦄', () => {
+		calls.push(1);
+	});
+
+	t.is(typeof off[Symbol.dispose], 'function');
+	t.is(off[Symbol.dispose], off);
+
+	await emitter.emit('🦄');
+	t.deepEqual(calls, [1]);
+
+	off[Symbol.dispose]();
+	await emitter.emit('🦄');
+	t.deepEqual(calls, [1]);
+});
+
+test('onAny() - returns a disposable unsubscribe function', async t => {
+	const emitter = new Emittery();
+	const calls = [];
+	const off = emitter.onAny(() => {
+		calls.push(1);
+	});
+
+	t.is(typeof off[Symbol.dispose], 'function');
+	t.is(off[Symbol.dispose], off);
+
+	await emitter.emit('🦄');
+	t.deepEqual(calls, [1]);
+
+	off[Symbol.dispose]();
+	await emitter.emit('🦄');
+	t.deepEqual(calls, [1]);
+});
+
+test('init() - returns a disposable unsubscribe function', t => {
+	const emitter = new Emittery();
+	const calls = [];
+
+	const off = emitter.init('🦄', () => {
+		calls.push('init');
+		return () => {
+			calls.push('deinit');
+		};
+	});
+
+	t.is(typeof off[Symbol.dispose], 'function');
+	t.is(off[Symbol.dispose], off);
+
+	emitter.on('🦄', () => {});
+	t.deepEqual(calls, ['init']);
+
+	off[Symbol.dispose]();
+	t.deepEqual(calls, ['init', 'deinit']);
+});
+
+// Async dispose tests
+
+test('events() - iterator is async disposable', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.events('🦄');
+
+	t.is(typeof iterator[Symbol.asyncDispose], 'function');
+
+	await emitter.emit('🦄', '🌈');
+	t.deepEqual(await iterator.next(), {done: false, value: {name: '🦄', data: '🌈'}});
+
+	await iterator[Symbol.asyncDispose]();
+	t.deepEqual(await iterator.next(), {done: true});
+});
+
+test('anyEvent() - iterator is async disposable', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.anyEvent();
+
+	t.is(typeof iterator[Symbol.asyncDispose], 'function');
+
+	await emitter.emit('🦄', '🌈');
+	t.deepEqual(await iterator.next(), {done: false, value: {name: '🦄', data: '🌈'}});
+
+	await iterator[Symbol.asyncDispose]();
+	t.deepEqual(await iterator.next(), {done: true});
+});
+
+// Once with signal tests
+
+test('once() - supports signal option', async t => {
+	const emitter = new Emittery();
+	const abortController = new AbortController();
+
+	const promise = emitter.once('🦄', {signal: abortController.signal});
+
+	abortController.abort();
+
+	await t.throwsAsync(promise, {name: 'AbortError'});
+});
+
+test('once() - signal with AbortSignal.timeout()', async t => {
+	const emitter = new Emittery();
+
+	const promise = emitter.once('🦄', {signal: AbortSignal.timeout(50)});
+
+	await t.throwsAsync(promise, {name: 'TimeoutError'});
+});
+
+test('once() - pre-aborted signal', async t => {
+	const emitter = new Emittery();
+
+	const promise = emitter.once('🦄', {signal: AbortSignal.abort()});
+
+	await t.throwsAsync(promise, {name: 'AbortError'});
+});
+
+test('once() - signal + predicate combo', async t => {
+	const emitter = new Emittery();
+	const abortController = new AbortController();
+
+	const promise = emitter.once('data', {
+		predicate: ({data}) => data.ok === true,
+		signal: abortController.signal,
+	});
+
+	await emitter.emit('data', {ok: false});
+
+	abortController.abort();
+
+	await t.throwsAsync(promise, {name: 'AbortError'});
+});
+
+test('once() - signal does not interfere when event fires first', async t => {
+	const emitter = new Emittery();
+	const abortController = new AbortController();
+
+	const promise = emitter.once('🦄', {signal: abortController.signal});
+
+	emitter.emit('🦄', '🌈');
+
+	const result = await promise;
+	t.deepEqual(result, {name: '🦄', data: '🌈'});
+
+	// Aborting after resolution should be harmless
+	abortController.abort();
+});
+
+test('once() - signal cleans up listener on abort', async t => {
+	const emitter = new Emittery();
+	const abortController = new AbortController();
+
+	const promise = emitter.once('🦄', {signal: abortController.signal});
+
+	t.is(emitter.listenerCount('🦄'), 1);
+
+	abortController.abort();
+
+	await t.throwsAsync(promise, {name: 'AbortError'});
+
+	t.is(emitter.listenerCount('🦄'), 0);
+});
+
+test('once() - signal abort rejects even if deinit throws', async t => {
+	const emitter = new Emittery();
+	const abortController = new AbortController();
+
+	emitter.init('🦄', () => () => {
+		throw new Error('deinit boom');
+	});
+
+	const promise = emitter.once('🦄', {signal: abortController.signal});
+	abortController.abort();
+
+	await t.throwsAsync(promise, {name: 'AbortError'});
+	t.is(emitter.listenerCount('🦄'), 0);
+});
+
+test('once() - signal abort fully unsubscribes multiple event names when one deinit throws', async t => {
+	const emitter = new Emittery();
+	const abortController = new AbortController();
+
+	emitter.init('🦄', () => () => {
+		throw new Error('deinit boom');
+	});
+
+	emitter.init('🌈', () => () => {});
+
+	const promise = emitter.once(['🦄', '🌈'], {signal: abortController.signal});
+	abortController.abort();
+
+	await t.throwsAsync(promise, {name: 'AbortError'});
+	t.is(emitter.listenerCount('🦄'), 0);
+	t.is(emitter.listenerCount('🌈'), 0);
+});
+
+test('once() - off() removes signal listener even if deinit throws', t => {
+	const emitter = new Emittery();
+	const abortController = new AbortController();
+	const {signal} = abortController;
+	let abortListenerCount = 0;
+	const addEventListener = signal.addEventListener.bind(signal);
+	const removeEventListener = signal.removeEventListener.bind(signal);
+
+	signal.addEventListener = (eventName, listener, options) => {
+		if (eventName === 'abort') {
+			++abortListenerCount;
+		}
+
+		addEventListener(eventName, listener, options);
+	};
+
+	signal.removeEventListener = (eventName, listener, options) => {
+		if (eventName === 'abort') {
+			--abortListenerCount;
+		}
+
+		removeEventListener(eventName, listener, options);
+	};
+
+	emitter.init('🦄', () => () => {
+		throw new Error('deinit boom');
+	});
+
+	const promise = emitter.once('🦄', {signal});
+	t.is(abortListenerCount, 1);
+	t.throws(() => {
+		promise.off();
+	}, {message: 'deinit boom'});
+	t.is(abortListenerCount, 0);
+});
+
+test('once() - signal aborted during setup rejects and unsubscribes', async t => {
+	const emitter = new Emittery();
+	const abortController = new AbortController();
+
+	emitter.init('🦄', () => {
+		abortController.abort();
+	});
+
+	const promise = emitter.once('🦄', {signal: abortController.signal});
+
+	const state = await Promise.race([
+		(async () => {
+			try {
+				await promise;
+				return 'resolved';
+			} catch (error) {
+				return error.name;
+			}
+		})(),
+		(async () => {
+			await delay(100);
+			return 'pending';
+		})(),
+	]);
+
+	t.is(state, 'AbortError');
+	t.is(emitter.listenerCount('🦄'), 0);
+});
+
+test('once() - matching event resolves before abort from off() cleanup', async t => {
+	const emitter = new Emittery();
+	const abortController = new AbortController();
+
+	emitter.init('🦄', () => () => {
+		abortController.abort();
+	});
+
+	const promise = emitter.once('🦄', {signal: abortController.signal});
+	await emitter.emit('🦄', '🌈');
+
+	t.deepEqual(await promise, {name: '🦄', data: '🌈'});
+	t.true(abortController.signal.aborted);
+});
+
+test('once() - off() detaches signal abort handling', async t => {
+	const emitter = new Emittery();
+	const abortController = new AbortController();
+	const promise = emitter.once('🦄', {signal: abortController.signal});
+
+	promise.off();
+	abortController.abort();
+
+	const state = await Promise.race([
+		(async () => {
+			try {
+				await promise;
+				return 'resolved';
+			} catch {
+				return 'rejected';
+			}
+		})(),
+		(async () => {
+			await delay(100);
+			return 'pending';
+		})(),
+	]);
+
+	t.is(state, 'pending');
+});
+
+// Events with signal tests
+
+test('events() - supports signal option', async t => {
+	const emitter = new Emittery();
+	const abortController = new AbortController();
+	const iterator = emitter.events('🦄', {signal: abortController.signal});
+
+	await emitter.emit('🦄', '🌈');
+	t.deepEqual(await iterator.next(), {done: false, value: {name: '🦄', data: '🌈'}});
+
+	abortController.abort();
+	t.deepEqual(await iterator.next(), {done: true});
+});
+
+test('events() - pre-aborted signal', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.events('🦄', {signal: AbortSignal.abort()});
+
+	t.deepEqual(await iterator.next(), {done: true});
+});
+
+test('events() - signal abort unregisters iterator producer', async t => {
+	const emitter = new Emittery();
+	const abortController = new AbortController();
+	const iterator = emitter.events('🦄', {signal: abortController.signal});
+
+	abortController.abort();
+	t.deepEqual(await iterator.next(), {done: true});
+	await t.notThrowsAsync(emitter.emit('🦄', '🌈'));
+	await t.notThrowsAsync(emitter.emitSerial('🦄', '🌈'));
+});
+
+test('events() - signal cleanup runs when iterator auto-finishes', async t => {
+	const emitter = new Emittery();
+	const abortController = new AbortController();
+	const {signal} = abortController;
+	let abortListenerCount = 0;
+	const addEventListener = signal.addEventListener.bind(signal);
+	const removeEventListener = signal.removeEventListener.bind(signal);
+
+	signal.addEventListener = (eventName, listener, options) => {
+		if (eventName === 'abort') {
+			++abortListenerCount;
+		}
+
+		addEventListener(eventName, listener, options);
+	};
+
+	signal.removeEventListener = (eventName, listener, options) => {
+		if (eventName === 'abort') {
+			--abortListenerCount;
+		}
+
+		removeEventListener(eventName, listener, options);
+	};
+
+	const iterator = emitter.events('🦄', {signal});
+	t.is(abortListenerCount, 1);
+
+	emitter.clearListeners('🦄');
+	t.is(abortListenerCount, 0);
+	t.deepEqual(await iterator.next(), {done: true});
+});
+
+// AnyEvent with signal tests
+
+test('anyEvent() - supports signal option', async t => {
+	const emitter = new Emittery();
+	const abortController = new AbortController();
+	const iterator = emitter.anyEvent({signal: abortController.signal});
+
+	await emitter.emit('🦄', '🌈');
+	t.deepEqual(await iterator.next(), {done: false, value: {name: '🦄', data: '🌈'}});
+
+	abortController.abort();
+	t.deepEqual(await iterator.next(), {done: true});
+});
+
+test('anyEvent() - pre-aborted signal', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.anyEvent({signal: AbortSignal.abort()});
+
+	t.deepEqual(await iterator.next(), {done: true});
+});
+
+test('anyEvent() - signal abort unregisters iterator producer', async t => {
+	const emitter = new Emittery();
+	const abortController = new AbortController();
+	const iterator = emitter.anyEvent({signal: abortController.signal});
+
+	abortController.abort();
+	t.deepEqual(await iterator.next(), {done: true});
+	await t.notThrowsAsync(emitter.emit('🦄', '🌈'));
+	await t.notThrowsAsync(emitter.emitSerial('🦄', '🌈'));
+});
+
+test('anyEvent() - signal cleanup runs when iterator auto-finishes', async t => {
+	const emitter = new Emittery();
+	const abortController = new AbortController();
+	const {signal} = abortController;
+	let abortListenerCount = 0;
+	const addEventListener = signal.addEventListener.bind(signal);
+	const removeEventListener = signal.removeEventListener.bind(signal);
+
+	signal.addEventListener = (eventName, listener, options) => {
+		if (eventName === 'abort') {
+			++abortListenerCount;
+		}
+
+		addEventListener(eventName, listener, options);
+	};
+
+	signal.removeEventListener = (eventName, listener, options) => {
+		if (eventName === 'abort') {
+			--abortListenerCount;
+		}
+
+		removeEventListener(eventName, listener, options);
+	};
+
+	const iterator = emitter.anyEvent({signal});
+	t.is(abortListenerCount, 1);
+
+	emitter.clearListeners();
+	t.is(abortListenerCount, 0);
+	t.deepEqual(await iterator.next(), {done: true});
 });

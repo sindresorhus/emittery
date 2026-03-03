@@ -85,28 +85,36 @@ type AnyListener = (event: unknown) => void | Promise<void>;
 
 	const ee = new Emittery<MyEventData>();
 
-	const myLogger = (type: string, debugName: string, eventName?: keyof MyEventData, eventData?: MyEventData[keyof MyEventData]): void => {
+	const myLogger = (type: string, debugName?: string, eventName?: keyof MyEventData, eventData?: MyEventData[keyof MyEventData]): void => {
 		expectAssignable<string>(type);
-		expectAssignable<string>(debugName);
+		expectAssignable<string | undefined>(debugName);
 		expectAssignable<string | undefined>(eventName);
 		expectAssignable<MyEventData[keyof MyEventData]>(eventData);
 	};
 
 	const debugOptions = {name: 'test', enabled: true, logger: myLogger};
+	const emitterWithEnabledDebugOnly = new Emittery<MyEventData>({debug: {enabled: true}});
+	const unsafeLogger = (type: string, debugName: string): void => {
+		expectAssignable<string>(type);
+		expectAssignable<string>(debugName);
+	};
+
+	expectError(new Emittery<MyEventData>({debug: {enabled: true, logger: unsafeLogger}}));
 
 	// Global debug flag
 	expectAssignable<boolean>(Emittery.isDebugEnabled);
 
 	// General debug options
 	expectAssignable<typeof ee.debug>(debugOptions);
-	expectAssignable<string>(ee.debug.name);
+	expectAssignable<Emittery<MyEventData>>(emitterWithEnabledDebugOnly);
+	expectAssignable<string | undefined>(ee.debug.name);
 	expectAssignable<boolean | undefined>(ee.debug.enabled);
 
 	// Debug logger
 	expectNotAssignable<() => undefined>(ee.debug.logger);
 	expectNotAssignable<(data: unknown) => undefined>(ee.debug.logger);
-	expectNotAssignable<(type: string, debugName: string) => undefined>(ee.debug.logger);
-	expectNotAssignable<((type: string, debugName: string, eventName?: string, eventData?: Record<string, any>) => void) | undefined>(ee.debug.logger);
+	expectNotAssignable<(type: string, debugName: number) => undefined>(ee.debug.logger);
+	expectNotAssignable<((type: string, debugName?: number, eventName?: string, eventData?: Record<string, any>) => void) | undefined>(ee.debug.logger);
 	expectAssignable<typeof ee.debug.logger>(myLogger);
 }
 
@@ -340,3 +348,47 @@ expectError(Emittery.mixin('emittery', 'on'));
 
 // Mixin - error: plain object as target (not a constructor)
 expectError(Emittery.mixin('emittery')({}));
+
+// Symbol.dispose - UnsubscribeFunction is Disposable
+{
+	const ee = new Emittery();
+	const off = ee.on('anEvent', () => {});
+	expectAssignable<Disposable>(off);
+	expectType<() => void>(off[Symbol.dispose]);
+
+	const offAny = ee.onAny(() => {});
+	expectAssignable<Disposable>(offAny);
+
+	const offInit = ee.init('anEvent', () => {});
+	expectAssignable<Disposable>(offInit);
+}
+
+// Symbol.asyncDispose - iterators are AsyncDisposable
+{
+	const ee = new Emittery();
+	const eventsIterator = ee.events('anEvent');
+	expectAssignable<AsyncDisposable>(eventsIterator);
+
+	const anyIterator = ee.anyEvent();
+	expectAssignable<AsyncDisposable>(anyIterator);
+}
+
+// Once with signal option
+{
+	const ee = new Emittery();
+	ee.once('anEvent', {signal: new AbortController().signal});
+	ee.once('anEvent', {predicate: () => true, signal: new AbortController().signal});
+	ee.once('anEvent', {predicate: () => true});
+}
+
+// Events with signal option
+{
+	const ee = new Emittery();
+	ee.events('anEvent', {signal: new AbortController().signal});
+}
+
+// AnyEvent with signal option
+{
+	const ee = new Emittery();
+	ee.anyEvent({signal: new AbortController().signal});
+}
