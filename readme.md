@@ -621,6 +621,10 @@ console.log(unicorn);
 
 But I would argue doing that shows a deeper lack of Node.js and async comprehension and is not something we should optimize for. The benefit of async emitting is much greater.
 
+### Can you support synchronous `emit()`?
+
+No. Async emission is Emittery's core design principle. If you need synchronous event emission (for example, proxying DOM events like React's `onChange`), use a synchronous event emitter.
+
 ### Can you support multiple arguments for `emit()`?
 
 No, just use [destructuring](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring_assignment):
