@@ -430,15 +430,27 @@ const emitter = new Emittery();
 } // Subscription is automatically revoked
 ```
 
-Since Emittery requires Node.js 22+, you can use the built-in [async iterator helpers](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncIterator#iterator_helpers) to transform events:
+You can combine it with a `for await...of` loop to filter and transform events:
+
+<!-- TODO: When async iterator helpers are available in Node.js, simplify this to: `emitter.events('🦄').filter(event => event.data > 3).take(5)` -->
 
 ```js
 import Emittery from 'emittery';
 
 const emitter = new Emittery();
 
-for await (const {data} of emitter.events('🦄').filter(event => event.data > 3).take(5)) {
+let count = 0;
+
+for await (const {data} of emitter.events('🦄')) {
+	if (data <= 3) {
+		continue;
+	}
+
 	console.log(data);
+
+	if (++count >= 5) {
+		break;
+	}
 }
 ```
 
