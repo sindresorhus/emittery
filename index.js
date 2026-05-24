@@ -1,10 +1,3 @@
-import {
-	anyMap,
-	producersMap,
-	eventsMap,
-	lifecycleMap,
-} from './maps.js';
-
 const anyProducer = Symbol('anyProducer');
 const resolvedPromise = Promise.resolve();
 
@@ -12,10 +5,7 @@ const resolvedPromise = Promise.resolve();
 const listenerAdded = Symbol('listenerAdded');
 const listenerRemoved = Symbol('listenerRemoved');
 
-const metaEventsAllowed = new WeakMap();
-const metaEventsPermitted = new WeakMap();
 const suppressAllEnqueue = Symbol('suppressAllEnqueue');
-const suppressedEventsMap = new WeakMap();
 let isGlobalDebugEnabled = false;
 
 const isEventKeyType = key => typeof key === 'string' || typeof key === 'symbol' || typeof key === 'number';
@@ -66,8 +56,7 @@ function assertListener(listener) {
 	}
 }
 
-function getListeners(instance, eventName) {
-	const events = eventsMap.get(instance);
+function getListeners({events}, eventName) {
 	if (!events.has(eventName)) {
 		return;
 	}
@@ -75,9 +64,8 @@ function getListeners(instance, eventName) {
 	return events.get(eventName);
 }
 
-function getEventProducers(instance, eventName) {
+function getEventProducers({producers}, eventName) {
 	const key = isEventKeyType(eventName) ? eventName : anyProducer;
-	const producers = producersMap.get(instance);
 	if (!producers.has(key)) {
 		return;
 	}
@@ -85,12 +73,12 @@ function getEventProducers(instance, eventName) {
 	return producers.get(key);
 }
 
-function enqueueProducers(instance, eventName, eventData, hasEventData) {
-	if (isEnqueueSuppressed(instance, eventName)) {
+function enqueueProducers(state, eventName, eventData, hasEventData) {
+	if (isEnqueueSuppressed(state, eventName)) {
 		return;
 	}
 
-	const producers = producersMap.get(instance);
+	const {producers} = state;
 	if (!producers.has(eventName) && !producers.get(anyProducer)?.size) {
 		return;
 	}
@@ -111,7 +99,7 @@ function enqueueProducers(instance, eventName, eventData, hasEventData) {
 	}
 }
 
-function iterator(instance, eventNames, {signal} = {}) {
+function iterator(state, eventNames, {signal} = {}) {
 	eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
 
 	let isFinished = false;
@@ -133,11 +121,10 @@ function iterator(instance, eventNames, {signal} = {}) {
 
 	for (const eventName of eventNames) {
 		const producerKey = isEventKeyType(eventName) ? eventName : anyProducer;
-		let set = getEventProducers(instance, eventName);
+		let set = getEventProducers(state, eventName);
 		if (!set) {
 			set = new Set();
-			const producers = producersMap.get(instance);
-			producers.set(producerKey, set);
+			state.producers.set(producerKey, set);
 		}
 
 		set.add(producer);
@@ -146,12 +133,11 @@ function iterator(instance, eventNames, {signal} = {}) {
 	const removeProducer = () => {
 		for (const eventName of eventNames) {
 			const producerKey = isEventKeyType(eventName) ? eventName : anyProducer;
-			const set = getEventProducers(instance, eventName);
+			const set = getEventProducers(state, eventName);
 			if (set) {
 				set.delete(producer);
 				if (set.size === 0) {
-					const producers = producersMap.get(instance);
-					producers.delete(producerKey);
+					state.producers.delete(producerKey);
 				}
 			}
 		}
@@ -238,22 +224,18 @@ function defaultMethodNamesOrAssert(methodNames) {
 
 const isMetaEvent = eventName => eventName === listenerAdded || eventName === listenerRemoved;
 
-function withSuppressedEnqueue(instance, eventNames, function_) {
+function withSuppressedEnqueue(state, eventNames, function_) {
 	const keys = eventNames.some(name => !isEventKeyType(name))
 		? [suppressAllEnqueue]
 		: eventNames;
 
-	let suppressed = suppressedEventsMap.get(instance);
-	if (!suppressed) {
-		suppressed = new Set();
-		suppressedEventsMap.set(instance, suppressed);
-	}
+	const {suppressedEvents} = state;
 
 	// Track only the keys we actually added, so re-entrant calls don't prematurely lift suppression.
 	const added = [];
 	for (const key of keys) {
-		if (!suppressed.has(key)) {
-			suppressed.add(key);
+		if (!suppressedEvents.has(key)) {
+			suppressedEvents.add(key);
 			added.push(key);
 		}
 	}
@@ -262,25 +244,16 @@ function withSuppressedEnqueue(instance, eventNames, function_) {
 		return function_();
 	} finally {
 		for (const key of added) {
-			suppressed.delete(key);
-		}
-
-		if (suppressed.size === 0) {
-			suppressedEventsMap.delete(instance);
+			suppressedEvents.delete(key);
 		}
 	}
 }
 
-function isEnqueueSuppressed(instance, eventName) {
-	const suppressed = suppressedEventsMap.get(instance);
-	if (!suppressed) {
-		return false;
-	}
-
-	return suppressed.has(suppressAllEnqueue) || suppressed.has(eventName);
+function isEnqueueSuppressed({suppressedEvents}, eventName) {
+	return suppressedEvents.has(suppressAllEnqueue) || suppressedEvents.has(eventName);
 }
 
-function callInitFn(instance, lifecycle, listener, {eventName, set}) {
+function callInitFn(state, lifecycle, listener, {eventName, set}) {
 	try {
 		const result = lifecycle.initFn();
 		if (typeof result === 'function') {
@@ -289,7 +262,7 @@ function callInitFn(instance, lifecycle, listener, {eventName, set}) {
 	} catch (error) {
 		set.delete(listener);
 		if (set.size === 0) {
-			eventsMap.get(instance).delete(eventName);
+			state.events.delete(eventName);
 		}
 
 		throw error;
@@ -307,38 +280,38 @@ function callAndUnsetDeinitFn(lifecycle) {
 const subscribeAction = 'subscribe';
 const unsubscribeAction = 'unsubscribe';
 
-function transitionEventListener(instance, {eventName, listener, action, swallowLifecycleError = false, removeResubscribedListener = false}) {
+function transitionEventListener(state, {eventName, listener, action, swallowLifecycleError = false, removeResubscribedListener = false}) {
 	if (action === subscribeAction) {
-		let set = getListeners(instance, eventName);
+		let set = getListeners(state, eventName);
 		if (!set) {
 			set = new Set();
-			eventsMap.get(instance).set(eventName, set);
+			state.events.set(eventName, set);
 		}
 
 		const wasEmpty = set.size === 0;
 		const alreadyListening = set.has(listener);
 		set.add(listener);
 
-		if (!isMetaEvent(eventName) && wasEmpty && !isEnqueueSuppressed(instance, eventName)) {
-			const lifecycle = lifecycleMap.get(instance).get(eventName);
+		if (!isMetaEvent(eventName) && wasEmpty && !isEnqueueSuppressed(state, eventName)) {
+			const lifecycle = state.lifecycles.get(eventName);
 			if (lifecycle) {
-				callInitFn(instance, lifecycle, listener, {eventName, set});
+				callInitFn(state, lifecycle, listener, {eventName, set});
 			}
 		}
 
 		return {hasSet: true, changed: !alreadyListening};
 	}
 
-	const set = getListeners(instance, eventName);
+	const set = getListeners(state, eventName);
 	if (!set) {
 		return {hasSet: false, changed: false};
 	}
 
 	const removed = set.delete(listener);
 	if (set.size === 0) {
-		eventsMap.get(instance).delete(eventName);
+		state.events.delete(eventName);
 
-		const lifecycle = lifecycleMap.get(instance).get(eventName);
+		const lifecycle = state.lifecycles.get(eventName);
 		if (swallowLifecycleError) {
 			try {
 				callAndUnsetDeinitFn(lifecycle);
@@ -349,10 +322,10 @@ function transitionEventListener(instance, {eventName, listener, action, swallow
 
 		if (removeResubscribedListener) {
 			// Deinit can re-subscribe the same listener; keep rollback authoritative.
-			const setAfterDeinit = getListeners(instance, eventName);
+			const setAfterDeinit = getListeners(state, eventName);
 			setAfterDeinit?.delete(listener);
 			if (setAfterDeinit?.size === 0) {
-				eventsMap.get(instance).delete(eventName);
+				state.events.delete(eventName);
 			}
 		}
 	}
@@ -360,58 +333,8 @@ function transitionEventListener(instance, {eventName, listener, action, swallow
 	return {hasSet: true, changed: removed};
 }
 
-function emitSubscriptionSideEffects(instance, {eventName, listener, action, swallowErrors = false}) {
-	const isSubscribe = action === subscribeAction;
-	const debugType = isSubscribe ? 'subscribe' : 'unsubscribe';
-	const metaEvent = isSubscribe ? listenerAdded : listenerRemoved;
-
-	if (swallowErrors) {
-		try {
-			instance.logIfDebugEnabled(debugType, eventName, undefined);
-		} catch {}
-
-		if (!isMetaEvent(eventName)) {
-			try {
-				emitMetaEvent(instance, metaEvent, {eventName, listener});
-			} catch {}
-		}
-
-		return;
-	}
-
-	instance.logIfDebugEnabled(debugType, eventName, undefined);
-
-	if (!isMetaEvent(eventName)) {
-		emitMetaEvent(instance, metaEvent, {eventName, listener});
-	}
-}
-
-function rollbackAddedListeners(instance, eventNames, listener) {
-	withSuppressedEnqueue(instance, eventNames, () => {
-		for (const eventName of eventNames) {
-			const {hasSet} = transitionEventListener(instance, {
-				eventName,
-				listener,
-				action: unsubscribeAction,
-				swallowLifecycleError: true,
-				removeResubscribedListener: true,
-			});
-			if (!hasSet) {
-				continue;
-			}
-
-			emitSubscriptionSideEffects(instance, {
-				eventName,
-				listener,
-				action: unsubscribeAction,
-				swallowErrors: true,
-			});
-		}
-	});
-}
-
-function finishAndClearProducers(instance, eventName) {
-	const producers = getEventProducers(instance, eventName);
+function finishAndClearProducers(state, eventName) {
+	const producers = getEventProducers(state, eventName);
 	if (producers) {
 		for (const producer of producers) {
 			producer.finish();
@@ -421,32 +344,31 @@ function finishAndClearProducers(instance, eventName) {
 	}
 }
 
-function finishAndClearAllProducers(instance) {
-	const allProducers = producersMap.get(instance);
-	for (const [key, producers] of allProducers.entries()) {
-		for (const producer of producers) {
+function finishAndClearAllProducers({producers}) {
+	for (const [key, producerSet] of producers.entries()) {
+		for (const producer of producerSet) {
 			producer.finish();
 		}
 
-		producers.clear();
-		allProducers.delete(key);
+		producerSet.clear();
+		producers.delete(key);
 	}
 }
 
 const makeEventObject = (eventName, eventData, hasEventData) =>
 	hasEventData ? {name: eventName, data: eventData} : {name: eventName};
 
-function emitMetaEvent(emitter, eventName, eventData) {
-	metaEventsAllowed.set(emitter, (metaEventsAllowed.get(emitter) ?? 0) + 1);
-	metaEventsPermitted.set(emitter, (metaEventsPermitted.get(emitter) ?? 0) + 1);
-	try {
-		Emittery.prototype.emit.call(emitter, eventName, eventData);
-	} finally {
-		metaEventsAllowed.set(emitter, (metaEventsAllowed.get(emitter) ?? 0) - 1);
-	}
-}
-
 export default class Emittery {
+	#state = {
+		anyListeners: new Set(),
+		events: new Map(),
+		producers: new Map([[anyProducer, new Set()]]),
+		lifecycles: new Map(),
+		suppressedEvents: new Set(),
+	};
+	#metaEventsAllowed = 0;
+	#metaEventsPermitted = 0;
+
 	static mixin(emitteryPropertyName, methodNames) {
 		methodNames = defaultMethodNamesOrAssert(methodNames);
 		return (target, _context) => {
@@ -506,13 +428,6 @@ export default class Emittery {
 	}
 
 	constructor(options = {}) {
-		anyMap.set(this, new Set());
-		eventsMap.set(this, new Map());
-		producersMap.set(this, new Map());
-		lifecycleMap.set(this, new Map());
-
-		producersMap.get(this).set(anyProducer, new Set());
-
 		for (const methodName of allEmitteryMethods) {
 			Object.defineProperty(this, methodName, {
 				value: this[methodName].bind(this),
@@ -546,6 +461,79 @@ export default class Emittery {
 		};
 	}
 
+	#emitMetaEvent(eventName, eventData) {
+		this.#metaEventsAllowed++;
+		this.#metaEventsPermitted++;
+
+		try {
+			Emittery.prototype.emit.call(this, eventName, eventData);
+		} finally {
+			this.#metaEventsAllowed--;
+		}
+	}
+
+	#assertMetaEventAllowed(eventName) {
+		if (!isMetaEvent(eventName)) {
+			return;
+		}
+
+		if (this.#metaEventsAllowed === 0 || this.#metaEventsPermitted === 0) {
+			throw new TypeError('`eventName` cannot be meta event `listenerAdded` or `listenerRemoved`');
+		}
+
+		this.#metaEventsPermitted--;
+	}
+
+	#emitSubscriptionSideEffects({eventName, listener, action, swallowErrors = false}) {
+		const isSubscribe = action === subscribeAction;
+		const debugType = isSubscribe ? 'subscribe' : 'unsubscribe';
+		const metaEvent = isSubscribe ? listenerAdded : listenerRemoved;
+
+		if (swallowErrors) {
+			try {
+				this.logIfDebugEnabled(debugType, eventName, undefined);
+			} catch {}
+
+			if (!isMetaEvent(eventName)) {
+				try {
+					this.#emitMetaEvent(metaEvent, {eventName, listener});
+				} catch {}
+			}
+
+			return;
+		}
+
+		this.logIfDebugEnabled(debugType, eventName, undefined);
+
+		if (!isMetaEvent(eventName)) {
+			this.#emitMetaEvent(metaEvent, {eventName, listener});
+		}
+	}
+
+	#rollbackAddedListeners(eventNames, listener) {
+		withSuppressedEnqueue(this.#state, eventNames, () => {
+			for (const eventName of eventNames) {
+				const {hasSet} = transitionEventListener(this.#state, {
+					eventName,
+					listener,
+					action: unsubscribeAction,
+					swallowLifecycleError: true,
+					removeResubscribedListener: true,
+				});
+				if (!hasSet) {
+					continue;
+				}
+
+				this.#emitSubscriptionSideEffects({
+					eventName,
+					listener,
+					action: unsubscribeAction,
+					swallowErrors: true,
+				});
+			}
+		});
+	}
+
 	logIfDebugEnabled(type, eventName, eventData) {
 		if (Emittery.isDebugEnabled || this.debug.enabled) {
 			this.debug.logger(type, this.debug.name, eventName, eventData);
@@ -560,7 +548,7 @@ export default class Emittery {
 		try {
 			for (const eventName of eventNames) {
 				assertEventName(eventName);
-				const {changed} = transitionEventListener(this, {
+				const {changed} = transitionEventListener(this.#state, {
 					eventName,
 					listener,
 					action: subscribeAction,
@@ -569,14 +557,14 @@ export default class Emittery {
 					addedEventNames.push(eventName);
 				}
 
-				emitSubscriptionSideEffects(this, {
+				this.#emitSubscriptionSideEffects({
 					eventName,
 					listener,
 					action: subscribeAction,
 				});
 			}
 		} catch (error) {
-			rollbackAddedListeners(this, addedEventNames, listener);
+			this.#rollbackAddedListeners(addedEventNames, listener);
 			throw error;
 		}
 
@@ -610,12 +598,12 @@ export default class Emittery {
 		eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
 		for (const eventName of eventNames) {
 			assertEventName(eventName);
-			transitionEventListener(this, {
+			transitionEventListener(this.#state, {
 				eventName,
 				listener,
 				action: unsubscribeAction,
 			});
-			emitSubscriptionSideEffects(this, {
+			this.#emitSubscriptionSideEffects({
 				eventName,
 				listener,
 				action: unsubscribeAction,
@@ -734,20 +722,12 @@ export default class Emittery {
 			assertEventName(eventName);
 		}
 
-		return iterator(this, eventNames, {signal});
+		return iterator(this.#state, eventNames, {signal});
 	}
 
 	async emit(eventName, eventData) {
 		assertEventName(eventName);
-
-		if (isMetaEvent(eventName)) {
-			const remainingPermits = metaEventsPermitted.get(this) ?? 0;
-			if ((metaEventsAllowed.get(this) ?? 0) === 0 || remainingPermits === 0) {
-				throw new TypeError('`eventName` cannot be meta event `listenerAdded` or `listenerRemoved`');
-			}
-
-			metaEventsPermitted.set(this, remainingPermits - 1);
-		}
+		this.#assertMetaEventAllowed(eventName);
 
 		if (!isMetaEvent(eventName)) {
 			this.logIfDebugEnabled('emit', eventName, eventData);
@@ -755,10 +735,10 @@ export default class Emittery {
 
 		const hasEventData = arguments.length > 1;
 
-		enqueueProducers(this, eventName, eventData, hasEventData);
+		enqueueProducers(this.#state, eventName, eventData, hasEventData);
 
-		const listeners = getListeners(this, eventName) ?? new Set();
-		const anyListeners = anyMap.get(this);
+		const listeners = getListeners(this.#state, eventName) ?? new Set();
+		const {anyListeners} = this.#state;
 		const staticListeners = [...listeners];
 		const staticAnyListeners = isMetaEvent(eventName) ? [] : [...anyListeners];
 
@@ -788,15 +768,7 @@ export default class Emittery {
 
 	async emitSerial(eventName, eventData) {
 		assertEventName(eventName);
-
-		if (isMetaEvent(eventName)) {
-			const remainingPermits = metaEventsPermitted.get(this) ?? 0;
-			if ((metaEventsAllowed.get(this) ?? 0) === 0 || remainingPermits === 0) {
-				throw new TypeError('`eventName` cannot be meta event `listenerAdded` or `listenerRemoved`');
-			}
-
-			metaEventsPermitted.set(this, remainingPermits - 1);
-		}
+		this.#assertMetaEventAllowed(eventName);
 
 		if (!isMetaEvent(eventName)) {
 			this.logIfDebugEnabled('emitSerial', eventName, eventData);
@@ -804,10 +776,10 @@ export default class Emittery {
 
 		const hasEventData = arguments.length > 1;
 
-		enqueueProducers(this, eventName, eventData, hasEventData);
+		enqueueProducers(this.#state, eventName, eventData, hasEventData);
 
-		const listeners = getListeners(this, eventName) ?? new Set();
-		const anyListeners = anyMap.get(this);
+		const listeners = getListeners(this.#state, eventName) ?? new Set();
+		const {anyListeners} = this.#state;
 		const staticListeners = [...listeners];
 		const staticAnyListeners = isMetaEvent(eventName) ? [] : [...anyListeners];
 
@@ -832,8 +804,8 @@ export default class Emittery {
 
 		this.logIfDebugEnabled('subscribeAny', undefined, undefined);
 
-		anyMap.get(this).add(listener);
-		emitMetaEvent(this, listenerAdded, {listener});
+		this.#state.anyListeners.add(listener);
+		this.#emitMetaEvent(listenerAdded, {listener});
 
 		let removeAbortListener = () => {};
 		const offAny = () => {
@@ -847,7 +819,7 @@ export default class Emittery {
 	}
 
 	anyEvent({signal} = {}) {
-		return iterator(this, undefined, {signal});
+		return iterator(this.#state, undefined, {signal});
 	}
 
 	offAny(listener) {
@@ -855,15 +827,15 @@ export default class Emittery {
 
 		this.logIfDebugEnabled('unsubscribeAny', undefined, undefined);
 
-		emitMetaEvent(this, listenerRemoved, {listener});
-		anyMap.get(this).delete(listener);
+		this.#emitMetaEvent(listenerRemoved, {listener});
+		this.#state.anyListeners.delete(listener);
 	}
 
 	clearListeners(eventNames) {
 		eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
 		const shouldClearAll = eventNames.some(eventName => !isEventKeyType(eventName));
 
-		withSuppressedEnqueue(this, eventNames, () => {
+		withSuppressedEnqueue(this.#state, eventNames, () => {
 			const noError = Symbol('no-error');
 			let firstError = noError;
 
@@ -876,26 +848,26 @@ export default class Emittery {
 					}
 
 					if (isEventKeyType(eventName)) {
-						const set = getListeners(this, eventName);
+						const set = getListeners(this.#state, eventName);
 						const hadListeners = set?.size > 0;
 						set?.clear();
-						finishAndClearProducers(this, eventName);
+						finishAndClearProducers(this.#state, eventName);
 
-						const lifecycle = hadListeners ? lifecycleMap.get(this).get(eventName) : undefined;
+						const lifecycle = hadListeners ? this.#state.lifecycles.get(eventName) : undefined;
 						try {
 							callAndUnsetDeinitFn(lifecycle);
 						} catch (error) {
 							firstError = firstError === noError ? error : firstError;
 						}
 					} else {
-						anyMap.get(this).clear();
-						finishAndClearAllProducers(this);
+						this.#state.anyListeners.clear();
+						finishAndClearAllProducers(this.#state);
 
-						for (const [eventName, listeners] of eventsMap.get(this).entries()) {
+						for (const [eventName, listeners] of this.#state.events.entries()) {
 							const hadListeners = listeners.size > 0;
 							listeners.clear();
 
-							const lifecycle = hadListeners ? lifecycleMap.get(this).get(eventName) : undefined;
+							const lifecycle = hadListeners ? this.#state.lifecycles.get(eventName) : undefined;
 							try {
 								callAndUnsetDeinitFn(lifecycle);
 							} catch (error) {
@@ -904,31 +876,31 @@ export default class Emittery {
 
 							// Re-clear in case deinit re-subscribed.
 							listeners.clear();
-							eventsMap.get(this).delete(eventName);
+							this.#state.events.delete(eventName);
 						}
 
 						// Re-clear in case deinit re-subscribed to onAny() or created new iterators.
-						anyMap.get(this).clear();
-						finishAndClearAllProducers(this);
+						this.#state.anyListeners.clear();
+						finishAndClearAllProducers(this.#state);
 					}
 				}
 			} finally {
 				if (shouldClearAll) {
-					anyMap.get(this).clear();
-					for (const listeners of eventsMap.get(this).values()) {
+					this.#state.anyListeners.clear();
+					for (const listeners of this.#state.events.values()) {
 						listeners.clear();
 					}
 
-					eventsMap.get(this).clear();
-					finishAndClearAllProducers(this);
+					this.#state.events.clear();
+					finishAndClearAllProducers(this.#state);
 				} else {
 					// Final re-clear for cross-event deinit re-subscription (e.g., deinit for B re-subscribes to A).
 					for (const eventName of eventNames) {
 						if (isEventKeyType(eventName)) {
-							const set = getListeners(this, eventName);
+							const set = getListeners(this.#state, eventName);
 							set?.clear();
-							eventsMap.get(this).delete(eventName);
-							finishAndClearProducers(this, eventName);
+							this.#state.events.delete(eventName);
+							finishAndClearProducers(this.#state, eventName);
 						}
 					}
 				}
@@ -951,7 +923,7 @@ export default class Emittery {
 			throw new TypeError('`initFn` must be a function');
 		}
 
-		const lifecycles = lifecycleMap.get(this);
+		const {lifecycles} = this.#state;
 
 		if (lifecycles.has(eventName)) {
 			throw new Error('`eventName` already has an init function registered');
@@ -961,7 +933,7 @@ export default class Emittery {
 		lifecycles.set(eventName, lifecycle);
 
 		// If listeners already exist, call init immediately
-		const existingListeners = getListeners(this, eventName);
+		const existingListeners = getListeners(this.#state, eventName);
 		if (existingListeners?.size > 0) {
 			try {
 				const result = initFn();
@@ -991,10 +963,10 @@ export default class Emittery {
 
 		for (const eventName of eventNames) {
 			if (isEventKeyType(eventName)) {
-				count += anyMap.get(this).size
-					+ (getListeners(this, eventName)?.size ?? 0)
-					+ (getEventProducers(this, eventName)?.size ?? 0)
-					+ (getEventProducers(this)?.size ?? 0);
+				count += this.#state.anyListeners.size
+					+ (getListeners(this.#state, eventName)?.size ?? 0)
+					+ (getEventProducers(this.#state, eventName)?.size ?? 0)
+					+ (getEventProducers(this.#state)?.size ?? 0);
 
 				continue;
 			}
@@ -1003,13 +975,13 @@ export default class Emittery {
 				assertEventName(eventName);
 			}
 
-			count += anyMap.get(this).size;
+			count += this.#state.anyListeners.size;
 
-			for (const value of eventsMap.get(this).values()) {
+			for (const value of this.#state.events.values()) {
 				count += value.size;
 			}
 
-			for (const value of producersMap.get(this).values()) {
+			for (const value of this.#state.producers.values()) {
 				count += value.size;
 			}
 		}

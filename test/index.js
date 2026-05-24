@@ -2,7 +2,6 @@ import test from 'ava';
 import delay from 'delay';
 import {pEvent, pEventMultiple} from 'p-event';
 import Emittery from '../index.js';
-import {eventsMap} from '../maps.js';
 
 test('on()', async t => {
 	const emitter = new Emittery();
@@ -1047,17 +1046,17 @@ test('off() - no listener', t => {
 	}, {instanceOf: TypeError});
 });
 
-test('off() - clears global maps when all listeners are removed', t => {
+test('off() - removes listener when all listeners are removed', t => {
 	const emitter = new Emittery();
 
 	const event = 'string';
 	const callback = () => {};
 
 	emitter.on(event, callback);
-	t.is(eventsMap.get(emitter).get(event).size, 1);
+	t.is(emitter.listenerCount(event), 1);
 
 	emitter.off(event, callback);
-	t.is(eventsMap.get(emitter).get(event), undefined);
+	t.is(emitter.listenerCount(event), 0);
 });
 
 test('once()', async t => {
@@ -2966,7 +2965,6 @@ test('init() - initFn throwing during on() rolls back the listener', t => {
 
 	t.deepEqual(calls, ['init']);
 	t.is(emitter.listenerCount('🦄'), 0); // Listener rolled back
-	t.is(eventsMap.get(emitter).get('🦄'), undefined);
 });
 
 test('init() - initFn throwing during on() with event name array rolls back earlier subscriptions', t => {
@@ -2994,8 +2992,6 @@ test('init() - initFn throwing during on() with event name array rolls back earl
 	t.deepEqual(calls, ['init:unicorn', 'init:rainbow', 'deinit:unicorn']);
 	t.is(emitter.listenerCount('🦄'), 0);
 	t.is(emitter.listenerCount('🌈'), 0);
-	t.is(eventsMap.get(emitter).get('🦄'), undefined);
-	t.is(eventsMap.get(emitter).get('🌈'), undefined);
 });
 
 test('init() - failed on() with event name array keeps pre-existing listener subscriptions', t => {
@@ -3013,9 +3009,7 @@ test('init() - failed on() with event name array keeps pre-existing listener sub
 	}, {is: error});
 
 	t.is(emitter.listenerCount('🦄'), 1);
-	t.true(eventsMap.get(emitter).get('🦄').has(listener));
 	t.is(emitter.listenerCount('🌈'), 0);
-	t.is(eventsMap.get(emitter).get('🌈'), undefined);
 });
 
 test('init() - rollback keeps running and throws original error when deinit throws', t => {
@@ -3040,8 +3034,6 @@ test('init() - rollback keeps running and throws original error when deinit thro
 
 	t.is(emitter.listenerCount('🦄'), 0);
 	t.is(emitter.listenerCount('🌈'), 0);
-	t.is(eventsMap.get(emitter).get('🦄'), undefined);
-	t.is(eventsMap.get(emitter).get('🌈'), undefined);
 });
 
 test('init() - rollback removes same-listener re-subscription triggered by deinit', t => {
@@ -3062,7 +3054,6 @@ test('init() - rollback removes same-listener re-subscription triggered by deini
 	}, {is: initError});
 
 	t.is(emitter.listenerCount('🦄'), 0);
-	t.is(eventsMap.get(emitter).get('🦄'), undefined);
 });
 
 test('init() - rollback does not emit listenerRemoved for already-removed event entry', async t => {
@@ -3230,7 +3221,6 @@ test('init() - clearListeners() stays cleared if deinit re-subscribes to a diffe
 	emitter.clearListeners();
 
 	t.is(emitter.listenerCount(), 0);
-	t.false(eventsMap.get(emitter).has('🌈'));
 });
 
 test('init() - clearListeners(eventName) does not re-enter deinit via removeInit()', t => {
@@ -3458,7 +3448,6 @@ test('init() - clearListeners(eventName) stays authoritative when deinit re-subs
 	}, {is: deinitError});
 
 	t.is(emitter.listenerCount('🦄'), 0);
-	t.false(eventsMap.get(emitter).has('🦄'));
 });
 
 test('init() - clearListeners() stays authoritative when deinit re-subscribes and throws', t => {
@@ -3475,7 +3464,6 @@ test('init() - clearListeners() stays authoritative when deinit re-subscribes an
 	}, {is: deinitError});
 
 	t.is(emitter.listenerCount('🦄'), 0);
-	t.false(eventsMap.get(emitter).has('🦄'));
 });
 
 test('init() - clearListeners() stays authoritative when later deinit re-subscribes earlier event and throws', t => {
@@ -3496,8 +3484,6 @@ test('init() - clearListeners() stays authoritative when later deinit re-subscri
 	t.is(emitter.listenerCount('🦄'), 0);
 	t.is(emitter.listenerCount('🌈'), 0);
 	t.is(emitter.listenerCount(), 0);
-	t.false(eventsMap.get(emitter).has('🦄'));
-	t.false(eventsMap.get(emitter).has('🌈'));
 });
 
 test('init() - clearListeners() continues deinit for later events when earlier deinit throws', t => {
@@ -3639,13 +3625,13 @@ test('init() - clearListeners([...]) stays authoritative when later deinit re-su
 	t.is(emitter.listenerCount('🌈'), 0);
 });
 
-test('clearListeners(eventName) - removes eventsMap entry', t => {
+test('clearListeners(eventName) - removes listener', t => {
 	const emitter = new Emittery();
 	emitter.on('🦄', () => {});
-	t.truthy(eventsMap.get(emitter).has('🦄'));
+	t.is(emitter.listenerCount('🦄'), 1);
 
 	emitter.clearListeners('🦄');
-	t.false(eventsMap.get(emitter).has('🦄'));
+	t.is(emitter.listenerCount('🦄'), 0);
 });
 
 test('clearListeners() - handles large event name arrays without stack overflow', t => {
