@@ -1,7 +1,6 @@
 #!/usr/bin/env npx ts-node
 /* eslint-disable @typescript-eslint/no-floating-promises */
 import process from 'node:process';
-import {setInterval} from 'node:timers';
 import Emittery from '../index.js';
 
 type TickData = {
