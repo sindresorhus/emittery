@@ -57,19 +57,11 @@ function assertListener(listener) {
 }
 
 function getListeners({events}, eventName) {
-	if (!events.has(eventName)) {
-		return;
-	}
-
 	return events.get(eventName);
 }
 
 function getEventProducers({producers}, eventName) {
 	const key = isEventKeyType(eventName) ? eventName : anyProducer;
-	if (!producers.has(key)) {
-		return;
-	}
-
 	return producers.get(key);
 }
 
@@ -79,23 +71,21 @@ function enqueueProducers(state, eventName, eventData, hasEventData) {
 	}
 
 	const {producers} = state;
-	if (!producers.has(eventName) && !producers.get(anyProducer)?.size) {
+	const eventProducers = producers.get(eventName);
+	const anyProducers = producers.get(anyProducer);
+	if (!eventProducers && !anyProducers?.size) {
 		return;
 	}
 
 	const resolvedEventData = Promise.resolve(eventData);
 	const makeEvent = async () => makeEventObject(eventName, await resolvedEventData, hasEventData);
 
-	if (producers.has(eventName)) {
-		for (const producer of producers.get(eventName)) {
-			producer.enqueue(makeEvent());
-		}
+	for (const producer of eventProducers ?? []) {
+		producer.enqueue(makeEvent());
 	}
 
-	if (producers.has(anyProducer)) {
-		for (const producer of producers.get(anyProducer)) {
-			producer.enqueue(makeEvent());
-		}
+	for (const producer of anyProducers ?? []) {
+		producer.enqueue(makeEvent());
 	}
 }
 
