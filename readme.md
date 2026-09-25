@@ -501,8 +501,8 @@ const off = emitter.onAny(({name, data}) => {
 	console.log(name, data);
 });
 
-emitter.emit('🦄', '🌈'); // log => '🦄 🌈'
-emitter.emit('🐶', '🍖'); // log => '🐶 🍖'
+await emitter.emit('🦄', '🌈'); // log => '🦄 🌈'
+await emitter.emit('🐶', '🍖'); // log => '🐶 🍖'
 
 off();
 ```
@@ -523,9 +523,9 @@ const listener = ({name, data}) => {
 };
 
 emitter.onAny(listener);
-emitter.emit('🦄', '🌈'); // log => '🦄 🌈'
+await emitter.emit('🦄', '🌈'); // log => '🦄 🌈'
 emitter.offAny(listener);
-emitter.emit('🦄', '🌈'); // Nothing happens
+await emitter.emit('🦄', '🌈'); // Nothing happens
 ```
 
 #### anyEvent(options?: {signal?: AbortSignal})

@@ -8,8 +8,8 @@ myEmitter.on('event', () => {
 	console.log('an event occurred!');
 });
 
-myEmitter.onAny(eventName => {
-	console.log('`%s` event occurred!', eventName);
+myEmitter.onAny(({name}) => {
+	console.log('`%s` event occurred!', name);
 });
 
 // Emit event in next tick

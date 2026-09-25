@@ -916,6 +916,63 @@ test('on() - explicit undefined payload includes data key', async t => {
 	t.true('data' in event);
 });
 
+test('null payload is delivered as data', async t => {
+	// A `null` payload is data, not the absence of it, so the key is present.
+	{
+		const emitter = new Emittery();
+		const promise = new Promise(resolve => {
+			emitter.on('🦄', event => resolve(event));
+		});
+		emitter.emit('🦄', null);
+		const event = await promise;
+		t.deepEqual(event, {name: '🦄', data: null});
+		t.true('data' in event);
+	}
+
+	{
+		const emitter = new Emittery();
+		const promise = new Promise(resolve => {
+			emitter.onAny(event => resolve(event));
+		});
+		emitter.emit('🦄', null);
+		t.deepEqual(await promise, {name: '🦄', data: null});
+	}
+
+	{
+		const emitter = new Emittery();
+		const promise = new Promise(resolve => {
+			emitter.on('🦄', event => resolve(event));
+		});
+		emitter.emitSerial('🦄', null);
+		t.deepEqual(await promise, {name: '🦄', data: null});
+	}
+
+	{
+		const emitter = new Emittery();
+		const promise = emitter.once('🦄');
+		emitter.emit('🦄', null);
+		t.deepEqual(await promise, {name: '🦄', data: null});
+	}
+
+	{
+		const emitter = new Emittery();
+		const iterator = emitter.events('🦄');
+		emitter.emit('🦄', null);
+		const event = await iterator.next();
+		t.deepEqual(event.value, {name: '🦄', data: null});
+		await iterator.return();
+	}
+
+	{
+		const emitter = new Emittery();
+		const iterator = emitter.anyEvent();
+		emitter.emit('🦄', null);
+		const event = await iterator.next();
+		t.deepEqual(event.value, {name: '🦄', data: null});
+		await iterator.return();
+	}
+});
+
 test('on() - listeners get isolated event objects', async t => {
 	const emitter = new Emittery();
 	let secondListenerEvent;
@@ -1370,6 +1427,32 @@ test.serial('events() - a consumer that catches a rejected event can still end t
 	t.is(emitter.listenerCount('🦄'), 0);
 });
 
+test('events() - eventName must be a string, symbol, or number', t => {
+	const emitter = new Emittery();
+
+	t.notThrows(() => {
+		emitter.events('string');
+		emitter.events(Symbol('symbol'));
+		emitter.events(42);
+		emitter.events(['string', 42, Symbol('symbol')]);
+	});
+
+	for (const invalidEventName of [undefined, null, true, {}, () => {}, 42n]) {
+		const countBefore = emitter.listenerCount();
+
+		t.throws(() => {
+			emitter.events(invalidEventName);
+		}, {instanceOf: TypeError});
+
+		t.throws(() => {
+			emitter.events(['string', invalidEventName]);
+		}, {instanceOf: TypeError});
+
+		// A rejected name must not leave a half registered iterator behind.
+		t.is(emitter.listenerCount(), countBefore);
+	}
+});
+
 test('events() - discarded iterators should stop receiving events', async t => {
 	const emitter = new Emittery();
 	const iterator = emitter.events('🦄');
@@ -1595,6 +1678,71 @@ test('once() - filter predicate must be a function', async t => {
 			message: 'predicate must be a function',
 		},
 	);
+});
+
+test('once() - a throwing predicate keeps the subscription and the promise pending', async t => {
+	const emitter = new Emittery();
+	const predicateError = new Error('predicate boom');
+	let isSettled = false;
+	let shouldThrow = true;
+
+	const promise = emitter.once('🦄', () => {
+		if (shouldThrow) {
+			shouldThrow = false;
+			throw predicateError;
+		}
+
+		return true;
+	});
+	const trackSettlement = (async () => {
+		try {
+			await promise;
+			isSettled = true;
+		} catch {}
+	})();
+
+	const error = await t.throwsAsync(emitter.emit('🦄'), {instanceOf: AggregateError});
+	t.is(error.errors[0], predicateError);
+
+	// The predicate runs before the listener unsubscribes, so neither of them happened.
+	await delay(10);
+	t.false(isSettled);
+	t.is(emitter.listenerCount('🦄'), 1);
+
+	// The subscription is still live, so the next event still resolves the promise.
+	await emitter.emit('🦄', '🌈');
+	await trackSettlement;
+	t.true(isSettled);
+	t.deepEqual(await promise, {name: '🦄', data: '🌈'});
+	t.is(emitter.listenerCount('🦄'), 0);
+});
+
+test('once() - calling off() twice is a safe no-op', t => {
+	const emitter = new Emittery();
+	const promise = emitter.once('🦄');
+	t.is(emitter.listenerCount('🦄'), 1);
+
+	t.notThrows(() => {
+		promise.off();
+		promise.off();
+		promise.off();
+	});
+
+	t.is(emitter.listenerCount('🦄'), 0);
+});
+
+test('once() - calling off() after the event fired is a safe no-op', async t => {
+	const emitter = new Emittery();
+	const promise = emitter.once('🦄');
+	await emitter.emit('🦄', '🌈');
+	const event = await promise;
+	t.is(event.data, '🌈');
+
+	t.notThrows(() => {
+		promise.off();
+	});
+
+	t.is(emitter.listenerCount('🦄'), 0);
 });
 
 test('once() - filter predicate with multiple event names', async t => {
@@ -3306,6 +3454,65 @@ test('debug - a debug options object with an inherited enabled flag keeps it wit
 	t.true(debug.enabled);
 });
 
+test.serial('isDebug is enabled by the DEBUG environment variable', async t => {
+	const originalDebug = process.env.DEBUG;
+
+	try {
+		for (const value of ['emittery', '*']) {
+			const eventStore = [];
+			process.env.DEBUG = value;
+
+			t.true(Emittery.isDebugEnabled);
+
+			const emitter = new Emittery({
+				debug: {
+					name: 'testEmitter',
+					logger(type, debugName, eventName) {
+						eventStore.push({type, debugName, eventName});
+					},
+				},
+			});
+
+			emitter.on('test', () => {});
+			// eslint-disable-next-line no-await-in-loop -- Each value is checked in turn.
+			await emitter.emit('test');
+
+			t.deepEqual(eventStore, [
+				{type: 'subscribe', debugName: 'testEmitter', eventName: 'test'},
+				{type: 'emit', debugName: 'testEmitter', eventName: 'test'},
+			]);
+		}
+
+		// Any other value leaves debug off.
+		process.env.DEBUG = 'something-else';
+		t.false(Emittery.isDebugEnabled);
+	} finally {
+		if (originalDebug === undefined) {
+			delete process.env.DEBUG;
+		} else {
+			process.env.DEBUG = originalDebug;
+		}
+	}
+});
+
+test('isDebug falls back to the global flag when process.env is not an object', t => {
+	const originalProcess = process;
+
+	try {
+		// A browser can have a `process` global that is not Node's, or none at all.
+		Object.defineProperty(globalThis, 'process', {value: {}, configurable: true, writable: true});
+
+		Emittery.isDebugEnabled = true;
+		t.true(Emittery.isDebugEnabled);
+
+		Emittery.isDebugEnabled = false;
+		t.false(Emittery.isDebugEnabled);
+	} finally {
+		Object.defineProperty(globalThis, 'process', {value: originalProcess, configurable: true, writable: true});
+		Emittery.isDebugEnabled = false;
+	}
+});
+
 test('isDebug can be turned on globally during runtime', t => {
 	Emittery.isDebugEnabled = true;
 	const eventStore = [];
@@ -4556,6 +4763,20 @@ test('init() - deinitFn throwing during off() still removes the listener', t => 
 
 	// Listener was removed despite the throw
 	t.is(emitter.listenerCount('🦄'), 0);
+});
+
+test('init() - a deinit that re-subscribes the same listener wins over off()', t => {
+	// `clearListeners()` and the `on()` rollback are authoritative over a re-subscribing deinit, but `off()` is not: the deinit re-subscribes after the removal, so the listener simply stays.
+	const emitter = new Emittery();
+	const listener = () => {};
+
+	emitter.init('🦄', () => () => {
+		emitter.on('🦄', listener);
+	});
+
+	emitter.on('🦄', listener);
+	emitter.off('🦄', listener);
+	t.is(emitter.listenerCount('🦄'), 1);
 });
 
 test('off() - a throwing deinit still unsubscribes the remaining event names', async t => {

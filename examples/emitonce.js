@@ -5,7 +5,8 @@ const myEmitter = new Emittery();
 
 // Register listener for only the one event
 (async () => { // eslint-disable-line unicorn/prefer-top-level-await
-	console.log('An event occurred (#%d).', await myEmitter.once('event'));
+	const {data} = await myEmitter.once('event');
+	console.log('An event occurred (#%d).', data);
 })();
 
 // Emit events in next tick

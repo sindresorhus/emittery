@@ -1,7 +1,7 @@
 #!/usr/bin/env npx ts-node
 /* eslint-disable @typescript-eslint/no-floating-promises */
 import process from 'node:process';
-import Emittery from '../index.js';
+import Emittery, {type EmitteryEvent} from '../index.js';
 
 type TickData = {
 	now: number;
@@ -59,7 +59,7 @@ class Clock extends Emittery<EventDataMap> {
 	}
 }
 
-function onTick({duration}: TickData) {
+function onTick({data: {duration}}: EmitteryEvent<'tick', TickData>) {
 	console.log(Math.floor(duration / 1000));
 
 	if (duration >= 6000) {
@@ -67,7 +67,7 @@ function onTick({duration}: TickData) {
 	}
 }
 
-function onError(error: Error) {
+function onError({data: error}: EmitteryEvent<'error', Error>) {
 	process.exitCode = 1;
 	console.error(error);
 	stop();

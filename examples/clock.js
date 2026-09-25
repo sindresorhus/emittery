@@ -44,7 +44,7 @@ class Clock extends Emittery {
 	}
 }
 
-function onTick({duration}) {
+function onTick({data: {duration}}) {
 	console.log(Math.floor(duration / 1000));
 
 	if (duration >= 6000) {
@@ -52,7 +52,7 @@ function onTick({duration}) {
 	}
 }
 
-function onError(error) {
+function onError({data: error}) {
 	process.exitCode = 1;
 	console.error(error);
 	stop();
