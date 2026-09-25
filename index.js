@@ -485,7 +485,9 @@ export default class Emittery {
 			});
 		}
 
-		this.debug = options.debug ?? {};
+		// Copy the options so instances never share debug configuration and the caller's object is never mutated, while keeping any prototype it uses for accessors and methods.
+		const {debug} = options;
+		this.debug = Object.assign(Object.create(Object.getPrototypeOf(debug ?? {})), debug);
 
 		if (this.debug.enabled === undefined) {
 			this.debug.enabled = false;

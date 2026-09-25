@@ -3055,6 +3055,106 @@ test('isDebug default logger handles symbol event names and object for event dat
 	await t.notThrowsAsync(emitter.emit(eventName, {complex: ['data', 'structure', 1]}));
 });
 
+test('debug - two instances do not share a debug options object', async t => {
+	const eventStore = [];
+	const debug = {
+		name: 'shared',
+		logger(type) {
+			eventStore.push(type);
+		},
+	};
+
+	const emitter1 = new Emittery({debug});
+	const emitter2 = new Emittery({debug});
+
+	t.not(emitter1.debug, debug);
+	t.not(emitter1.debug, emitter2.debug);
+
+	emitter1.debug.enabled = true;
+	t.false(emitter2.debug.enabled);
+
+	await emitter2.emit('hello');
+	t.deepEqual(eventStore, []);
+
+	await emitter1.emit('hello');
+	t.deepEqual(eventStore, ['emit']);
+});
+
+test('debug - a frozen debug options object is accepted', async t => {
+	const eventStore = [];
+	const logger = (type, debugName, eventName, eventData) => {
+		eventStore.push({
+			type,
+			debugName,
+			eventName,
+			eventData,
+		});
+	};
+
+	// Without `enabled`, the constructor has to fill in the default, which must not write to the caller's object.
+	const debug = Object.freeze({
+		name: 'frozen',
+		logger,
+	});
+
+	const emitter = new Emittery({debug});
+	t.false(emitter.debug.enabled);
+	emitter.debug.enabled = true;
+	await emitter.emit('hello');
+
+	t.is(emitter.debug.name, 'frozen');
+	t.is(emitter.debug.logger, logger);
+	t.deepEqual(eventStore, [
+		{
+			type: 'emit',
+			debugName: 'frozen',
+			eventName: 'hello',
+			eventData: undefined,
+		},
+	]);
+});
+
+test('debug - a frozen debug options object without a logger gets the default logger', t => {
+	const debug = Object.freeze({name: 'frozen', enabled: true});
+	const emitter = new Emittery({debug});
+
+	t.is(typeof emitter.debug.logger, 'function');
+	t.false(Object.hasOwn(debug, 'logger'));
+});
+
+test('debug - a debug options object keeps its prototype', t => {
+	class DebugConfig {
+		constructor(name) {
+			this.name = name;
+			this.entries = [];
+		}
+
+		logger(type, debugName) {
+			this.entries.push([type, debugName]);
+		}
+	}
+
+	const config = new DebugConfig('from-prototype');
+	const emitter = new Emittery({debug: config});
+	emitter.debug.enabled = true;
+	emitter.logIfDebugEnabled('emit', '🦄');
+
+	t.not(emitter.debug, config);
+	t.is(emitter.debug.name, 'from-prototype');
+	t.deepEqual(config.entries, [['emit', 'from-prototype']]);
+});
+
+test('debug - a debug options object with an inherited enabled flag keeps it without sharing it', t => {
+	const debug = Object.create({name: 'proto-name', enabled: true});
+	const emitter = new Emittery({debug});
+
+	t.is(emitter.debug.name, 'proto-name');
+	t.true(emitter.debug.enabled);
+
+	emitter.debug.enabled = false;
+	t.true(debug.enabled);
+});
+
 test('isDebug can be turned on globally during runtime', t => {
 	Emittery.isDebugEnabled = true;
 	const eventStore = [];
