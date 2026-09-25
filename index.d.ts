@@ -658,6 +658,8 @@ export default class Emittery<
 
 	If `eventNames` is given, only the listeners for those events are cleared. Accepts a single event name or an array.
 
+	An `undefined` in the array means "everything", the same as calling it without arguments, and any other invalid event name throws a `TypeError` instead of clearing.
+
 	@example
 	```
 	import Emittery from 'emittery';
@@ -672,7 +674,7 @@ export default class Emittery<
 	emitter.clearListeners(); // Clear all events
 	```
 	*/
-	clearListeners<Name extends keyof EventData>(eventName?: Name | readonly Name[]): void;
+	clearListeners<Name extends keyof EventData>(eventName?: Name | ReadonlyArray<Name | undefined>): void;
 
 	/**
 	Register a function to be called when the first `.on()` listener subscribes to `eventName`. The `initFn` can optionally return a cleanup (deinit) function, which is called when the last `.on()` listener unsubscribes (or when `clearListeners()` removes all listeners for that event).

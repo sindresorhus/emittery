@@ -567,6 +567,8 @@ Clear all event listeners on the instance.
 
 If `eventNames` is given, only the listeners for those events are cleared. Accepts a single event name or an array.
 
+An `undefined` in the array means "everything", the same as calling it without arguments, and any other invalid event name throws a `TypeError` instead of clearing.
+
 ```js
 import Emittery from 'emittery';
 

@@ -891,6 +891,14 @@ export default class Emittery {
 
 	clearListeners(eventNames) {
 		eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
+
+		// Only `undefined` means "everything", any other invalid event name is a mistake that must not wipe the emitter.
+		for (const eventName of eventNames) {
+			if (eventName !== undefined) {
+				assertEventName(eventName);
+			}
+		}
+
 		const shouldClearAll = eventNames.some(eventName => !isEventKeyType(eventName));
 
 		withSuppressedEnqueue(this.#state, eventNames, () => {

@@ -4204,6 +4204,35 @@ test('clearListeners() - handles large event name arrays without stack overflow'
 	});
 });
 
+test('clearListeners() - eventName must be undefined if not a string, symbol, or number', t => {
+	const emitter = new Emittery();
+
+	t.notThrows(() => {
+		emitter.clearListeners('string');
+		emitter.clearListeners(Symbol('symbol'));
+		emitter.clearListeners(42);
+		emitter.clearListeners();
+		emitter.clearListeners(undefined);
+		emitter.clearListeners(['string', 42, Symbol('symbol')]);
+	});
+
+	for (const invalidEventName of [null, true, {}, () => {}, 42n]) {
+		emitter.on('🦄', () => {});
+		const count = emitter.listenerCount('🦄');
+
+		t.throws(() => {
+			emitter.clearListeners(invalidEventName);
+		}, {instanceOf: TypeError});
+
+		t.throws(() => {
+			emitter.clearListeners(['string', invalidEventName]);
+		}, {instanceOf: TypeError});
+
+		// An invalid event name must not clear anything.
+		t.is(emitter.listenerCount('🦄'), count);
+	}
+});
+
 test('init() - removeInit() called twice is safe', t => {
 	const emitter = new Emittery();
 	let deinitCallCount = 0;
