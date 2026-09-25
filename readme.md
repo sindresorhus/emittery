@@ -389,6 +389,8 @@ Get an async iterator which buffers data each time an event is emitted.
 
 Call `return()` on the iterator to remove the subscription. You can also pass an [abort signal](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal) to cancel the subscription externally, or use `await using` for automatic cleanup.
 
+If the event data is a promise, the iterator waits for it. A promise that rejects throws from the iteration and closes the iterator, so a `for await` loop cannot leave the subscription behind.
+
 ```js
 import Emittery from 'emittery';
 
@@ -531,6 +533,8 @@ emitter.emit('🦄', '🌈'); // Nothing happens
 Get an async iterator which buffers an event object each time an event is emitted.
 
 Call `return()` on the iterator to remove the subscription. You can also pass an [abort signal](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal) to cancel the subscription externally, or use `await using` for automatic cleanup.
+
+If the event data is a promise, the iterator waits for it. A promise that rejects throws from the iteration and closes the iterator, so a `for await` loop cannot leave the subscription behind.
 
 ```js
 import Emittery from 'emittery';

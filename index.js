@@ -60,9 +60,10 @@ function getListeners({events}, eventName) {
 	return events.get(eventName);
 }
 
+const getProducerKey = eventName => isEventKeyType(eventName) ? eventName : anyProducer;
+
 function getEventProducers({producers}, eventName) {
-	const key = isEventKeyType(eventName) ? eventName : anyProducer;
-	return producers.get(key);
+	return producers.get(getProducerKey(eventName));
 }
 
 function enqueueProducers(state, eventName, eventData, hasEventData) {
@@ -72,7 +73,8 @@ function enqueueProducers(state, eventName, eventData, hasEventData) {
 
 	const {producers} = state;
 	const eventProducers = producers.get(eventName);
-	const anyProducers = producers.get(anyProducer);
+	// Meta events are internal bookkeeping, so they never reach "any" subscribers, just like `onAny()`.
+	const anyProducers = isMetaEvent(eventName) ? undefined : producers.get(anyProducer);
 	if (!eventProducers && !anyProducers?.size) {
 		return;
 	}
@@ -80,38 +82,67 @@ function enqueueProducers(state, eventName, eventData, hasEventData) {
 	const resolvedEventData = Promise.resolve(eventData);
 	const makeEvent = async () => makeEventObject(eventName, await resolvedEventData, hasEventData);
 
+	// A buffered event is not necessarily ever read, for example when the consumer stops iterating early, so it must not become an unhandled rejection.
+	const enqueue = producer => {
+		const event = makeEvent();
+		// eslint-disable-next-line promise/prefer-await-to-then -- Marks the event as handled while the consumer can still observe the rejection.
+		event.catch(() => {});
+		producer.enqueue(event);
+	};
+
 	for (const producer of eventProducers ?? []) {
-		producer.enqueue(makeEvent());
+		enqueue(producer);
 	}
 
 	for (const producer of anyProducers ?? []) {
-		producer.enqueue(makeEvent());
+		enqueue(producer);
 	}
 }
 
 function iterator(state, eventNames, {signal} = {}) {
 	eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
+	const producerKeys = new Set(eventNames.map(eventName => getProducerKey(eventName)));
 
 	let isFinished = false;
-	let flush = () => {};
+	const finishedProducerKeys = new Set();
+	let waiters = [];
 	let queue = [];
 	let removeAbortListener = () => {};
+
+	// Every pending `next()` call waits, so all of them have to be woken up, not just the last one.
+	const flush = () => {
+		if (waiters.length === 0) {
+			return;
+		}
+
+		const pendingWaiters = waiters;
+		waiters = [];
+		for (const resolve of pendingWaiters) {
+			resolve();
+		}
+	};
 
 	const producer = {
 		enqueue(item) {
 			queue.push(item);
 			flush();
 		},
-		finish() {
+		finish(producerKey) {
+			finishedProducerKeys.add(producerKey);
+
+			// The iterator stays alive while it is still subscribed to another event.
+			if (finishedProducerKeys.size < producerKeys.size) {
+				return;
+			}
+
 			isFinished = true;
 			removeAbortListener();
 			flush();
 		},
 	};
 
-	for (const eventName of eventNames) {
-		const producerKey = isEventKeyType(eventName) ? eventName : anyProducer;
-		let set = getEventProducers(state, eventName);
+	for (const producerKey of producerKeys) {
+		let set = state.producers.get(producerKey);
 		if (!set) {
 			set = new Set();
 			state.producers.set(producerKey, set);
@@ -121,9 +152,8 @@ function iterator(state, eventNames, {signal} = {}) {
 	}
 
 	const removeProducer = () => {
-		for (const eventName of eventNames) {
-			const producerKey = isEventKeyType(eventName) ? eventName : anyProducer;
-			const set = getEventProducers(state, eventName);
+		for (const producerKey of producerKeys) {
+			const set = state.producers.get(producerKey);
 			if (set) {
 				set.delete(producer);
 				if (set.size === 0) {
@@ -147,30 +177,40 @@ function iterator(state, eventNames, {signal} = {}) {
 
 	removeAbortListener = addAbortListener(signal, stop);
 
-	return {
-		async next() {
-			if (!queue) {
-				return {done: true};
-			}
+	async function next() {
+		if (!queue) {
+			return {done: true};
+		}
 
-			if (queue.length === 0) {
-				if (isFinished) {
-					stop();
-					return this.next();
-				}
-
-				const {promise, resolve} = Promise.withResolvers();
-				flush = resolve;
-				await promise;
-
-				return this.next();
+		if (queue.length > 0) {
+			let value;
+			try {
+				value = await queue.shift();
+			} catch (error) {
+				// A `for await` loop that dies on a rejected event does not close the iterator, so it has to end here instead of buffering forever.
+				stop();
+				throw error;
 			}
 
 			return {
 				done: false,
-				value: await queue.shift(),
+				value,
 			};
-		},
+		}
+
+		if (isFinished) {
+			stop();
+			return next();
+		}
+
+		const {promise, resolve} = Promise.withResolvers();
+		waiters.push(resolve);
+		await promise;
+		return next();
+	}
+
+	return {
+		next,
 
 		async return(value) {
 			stop();
@@ -326,8 +366,9 @@ function transitionEventListener(state, {eventName, listener, action, swallowLif
 function finishAndClearProducers(state, eventName) {
 	const producers = getEventProducers(state, eventName);
 	if (producers) {
+		const producerKey = getProducerKey(eventName);
 		for (const producer of producers) {
-			producer.finish();
+			producer.finish(producerKey);
 		}
 
 		producers.clear();
@@ -337,7 +378,7 @@ function finishAndClearProducers(state, eventName) {
 function finishAndClearAllProducers({producers}) {
 	for (const [key, producerSet] of producers.entries()) {
 		for (const producer of producerSet) {
-			producer.finish();
+			producer.finish(key);
 		}
 
 		producerSet.clear();

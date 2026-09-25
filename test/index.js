@@ -1,7 +1,26 @@
+import process from 'node:process';
 import test from 'ava';
 import delay from 'delay';
 import {pEvent, pEventMultiple} from 'p-event';
 import Emittery from '../index.js';
+
+// Fails fast, instead of hanging the test run, when a promise never settles.
+const settle = async promise => {
+	let timeoutId;
+
+	try {
+		return await Promise.race([
+			promise,
+			new Promise((resolve, reject) => {
+				timeoutId = setTimeout(() => {
+					reject(new Error('Promise did not settle in time'));
+				}, 1000);
+			}),
+		]);
+	} finally {
+		clearTimeout(timeoutId);
+	}
+};
 
 test('on()', async t => {
 	const emitter = new Emittery();
@@ -969,6 +988,195 @@ test('events() - return() without argument', async t => {
 	t.deepEqual(await iterator.return(), {done: true});
 });
 
+test('events() - return() twice is a safe no-op', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.events('🦄');
+	t.deepEqual(await iterator.return(), {done: true});
+	t.deepEqual(await iterator.return(), {done: true});
+	t.deepEqual(await iterator.next(), {done: true});
+	t.is(emitter.listenerCount('🦄'), 0);
+});
+
+test('events() - return() after auto-finish is a safe no-op', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.events('🦄');
+	await emitter.emit('🦄', '🌈');
+	const next = await iterator.next();
+	t.deepEqual(next.value, {name: '🦄', data: '🌈'});
+
+	emitter.clearListeners('🦄');
+	t.deepEqual(await iterator.next(), {done: true});
+	t.deepEqual(await iterator.return(), {done: true});
+	t.is(emitter.listenerCount('🦄'), 0);
+});
+
+test('anyEvent() - return() twice is a safe no-op', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.anyEvent();
+	t.deepEqual(await iterator.return(), {done: true});
+	t.deepEqual(await iterator.return(), {done: true});
+	t.deepEqual(await iterator.next(), {done: true});
+	t.is(emitter.listenerCount(), 0);
+});
+
+test.serial('events() - concurrent next() calls each resolve in order', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.events('🦄');
+
+	const first = iterator.next();
+	const second = iterator.next();
+
+	await emitter.emit('🦄', '🌈');
+	await emitter.emit('🦄', '🌟');
+
+	t.deepEqual(await settle(first), {done: false, value: {name: '🦄', data: '🌈'}});
+	t.deepEqual(await settle(second), {done: false, value: {name: '🦄', data: '🌟'}});
+
+	await iterator.return();
+});
+
+test.serial('events() - concurrent next() calls are woken by return()', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.events('🦄');
+
+	const first = iterator.next();
+	const second = iterator.next();
+
+	await iterator.return();
+
+	t.deepEqual(await settle(first), {done: true});
+	t.deepEqual(await settle(second), {done: true});
+});
+
+test.serial('events() - a meta event can be observed by subscribing to it directly', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.events(Emittery.listenerAdded);
+	const listener = () => {};
+
+	emitter.on('🦄', listener);
+
+	t.deepEqual(await settle(iterator.next()), {
+		done: false,
+		value: {name: Emittery.listenerAdded, data: {eventName: '🦄', listener}},
+	});
+
+	await iterator.return();
+});
+
+test.serial('anyEvent() - concurrent next() calls each resolve in order', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.anyEvent();
+
+	const first = iterator.next();
+	const second = iterator.next();
+
+	await emitter.emit('🦄', '🌈');
+	await emitter.emit('🐶', '🌟');
+
+	t.deepEqual(await settle(first), {done: false, value: {name: '🦄', data: '🌈'}});
+	t.deepEqual(await settle(second), {done: false, value: {name: '🐶', data: '🌟'}});
+
+	await iterator.return();
+});
+
+// Collects unhandled rejections raised while running `function_` so a leaked one fails the test instead of the process.
+const collectUnhandledRejections = async function_ => {
+	const rejections = [];
+	const listener = error => {
+		rejections.push(error);
+	};
+
+	process.on('unhandledRejection', listener);
+
+	try {
+		await function_();
+		// Give Node a chance to report a leaked rejection.
+		await delay(20);
+	} finally {
+		process.off('unhandledRejection', listener);
+	}
+
+	return rejections;
+};
+
+test.serial('events() - a rejected event promise that is never read does not leak', async t => {
+	const rejections = await collectUnhandledRejections(async () => {
+		const emitter = new Emittery();
+		const iterator = emitter.events('🦄');
+
+		emitter.emit('🦄', '🌈');
+		emitter.emit('🦄', Promise.reject(new Error('never read')));
+
+		// Stop iterating with a rejected event still buffered.
+		t.deepEqual(await iterator.next(), {done: false, value: {name: '🦄', data: '🌈'}});
+		await iterator.return();
+	});
+
+	t.deepEqual(rejections, []);
+});
+
+test.serial('anyEvent() - a rejected event promise that is never read does not leak', async t => {
+	const rejections = await collectUnhandledRejections(async () => {
+		const emitter = new Emittery();
+		const iterator = emitter.anyEvent();
+
+		emitter.emit('🦄', Promise.reject(new Error('never read')));
+		await iterator.return();
+	});
+
+	t.deepEqual(rejections, []);
+});
+
+test.serial('events() - a rejected event promise ends the iterator instead of leaking it', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.events('🦄');
+	const error = new Error('read');
+
+	emitter.emit('🦄', Promise.reject(error));
+
+	// A `for await` loop that dies does not close the iterator, so the rejection has to.
+	await t.throwsAsync(async () => {
+		for await (const event of iterator) {
+			t.fail(`Unexpected event: ${JSON.stringify(event)}`);
+		}
+	}, {is: error});
+
+	t.is(emitter.listenerCount('🦄'), 0);
+	t.deepEqual(await iterator.next(), {done: true});
+
+	// Later events are not buffered for an iterator nobody reads.
+	await emitter.emit('🦄', 'ignored');
+	t.deepEqual(await iterator.next(), {done: true});
+	t.is(emitter.listenerCount('🦄'), 0);
+});
+
+test.serial('anyEvent() - a rejected event promise ends the iterator instead of leaking it', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.anyEvent();
+	const error = new Error('read');
+
+	emitter.emit('🦄', Promise.reject(error));
+
+	await t.throwsAsync(iterator.next(), {is: error});
+	t.is(emitter.listenerCount(), 0);
+	t.deepEqual(await iterator.next(), {done: true});
+});
+
+test.serial('events() - a consumer that catches a rejected event can still end the iterator', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.events('🦄');
+	const error = new Error('read');
+
+	emitter.emit('🦄', Promise.reject(error));
+	emitter.emit('🦄', 'next event');
+
+	await t.throwsAsync(iterator.next(), {is: error});
+
+	// The buffered event that followed the rejected one is dropped along with the subscription.
+	t.deepEqual(await iterator.next(), {done: true});
+	t.is(emitter.listenerCount('🦄'), 0);
+});
+
 test('events() - discarded iterators should stop receiving events', async t => {
 	const emitter = new Emittery();
 	const iterator = emitter.events('🦄');
@@ -1171,6 +1379,24 @@ test('once() - filter predicate must be a function', async t => {
 	const emitter = new Emittery();
 	await t.throwsAsync(
 		emitter.once('data', 'not a function'),
+		{
+			instanceOf: TypeError,
+			message: 'predicate must be a function',
+		},
+	);
+
+	// The same holds for a predicate passed through the options object.
+	await t.throwsAsync(
+		emitter.once('data', {predicate: 'not a function'}),
+		{
+			instanceOf: TypeError,
+			message: 'predicate must be a function',
+		},
+	);
+	t.is(emitter.listenerCount('data'), 0);
+
+	await t.throwsAsync(
+		emitter.once('data', {predicate: null}),
 		{
 			instanceOf: TypeError,
 			message: 'predicate must be a function',
@@ -1899,6 +2125,23 @@ test.serial('anyEvent()', async t => {
 	t.deepEqual(await iterator.next(), {done: true});
 });
 
+test.serial('anyEvent() - does not deliver internal meta events', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.anyEvent();
+
+	const listener = () => {};
+	emitter.on('🦄', listener);
+	emitter.onAny(listener);
+	emitter.offAny(listener);
+	emitter.off('🦄', listener);
+
+	// The meta events are queued synchronously, so if any of them reached the iterator, it would come before the fox.
+	await emitter.emit('🦊', 'fox');
+	t.deepEqual(await settle(iterator.next()), {done: false, value: {name: '🦊', data: 'fox'}});
+
+	await iterator.return();
+});
+
 test('anyEvent() - dataless event produces event object without data key', async t => {
 	const emitter = new Emittery();
 	const iterator = emitter.anyEvent();
@@ -2035,6 +2278,65 @@ test('clearListeners() - also clears iterators', async t => {
 	t.deepEqual(await iterator.next(), {done: true});
 	t.deepEqual(await anyIterator.next(), {done: false, value: {name: '🦄', data: '💫'}});
 	t.deepEqual(await anyIterator.next(), {done: true});
+});
+
+test.serial('clearListeners() - with one event name keeps a multi-event iterator subscribed to the rest', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.events(['🦄', '🦊']);
+
+	emitter.clearListeners('🦄');
+
+	// The cleared event no longer arrives, but the other one must keep flowing.
+	await emitter.emit('🦄', 'unicorn');
+	await emitter.emit('🦊', 'fox');
+	t.deepEqual(await settle(iterator.next()), {done: false, value: {name: '🦊', data: 'fox'}});
+
+	// The iterator must keep waiting for more events once the queue is drained again.
+	const next = iterator.next();
+	await emitter.emit('🦊', 'more fox');
+	t.deepEqual(await settle(next), {done: false, value: {name: '🦊', data: 'more fox'}});
+
+	await iterator.return();
+});
+
+test.serial('clearListeners() - with every event name of a multi-event iterator ends it', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.events(['🦄', '🦊']);
+
+	emitter.clearListeners('🦄');
+	emitter.clearListeners('🦊');
+
+	t.deepEqual(await settle(iterator.next()), {done: true});
+});
+
+test.serial('clearListeners() - ends an iterator that got the same event name twice', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.events(['🦄', '🦄']);
+
+	emitter.clearListeners('🦄');
+
+	t.deepEqual(await settle(iterator.next()), {done: true});
+});
+
+test.serial('clearListeners() - without arguments ends a multi-event iterator', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.events(['🦄', '🦊']);
+
+	emitter.clearListeners();
+
+	t.deepEqual(await settle(iterator.next()), {done: true});
+});
+
+test.serial('clearListeners() - with one event name keeps an anyEvent() iterator running', async t => {
+	const emitter = new Emittery();
+	const iterator = emitter.anyEvent();
+
+	emitter.clearListeners('🦄');
+	await emitter.emit('🦊', 'fox');
+
+	t.deepEqual(await settle(iterator.next()), {done: false, value: {name: '🦊', data: 'fox'}});
+
+	await iterator.return();
 });
 
 test('clearListeners() - with event name', async t => {
@@ -2472,15 +2774,15 @@ test('mixin() - must not set already existing methods', t => {
 test('mixin() - target must be function', t => {
 	t.throws(() => {
 		Emittery.mixin('emitter')('string');
-	});
+	}, {message: '`target` must be function'});
 
 	t.throws(() => {
 		Emittery.mixin('emitter')(null);
-	});
+	}, {message: '`target` must be function'});
 
 	t.throws(() => {
 		Emittery.mixin('emitter')(undefined);
-	});
+	}, {message: '`target` must be function'});
 
 	t.throws(() => {
 		Emittery.mixin('emitter')({});
