@@ -329,12 +329,12 @@ function transitionEventListener(state, {eventName, listener, action, swallowLif
 			}
 		}
 
-		return {hasSet: true, changed: !alreadyListening};
+		return !alreadyListening;
 	}
 
 	const set = getListeners(state, eventName);
 	if (!set) {
-		return {hasSet: false, changed: false};
+		return false;
 	}
 
 	const removed = set.delete(listener);
@@ -360,7 +360,7 @@ function transitionEventListener(state, {eventName, listener, action, swallowLif
 		}
 	}
 
-	return {hasSet: true, changed: removed};
+	return removed;
 }
 
 function finishAndClearProducers(state, eventName) {
@@ -383,6 +383,23 @@ function finishAndClearAllProducers({producers}) {
 
 		producerSet.clear();
 		producers.delete(key);
+	}
+}
+
+// Unsubscribe from every event name one at a time, keeping the first error instead of stopping at it, so one failing deinit cannot leave the rest subscribed. Each name goes through `off()` separately so a subclass that overrides `off()` keeps seeing one event name per call.
+function unsubscribeAll(emitter, eventNames, listener) {
+	const errors = [];
+
+	for (const eventName of eventNames) {
+		try {
+			emitter.off(eventName, listener);
+		} catch (error) {
+			errors.push(error);
+		}
+	}
+
+	if (errors.length > 0) {
+		throw errors[0];
 	}
 }
 
@@ -520,38 +537,33 @@ export default class Emittery {
 		const debugType = isSubscribe ? 'subscribe' : 'unsubscribe';
 		const metaEvent = isSubscribe ? listenerAdded : listenerRemoved;
 
+		// The change already happened, so it is announced before logging, which is the only step that can throw.
+		if (!isMetaEvent(eventName)) {
+			this.#emitMetaEvent(metaEvent, {eventName, listener});
+		}
+
 		if (swallowErrors) {
 			try {
 				this.logIfDebugEnabled(debugType, eventName, undefined);
 			} catch {}
 
-			if (!isMetaEvent(eventName)) {
-				try {
-					this.#emitMetaEvent(metaEvent, {eventName, listener});
-				} catch {}
-			}
-
 			return;
 		}
 
 		this.logIfDebugEnabled(debugType, eventName, undefined);
-
-		if (!isMetaEvent(eventName)) {
-			this.#emitMetaEvent(metaEvent, {eventName, listener});
-		}
 	}
 
 	#rollbackAddedListeners(eventNames, listener) {
 		withSuppressedEnqueue(this.#state, eventNames, () => {
 			for (const eventName of eventNames) {
-				const {hasSet} = transitionEventListener(this.#state, {
+				const changed = transitionEventListener(this.#state, {
 					eventName,
 					listener,
 					action: unsubscribeAction,
 					swallowLifecycleError: true,
 					removeResubscribedListener: true,
 				});
-				if (!hasSet) {
+				if (!changed) {
 					continue;
 				}
 
@@ -574,20 +586,23 @@ export default class Emittery {
 	on(eventNames, listener, {signal} = {}) {
 		assertListener(listener);
 
-		eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
+		// The returned unsubscribe method outlives this call, so it must not see later changes to the caller's array.
+		eventNames = Array.isArray(eventNames) ? [...eventNames] : [eventNames];
 		const addedEventNames = [];
 		try {
 			for (const eventName of eventNames) {
 				assertEventName(eventName);
-				const {changed} = transitionEventListener(this.#state, {
+				const changed = transitionEventListener(this.#state, {
 					eventName,
 					listener,
 					action: subscribeAction,
 				});
-				if (changed) {
-					addedEventNames.push(eventName);
+				// A deduped listener is not added again, so there is nothing to report.
+				if (!changed) {
+					continue;
 				}
 
+				addedEventNames.push(eventName);
 				this.#emitSubscriptionSideEffects({
 					eventName,
 					listener,
@@ -600,22 +615,9 @@ export default class Emittery {
 		}
 
 		let removeAbortListener = () => {};
-		const noError = Symbol('no-error');
 		const off = () => {
 			removeAbortListener();
-			let firstError = noError;
-
-			for (const eventName of eventNames) {
-				try {
-					this.off(eventName, listener);
-				} catch (error) {
-					firstError = firstError === noError ? error : firstError;
-				}
-			}
-
-			if (firstError !== noError) {
-				throw firstError;
-			}
+			unsubscribeAll(this, eventNames, listener);
 		};
 
 		removeAbortListener = addAbortListener(signal, off, {swallowErrors: true});
@@ -627,18 +629,48 @@ export default class Emittery {
 		assertListener(listener);
 
 		eventNames = Array.isArray(eventNames) ? eventNames : [eventNames];
+		const errors = [];
+
+		// Every event name is unsubscribed even when an earlier deinit throws, and the first error is rethrown at the end, matching the other unsubscribe paths.
 		for (const eventName of eventNames) {
-			assertEventName(eventName);
-			transitionEventListener(this.#state, {
-				eventName,
-				listener,
-				action: unsubscribeAction,
-			});
-			this.#emitSubscriptionSideEffects({
-				eventName,
-				listener,
-				action: unsubscribeAction,
-			});
+			// An invalid name is reported without stopping the remaining names.
+			try {
+				assertEventName(eventName);
+			} catch (error) {
+				errors.push(error);
+				continue;
+			}
+
+			// A throwing deinit runs after the listener was removed, so the removal still happened.
+			let changed = true;
+			try {
+				changed = transitionEventListener(this.#state, {
+					eventName,
+					listener,
+					action: unsubscribeAction,
+				});
+			} catch (error) {
+				errors.push(error);
+			}
+
+			// A listener that was not subscribed is not removed, so there is nothing to report.
+			if (!changed) {
+				continue;
+			}
+
+			try {
+				this.#emitSubscriptionSideEffects({
+					eventName,
+					listener,
+					action: unsubscribeAction,
+				});
+			} catch (error) {
+				errors.push(error);
+			}
+		}
+
+		if (errors.length > 0) {
+			throw errors[0];
 		}
 	}
 
@@ -673,20 +705,7 @@ export default class Emittery {
 			let listener = () => {};
 			const unsubscribe = () => {
 				removeAbortListener();
-				const noError = Symbol('no-error');
-				let firstError = noError;
-
-				for (const eventName of eventNames) {
-					try {
-						this.off(eventName, listener);
-					} catch (error) {
-						firstError = firstError === noError ? error : firstError;
-					}
-				}
-
-				if (firstError !== noError) {
-					throw firstError;
-				}
+				unsubscribeAll(this, eventNames, listener);
 			};
 
 			const unsubscribeAndSettle = () => {
@@ -725,6 +744,7 @@ export default class Emittery {
 					unsubscribeAndSettle();
 				} catch {}
 
+				// A throwing unsubscribe skips the assignment inside it, but the promise must settle either way.
 				isSettled = true;
 				reject(signal.reason);
 			});
@@ -833,10 +853,13 @@ export default class Emittery {
 	onAny(listener, {signal} = {}) {
 		assertListener(listener);
 
-		this.logIfDebugEnabled('subscribeAny', undefined, undefined);
+		// A deduped listener is not added again, so there is nothing to report.
+		if (!this.#state.anyListeners.has(listener)) {
+			this.logIfDebugEnabled('subscribeAny', undefined, undefined);
 
-		this.#state.anyListeners.add(listener);
-		this.#emitMetaEvent(listenerAdded, {listener});
+			this.#state.anyListeners.add(listener);
+			this.#emitMetaEvent(listenerAdded, {listener});
+		}
 
 		let removeAbortListener = () => {};
 		const offAny = () => {
@@ -856,10 +879,14 @@ export default class Emittery {
 	offAny(listener) {
 		assertListener(listener);
 
-		this.logIfDebugEnabled('unsubscribeAny', undefined, undefined);
+		// Unsubscribe before the side effects so a throwing debug logger or meta listener cannot keep the listener alive.
+		if (!this.#state.anyListeners.delete(listener)) {
+			return;
+		}
 
 		this.#emitMetaEvent(listenerRemoved, {listener});
-		this.#state.anyListeners.delete(listener);
+
+		this.logIfDebugEnabled('unsubscribeAny', undefined, undefined);
 	}
 
 	clearListeners(eventNames) {
@@ -867,15 +894,14 @@ export default class Emittery {
 		const shouldClearAll = eventNames.some(eventName => !isEventKeyType(eventName));
 
 		withSuppressedEnqueue(this.#state, eventNames, () => {
-			const noError = Symbol('no-error');
-			let firstError = noError;
+			const errors = [];
 
 			try {
 				for (const eventName of eventNames) {
 					try {
 						this.logIfDebugEnabled('clear', eventName, undefined);
 					} catch (error) {
-						firstError = firstError === noError ? error : firstError;
+						errors.push(error);
 					}
 
 					if (isEventKeyType(eventName)) {
@@ -888,7 +914,7 @@ export default class Emittery {
 						try {
 							callAndUnsetDeinitFn(lifecycle);
 						} catch (error) {
-							firstError = firstError === noError ? error : firstError;
+							errors.push(error);
 						}
 					} else {
 						this.#state.anyListeners.clear();
@@ -902,7 +928,7 @@ export default class Emittery {
 							try {
 								callAndUnsetDeinitFn(lifecycle);
 							} catch (error) {
-								firstError = firstError === noError ? error : firstError;
+								errors.push(error);
 							}
 
 							// Re-clear in case deinit re-subscribed.
@@ -937,8 +963,8 @@ export default class Emittery {
 				}
 			}
 
-			if (firstError !== noError) {
-				throw firstError;
+			if (errors.length > 0) {
+				throw errors[0];
 			}
 		});
 	}

@@ -635,6 +635,54 @@ test('on() - returns an unsubscribe method', async t => {
 	t.deepEqual(calls, [1]);
 });
 
+test('on() - mutating the event name array afterwards does not change what off() removes', async t => {
+	const emitter = new Emittery();
+	const calls = [];
+	const listener = ({name}) => {
+		calls.push(name);
+	};
+
+	const eventNames = ['🦄'];
+	const off = emitter.on(eventNames, listener);
+	const otherOff = emitter.on('🐶', listener);
+
+	// The caller keeps using the array after handing it over.
+	eventNames.push('🐶');
+
+	off();
+
+	await emitter.emit('🦄');
+	await emitter.emit('🐶');
+
+	// Only the unrelated '🐶' subscription is left.
+	t.deepEqual(calls, ['🐶']);
+	t.is(emitter.listenerCount('🦄'), 0);
+	t.is(emitter.listenerCount('🐶'), 1);
+
+	otherOff();
+});
+
+test('on() - dropping an event name from the array afterwards still gets unsubscribed', async t => {
+	const emitter = new Emittery();
+	const calls = [];
+	const listener = ({name}) => {
+		calls.push(name);
+	};
+
+	const eventNames = ['🦄', '🐶'];
+	const off = emitter.on(eventNames, listener);
+	eventNames.shift();
+
+	off();
+
+	await emitter.emit('🦄');
+	await emitter.emit('🐶');
+
+	t.deepEqual(calls, []);
+	t.is(emitter.listenerCount('🦄'), 0);
+	t.is(emitter.listenerCount('🐶'), 0);
+});
+
 test('on() - calling off() twice is a safe no-op', async t => {
 	const emitter = new Emittery();
 	const calls = [];
@@ -666,6 +714,90 @@ test('on() - dedupes identical listeners', async t => {
 	t.deepEqual(calls, [1]);
 });
 
+test('meta event - a deduped on() only fires listenerAdded once', async t => {
+	const emitter = new Emittery();
+	const added = [];
+	emitter.on(Emittery.listenerAdded, ({data}) => {
+		added.push(data.eventName);
+	});
+
+	const listener = () => {};
+	emitter.on('🦄', listener);
+	emitter.on('🦄', listener);
+	emitter.on('🦄', listener);
+	emitter.on(['🐶', '🐶'], listener);
+
+	await delay(20);
+	t.deepEqual(added, ['🦄', '🐶']);
+	t.is(emitter.listenerCount('🦄'), 1);
+});
+
+test('meta event - off() of a listener that was never subscribed does not fire listenerRemoved', async t => {
+	const emitter = new Emittery();
+	const removed = [];
+	emitter.on(Emittery.listenerRemoved, ({data}) => {
+		removed.push(data.eventName);
+	});
+
+	// One event has other listeners and one has none, which are separate paths.
+	emitter.on('🦄', () => {});
+	emitter.off('🦄', () => {});
+	emitter.off('🐶', () => {});
+
+	await delay(20);
+	t.deepEqual(removed, []);
+	t.is(emitter.listenerCount('🦄'), 1);
+});
+
+test('meta event - a repeated off() only fires listenerRemoved once', async t => {
+	const emitter = new Emittery();
+	const removed = [];
+	emitter.on(Emittery.listenerRemoved, ({data}) => {
+		removed.push(data.eventName);
+	});
+
+	const listener = () => {};
+	emitter.on(['🦄', '🐶'], listener);
+	await delay(20);
+
+	emitter.off('🦄', listener);
+	emitter.off('🦄', listener);
+	emitter.off('🦄', listener);
+	emitter.off(['🐶', '🐶'], listener);
+
+	await delay(20);
+	t.deepEqual(removed, ['🦄', '🐶']);
+	t.is(emitter.listenerCount('🦄'), 0);
+});
+
+test('meta event - a deduped onAny() only fires listenerAdded once', async t => {
+	const emitter = new Emittery();
+	const added = [];
+	emitter.on(Emittery.listenerAdded, ({data}) => {
+		added.push(data.eventName);
+	});
+
+	const listener = () => {};
+	emitter.onAny(listener);
+	emitter.onAny(listener);
+
+	await delay(20);
+	t.deepEqual(added, [undefined]);
+});
+
+test('meta event - offAny() of a listener that was never subscribed does not fire listenerRemoved', async t => {
+	const emitter = new Emittery();
+	const removed = [];
+	emitter.on(Emittery.listenerRemoved, ({data}) => {
+		removed.push(data.eventName);
+	});
+
+	emitter.offAny(() => {});
+
+	await delay(20);
+	t.deepEqual(removed, []);
+});
+
 test('on() - isDebug logs output', t => {
 	const eventStore = [];
 	const calls = [];
@@ -690,6 +822,67 @@ test('on() - isDebug logs output', t => {
 	t.is(eventStore[0].type, 'subscribe');
 	t.is(eventStore[0].debugName, 'testEmitter');
 	t.is(eventStore[0].eventName, 'test');
+});
+
+test('on() - a throwing debug logger leaves no listener behind', async t => {
+	const emitter = new Emittery({
+		debug: {
+			name: 'testEmitter',
+			enabled: true,
+			logger(type, debugName, eventName) {
+				if (type === 'subscribe' && eventName === 'test') {
+					throw new Error('logger boom');
+				}
+			},
+		},
+	});
+
+	const meta = [];
+	emitter.on(Emittery.listenerAdded, ({data: {eventName}}) => {
+		meta.push(['added', eventName]);
+	});
+	emitter.on(Emittery.listenerRemoved, ({data: {eventName}}) => {
+		meta.push(['removed', eventName]);
+	});
+
+	const calls = [];
+	t.throws(() => {
+		emitter.on('test', () => {
+			calls.push('listener');
+		});
+	}, {message: 'logger boom'});
+
+	t.is(emitter.listenerCount('test'), 0);
+	await emitter.emit('test');
+	t.deepEqual(calls, []);
+
+	// The rollback announces the removal, so the addition must have been announced too.
+	t.deepEqual(meta, [['added', 'test'], ['removed', 'test']]);
+});
+
+test('onAny() - a throwing debug logger leaves no listener behind', async t => {
+	const emitter = new Emittery({
+		debug: {
+			name: 'testEmitter',
+			enabled: true,
+			logger(type) {
+				if (type === 'subscribeAny') {
+					throw new Error('logger boom');
+				}
+			},
+		},
+	});
+
+	const calls = [];
+	t.throws(() => {
+		emitter.onAny(() => {
+			calls.push('any');
+		});
+	}, {message: 'logger boom'});
+
+	t.is(emitter.listenerCount(), 0);
+	await emitter.emit('test');
+	t.deepEqual(calls, []);
 });
 
 test('on() - listener receives event object with eventName and data', async t => {
@@ -2527,6 +2720,72 @@ test('offAny() - isDebug logs output', t => {
 	t.is(eventStore[1].debugName, 'testEmitter');
 });
 
+test('offAny() - a throwing debug logger still unsubscribes the listener', async t => {
+	const emitter = new Emittery({
+		debug: {
+			name: 'testEmitter',
+			enabled: true,
+			logger(type) {
+				if (type === 'unsubscribeAny') {
+					throw new Error('logger boom');
+				}
+			},
+		},
+	});
+
+	const calls = [];
+	const listener = () => {
+		calls.push('any');
+	};
+
+	emitter.onAny(listener);
+	t.is(emitter.listenerCount(), 1);
+
+	let removedCount = 0;
+	emitter.on(Emittery.listenerRemoved, () => {
+		removedCount++;
+	});
+
+	t.throws(() => {
+		emitter.offAny(listener);
+	}, {message: 'logger boom'});
+
+	// The removal must happen and be announced even though the debug logger throws.
+	t.is(emitter.listenerCount('🦄'), 0);
+	await emitter.emit('🦄');
+	t.deepEqual(calls, []);
+	t.is(removedCount, 1);
+});
+
+test('offAny() - a throwing debug logger with an abort signal still unsubscribes the listener', async t => {
+	const emitter = new Emittery({
+		debug: {
+			name: 'testEmitter',
+			enabled: true,
+			logger(type) {
+				if (type === 'unsubscribeAny') {
+					throw new Error('logger boom');
+				}
+			},
+		},
+	});
+
+	const calls = [];
+	const abortController = new AbortController();
+	const listener = () => {
+		calls.push('any');
+	};
+
+	emitter.onAny(listener, {signal: abortController.signal});
+	t.is(emitter.listenerCount(), 1);
+
+	// The abort path swallows the error, so only the resulting state can show the leak.
+	abortController.abort();
+	t.is(emitter.listenerCount(), 0);
+	await emitter.emit('🦄');
+	t.deepEqual(calls, []);
+});
+
 test('listenerCount()', t => {
 	const emitter = new Emittery();
 	emitter.on('🦄', () => {});
@@ -4017,6 +4276,220 @@ test('init() - deinitFn throwing during off() still removes the listener', t => 
 
 	// Listener was removed despite the throw
 	t.is(emitter.listenerCount('🦄'), 0);
+});
+
+test('off() - a throwing deinit still unsubscribes the remaining event names', async t => {
+	const emitter = new Emittery();
+	const calls = [];
+	emitter.init('🦄', () => () => {
+		calls.push('deinit:🦄');
+		throw new Error('deinit boom');
+	});
+	emitter.init('🐶', () => () => {
+		calls.push('deinit:🐶');
+	});
+
+	const listener = () => {
+		calls.push('event');
+	};
+
+	emitter.on(['🦄', '🐶'], listener);
+
+	t.throws(() => {
+		emitter.off(['🦄', '🐶'], listener);
+	}, {message: 'deinit boom'});
+
+	// Every event name is unsubscribed and every deinit runs.
+	t.deepEqual(calls, ['deinit:🦄', 'deinit:🐶']);
+	t.is(emitter.listenerCount('🦄'), 0);
+	t.is(emitter.listenerCount('🐶'), 0);
+
+	await emitter.emit('🦄');
+	await emitter.emit('🐶');
+	t.deepEqual(calls, ['deinit:🦄', 'deinit:🐶']);
+});
+
+const rethrowsFirstDeinitError = test.macro((t, unsubscribe) => {
+	const emitter = new Emittery();
+	const firstError = new Error('first');
+	const secondError = new Error('second');
+
+	emitter.init('🦄', () => () => {
+		throw firstError;
+	});
+	emitter.init('🐶', () => () => {
+		throw secondError;
+	});
+
+	const listener = () => {};
+	const off = emitter.on(['🦄', '🐶'], listener);
+
+	t.throws(() => {
+		unsubscribe(emitter, listener, off);
+	}, {is: firstError});
+
+	t.is(emitter.listenerCount('🦄'), 0);
+	t.is(emitter.listenerCount('🐶'), 0);
+});
+
+test('off() - rethrows the first deinit error when several event names throw', rethrowsFirstDeinitError, (emitter, listener) => {
+	emitter.off(['🦄', '🐶'], listener);
+});
+
+test('on() - the unsubscribe method rethrows the first deinit error when several event names throw', rethrowsFirstDeinitError, (emitter, listener, off) => {
+	off();
+});
+
+test('clearListeners() - rethrows the first deinit error when several event names throw', rethrowsFirstDeinitError, emitter => {
+	emitter.clearListeners(['🦄', '🐶']);
+});
+
+test('on() - the unsubscribe method calls an overridden off() once per event name', t => {
+	const calls = [];
+	class CustomEmittery extends Emittery {
+		off(eventNames, listener) {
+			calls.push(eventNames);
+			super.off(eventNames, listener);
+		}
+	}
+
+	const emitter = new CustomEmittery();
+	const off = emitter.on(['🦄', '🐶'], () => {});
+	off();
+
+	t.deepEqual(calls, ['🦄', '🐶']);
+	t.is(emitter.listenerCount(), 0);
+});
+
+test('off() - rethrows an undefined deinit throw value', t => {
+	const emitter = new Emittery();
+	const throwValue = value => {
+		throw value;
+	};
+
+	emitter.init('🦄', () => () => {
+		throwValue(undefined);
+	});
+
+	const listener = () => {};
+	emitter.on('🦄', listener);
+
+	// A sentinel is needed because `undefined` is a value a deinit can throw.
+	let thrownError = Symbol('not-thrown');
+	try {
+		emitter.off('🦄', listener);
+	} catch (error) {
+		thrownError = error;
+	}
+
+	t.is(thrownError, undefined);
+	t.is(emitter.listenerCount('🦄'), 0);
+});
+
+test('off() - announces listenerRemoved for every event name even when a deinit throws', async t => {
+	const emitter = new Emittery();
+	const removed = [];
+	emitter.on(Emittery.listenerRemoved, ({data}) => {
+		removed.push(data.eventName);
+	});
+
+	emitter.init('🦄', () => () => {
+		throw new Error('deinit boom');
+	});
+	emitter.init('🐶', () => () => {});
+
+	const listener = () => {};
+	emitter.on(['🦄', '🐶'], listener);
+
+	t.throws(() => {
+		emitter.off(['🦄', '🐶'], listener);
+	}, {message: 'deinit boom'});
+
+	// Every subscription was removed, so every removal is announced.
+	await delay(20);
+	t.deepEqual(removed, ['🦄', '🐶']);
+});
+
+test('off() - a throwing debug logger still unsubscribes the remaining event names', async t => {
+	const emitter = new Emittery({
+		debug: {
+			name: 'testEmitter',
+			enabled: true,
+			logger(type, debugName, eventName) {
+				if (type === 'unsubscribe' && eventName === '🦄') {
+					throw new Error('logger boom');
+				}
+			},
+		},
+	});
+
+	const calls = [];
+	const listener = ({name}) => {
+		calls.push(name);
+	};
+
+	emitter.on(['🦄', '🐶'], listener);
+
+	const removed = [];
+	emitter.on(Emittery.listenerRemoved, ({data: {eventName}}) => {
+		removed.push(eventName);
+	});
+
+	t.throws(() => {
+		emitter.off(['🦄', '🐶'], listener);
+	}, {message: 'logger boom'});
+
+	t.is(emitter.listenerCount('🦄'), 0);
+	t.is(emitter.listenerCount('🐶'), 0);
+
+	await emitter.emit('🦄');
+	await emitter.emit('🐶');
+	t.deepEqual(calls, []);
+
+	// Both removals happened, so both are announced, even the one whose log threw.
+	t.deepEqual(removed, ['🦄', '🐶']);
+});
+
+test('off() - an invalid event name does not stop the remaining event names', async t => {
+	const emitter = new Emittery();
+	const removed = [];
+	emitter.on(Emittery.listenerRemoved, ({data}) => {
+		removed.push(data.eventName);
+	});
+
+	const listener = () => {};
+	emitter.on(['🦄', '🐶', '🌈'], listener);
+
+	t.throws(() => {
+		emitter.off([null, '🦄', '🐶', '🌈'], listener);
+	}, {instanceOf: TypeError});
+
+	t.is(emitter.listenerCount('🦄'), 0);
+	t.is(emitter.listenerCount('🐶'), 0);
+	t.is(emitter.listenerCount('🌈'), 0);
+
+	await delay(20);
+	t.deepEqual(removed, ['🦄', '🐶', '🌈']);
+});
+
+test('off() - an invalid event name does not swallow an earlier deinit error', t => {
+	const emitter = new Emittery();
+	const deinitError = new Error('deinit boom');
+	const listener = () => {};
+
+	emitter.init('🦄', () => () => {
+		throw deinitError;
+	});
+
+	emitter.on('🦄', listener);
+	emitter.on('🐶', listener);
+
+	t.throws(() => {
+		emitter.off(['🦄', null, '🐶'], listener);
+	}, {is: deinitError});
+
+	t.is(emitter.listenerCount('🦄'), 0);
+	t.is(emitter.listenerCount('🐶'), 0);
 });
 
 test('init() - works with Symbol event names', t => {
