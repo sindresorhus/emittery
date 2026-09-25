@@ -809,10 +809,18 @@ export default class Emittery {
 			}),
 		]);
 
-		const errors = results.values()
-			.filter(result => result.status === 'rejected')
-			.map(result => result.reason)
-			.toArray();
+		// A plain loop keeps `emit()` working on runtimes without the Iterator Helpers proposal.
+		// TODO: Use Iterator Helpers when all supported runtimes have them.
+		// const errors = results.values()
+		// 	.filter(result => result.status === 'rejected')
+		// 	.map(result => result.reason)
+		// 	.toArray();
+		const errors = [];
+		for (const result of results) {
+			if (result.status === 'rejected') {
+				errors.push(result.reason);
+			}
+		}
 
 		if (errors.length > 0) {
 			throw new AggregateError(errors, 'One or more listeners threw an error');

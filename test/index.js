@@ -1905,6 +1905,45 @@ test('emit() - collects all listener errors into AggregateError', async t => {
 	t.true(messages.has('second'));
 });
 
+test.serial('emit() - does not require the Iterator Helpers proposal', async t => {
+	// Iterator helpers are newer than the rest of the APIs this package relies on.
+	const names = ['toArray', 'filter', 'map', 'flatMap', 'forEach'];
+	const descriptors = new Map(names.map(name => [name, Object.getOwnPropertyDescriptor(Iterator.prototype, name)]));
+
+	// eslint-disable-next-line no-extend-native -- The helpers are restored in the finally block right after.
+	delete Iterator.prototype.toArray;
+	delete Iterator.prototype.filter;
+	delete Iterator.prototype.map;
+	delete Iterator.prototype.flatMap;
+	delete Iterator.prototype.forEach;
+
+	try {
+		const emitter = new Emittery();
+		const calls = [];
+
+		emitter.on('🦄', () => {
+			calls.push('listener');
+		});
+
+		await emitter.emit('🦄');
+		t.deepEqual(calls, ['listener']);
+
+		emitter.on('🦄', () => {
+			throw new Error('boom');
+		});
+
+		const error = await t.throwsAsync(emitter.emit('🦄'), {instanceOf: AggregateError});
+		t.is(error.errors.length, 1);
+		t.is(error.errors[0].message, 'boom');
+		t.deepEqual(calls, ['listener', 'listener']);
+	} finally {
+		for (const [name, descriptor] of descriptors) {
+			// eslint-disable-next-line no-extend-native -- Restores the helpers removed above.
+			Object.defineProperty(Iterator.prototype, name, descriptor);
+		}
+	}
+});
+
 test('emit() - all listeners run even when one throws', async t => {
 	const emitter = new Emittery();
 	const executed = [];
