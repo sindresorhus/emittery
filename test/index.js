@@ -3069,6 +3069,93 @@ test('mixin() - must not set already existing methods', t => {
 	});
 });
 
+test('mixin() - must not overwrite an existing emittery property', t => {
+	class TestClass {
+		emitter() {
+			return 'original';
+		}
+	}
+
+	t.throws(() => {
+		Emittery.mixin('emitter')(TestClass);
+	}, {message: 'The property `emitter` already exists on `target`'});
+});
+
+test('mixin() - must not overwrite an existing emittery getter', t => {
+	let getterCalls = 0;
+	class TestClass {
+		get emitter() {
+			getterCalls++;
+			return undefined;
+		}
+	}
+
+	t.throws(() => {
+		Emittery.mixin('emitter')(TestClass);
+	}, {message: 'The property `emitter` already exists on `target`'});
+
+	// The check must not run the getter, since it would read the prototype instead of an instance.
+	t.is(getterCalls, 0);
+});
+
+test('mixin() - must not shadow an inherited method', t => {
+	class Base {
+		on() {
+			return true;
+		}
+	}
+
+	class TestClass extends Base {}
+
+	t.throws(() => {
+		Emittery.mixin('emitter', ['on'])(TestClass);
+	}, {message: 'The property `on` already exists on `target`'});
+});
+
+test('mixin() - applying the same mixin twice reports the collision', t => {
+	class TestClass {}
+
+	const decorate = Emittery.mixin('emitter');
+	decorate(TestClass);
+
+	t.throws(() => {
+		decorate(TestClass);
+	}, {message: 'The property `emitter` already exists on `target`'});
+});
+
+test('mixin() - reports a collision for a symbol emittery property', t => {
+	const symbol = Symbol('emittery');
+
+	class TestClass {}
+	TestClass.prototype[symbol] = 'existing';
+
+	t.throws(() => {
+		Emittery.mixin(symbol)(TestClass);
+	}, {message: 'The property `Symbol(emittery)` already exists on `target`'});
+});
+
+test('mixin() - works with a symbol emittery property', t => {
+	const symbol = Symbol('emittery');
+
+	class TestClass {}
+
+	const Mixed = Emittery.mixin(symbol)(TestClass);
+	const instance = new Mixed();
+	t.true(instance[symbol] instanceof Emittery);
+});
+
+test('mixin() - the emittery property cannot also be a mixed in method', t => {
+	class TestClass {}
+
+	t.throws(() => {
+		Emittery.mixin('emit', ['emit', 'on'])(TestClass);
+	}, {message: '`emit` cannot be both the emittery property and a mixed in method'});
+
+	// The class is untouched, so it can be mixed into properly afterwards.
+	const Mixed = Emittery.mixin('emittery', ['emit'])(TestClass);
+	t.is(typeof new Mixed().emit, 'function');
+});
+
 test('mixin() - target must be function', t => {
 	t.throws(() => {
 		Emittery.mixin('emitter')('string');

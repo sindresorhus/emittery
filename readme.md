@@ -708,11 +708,12 @@ emitter.emit('other');
 
 A decorator which mixins `Emittery` as property `emitteryPropertyName` and `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the target class.
 
+It throws if the target's prototype already has a property with any of those names, inherited members included, or if `emitteryPropertyName` is also one of `methodNames`, since one prototype property cannot be both. A class field with the same name is not detected and silently shadows the mixin.
+
 ```ts
 import Emittery from 'emittery';
 
-@Emittery.mixin('emittery')
-class MyClass {}
+const MyClass = Emittery.mixin('emittery')(class {});
 
 const instance = new MyClass();
 

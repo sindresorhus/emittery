@@ -424,10 +424,17 @@ export default class Emittery {
 				throw new TypeError('`target` must be function');
 			}
 
-			for (const methodName of methodNames) {
-				if (target.prototype[methodName] !== undefined) {
-					throw new Error(`The property \`${methodName}\` already exists on \`target\``);
+			// The emittery property is installed on the prototype too, so it must be guarded like the methods are. `in` avoids invoking an existing getter.
+			for (const propertyName of [emitteryPropertyName, ...methodNames]) {
+				if (propertyName in target.prototype) {
+					// `String()` so a symbol property name can be part of the message.
+					throw new Error(`The property \`${String(propertyName)}\` already exists on \`target\``);
 				}
+			}
+
+			// One prototype property cannot be both the emittery instance and a method that forwards to it.
+			if (methodNames.includes(emitteryPropertyName)) {
+				throw new Error(`\`${String(emitteryPropertyName)}\` cannot be both the emittery property and a mixed in method`);
 			}
 
 			function getEmitteryProperty() {
