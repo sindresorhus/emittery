@@ -649,6 +649,8 @@ const emitter = new Emittery();
 
 The number of listeners for the `eventNames` or all events if not specified.
 
+An `undefined` in the array means "everything", the same as calling it without arguments. Note that `onAny()` listeners and `events()` iterators are counted for every event name, so an array adds them up more than once.
+
 ```js
 import Emittery from 'emittery';
 
@@ -714,6 +716,23 @@ It throws if the target's prototype already has a property with any of those nam
 import Emittery from 'emittery';
 
 const MyClass = Emittery.mixin('emittery')(class {});
+
+const instance = new MyClass();
+
+instance.emit('event');
+```
+
+TypeScript cannot add the mixed in members to a decorated class declaration, so declare them with an interface. Only do this when every method is mixed in: the interface cannot follow `methodNames`, and it compiles either way, so restricting the methods leaves the instance typed with methods it does not have.
+
+```ts
+import Emittery from 'emittery';
+
+@Emittery.mixin('emittery')
+class MyClass {}
+
+interface MyClass extends Emittery {
+	emittery: Emittery;
+}
 
 const instance = new MyClass();
 

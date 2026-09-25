@@ -30,9 +30,22 @@ export type EmitteryEvent<Name extends EventName, Data> = [Data] extends [undefi
 
 type EventDataPair<EventData, Name extends keyof EventData> = Name extends keyof EventData ? EmitteryEvent<Name, EventData[Name]> : never;
 
+// The instance methods `Emittery.mixin()` can add to a class.
+export type EmitteryMethodName = Exclude<keyof Emittery, 'debug'>;
+
+// A mixed in class, so its instances also get the emittery property and the mixed in methods.
+type MixedEmittery<
+	T extends abstract new (...arguments_: readonly any[]) => any,
+	PropertyName extends string | symbol,
+	MethodNames extends readonly EmitteryMethodName[],
+> = new (...arguments_: ConstructorParameters<T>) => InstanceType<T>
+	& Pick<Emittery, MethodNames[number]>
+	& Record<PropertyName, Emittery>;
+
 // Helper type for turning the passed `EventData` type map into a list of string keys that don't require data alongside the event name when emitting. Uses the same trick that `Omit` does internally to filter keys by building a map of keys to keys we want to keep, and then accessing all the keys to return just the list of keys we want to keep.
 type DatalessEventNames<EventData> = {
-	[Key in keyof EventData]: EventData[Key] extends undefined ? Key : never;
+	// An `unknown` payload means "anything", so such events can also be emitted without data.
+	[Key in keyof EventData]: unknown extends EventData[Key] ? Key : EventData[Key] extends undefined ? Key : never;
 }[keyof EventData];
 
 declare const listenerAdded: unique symbol;
@@ -167,6 +180,19 @@ A promise returned from `emittery.once` with an extra `off` method to cancel you
 export type EmitteryOncePromise<T> = {
 	off(): void;
 } & Promise<T>;
+
+/**
+An async iterator from `emittery.events()` or `emittery.anyEvent()`.
+
+It is also {@link AsyncDisposable}, so it works with `await using`.
+*/
+// `AsyncIterableIterator` already declares `next()` and `return()` with a return type of `any`, and `[Symbol.asyncIterator]()` returning itself without being disposable, so they have to be omitted for the narrower ones below to win overload resolution.
+export type EmitteryAsyncIterator<T> = Omit<AsyncIterableIterator<T>, 'next' | 'return' | typeof Symbol.asyncIterator> & AsyncDisposable & {
+	next(): Promise<IteratorResult<T, undefined>>;
+	// `return()` awaits its argument, so a thenable argument resolves to the value it holds.
+	return<U = undefined>(value?: U | PromiseLike<U>): Promise<IteratorResult<T, Awaited<U>>>;
+	[Symbol.asyncIterator](): EmitteryAsyncIterator<T>;
+};
 
 /**
 Removes an event subscription.
@@ -345,6 +371,7 @@ export default class Emittery<
 	@example
 	```
 	// TypeScript cannot add the mixed in members to a decorated class declaration, so declare them with an interface.
+	// Only do this when every method is mixed in. The interface cannot follow `methodNames`, and it compiles either way, so restricting the methods leaves the instance typed with methods it does not have.
 	@Emittery.mixin('emittery')
 	class MyClass {}
 
@@ -357,10 +384,15 @@ export default class Emittery<
 	instance.emit('event');
 	```
 	*/
-	static mixin(
-		emitteryPropertyName: string | symbol,
-		methodNames?: readonly string[]
-	): <T extends abstract new (...arguments_: readonly any[]) => any>(klass: T, context?: ClassDecoratorContext<T>) => T;
+	static mixin<
+		PropertyName extends string | symbol,
+		MethodNames extends readonly EmitteryMethodName[] = readonly EmitteryMethodName[],
+	>(
+		// One prototype property cannot be both the emittery instance and a method that forwards to it, which `Emittery.mixin()` also rejects at runtime.
+		emitteryPropertyName: PropertyName extends MethodNames[number] ? never : PropertyName,
+		methodNames?: MethodNames
+	): <T extends abstract new (...arguments_: readonly any[]) => any>(klass: T, context?: ClassDecoratorContext<T>) => T
+		& MixedEmittery<T, PropertyName, MethodNames>;
 
 	/**
 	Debugging options for the current instance.
@@ -471,10 +503,10 @@ export default class Emittery<
 	} // Subscription is automatically revoked
 	```
 	*/
-	events<Name extends keyof EventData>(
+	events<Name extends keyof AllEventData>(
 		eventName: Name | readonly Name[],
 		options?: {signal?: AbortSignal}
-	): AsyncIterableIterator<EventDataPair<EventData, Name>> & AsyncDisposable;
+	): EmitteryAsyncIterator<EventDataPair<AllEventData, Name>>;
 
 	/**
 	Remove one or more event subscriptions.
@@ -621,7 +653,7 @@ export default class Emittery<
 		console.log(name, data);
 	});
 
-	emitter.emit('🦄', '🌈'); // log => '🦄 🌈'
+	await emitter.emit('🦄', '🌈'); // log => '🦄 🌈'
 
 	off();
 	```
@@ -660,7 +692,7 @@ export default class Emittery<
 	} // Subscription is automatically revoked
 	```
 	*/
-	anyEvent(options?: {signal?: AbortSignal}): AsyncIterableIterator<EventDataPair<EventData, keyof EventData>> & AsyncDisposable;
+	anyEvent(options?: {signal?: AbortSignal}): EmitteryAsyncIterator<EventDataPair<EventData, keyof EventData>>;
 
 	/**
 	Remove an `onAny` subscription.
@@ -690,7 +722,7 @@ export default class Emittery<
 	emitter.clearListeners(); // Clear all events
 	```
 	*/
-	clearListeners<Name extends keyof EventData>(eventName?: Name | ReadonlyArray<Name | undefined>): void;
+	clearListeners<Name extends keyof AllEventData>(eventName?: Name | ReadonlyArray<Name | undefined>): void;
 
 	/**
 	Register a function to be called when the first `.on()` listener subscribes to `eventName`. The `initFn` can optionally return a cleanup (deinit) function, which is called when the last `.on()` listener unsubscribes (or when `clearListeners()` removes all listeners for that event).
@@ -751,6 +783,8 @@ export default class Emittery<
 	/**
 	The number of listeners for the `eventName` or all events if not specified.
 
+	An `undefined` in the array means "everything", the same as calling it without arguments. Note that `onAny()` listeners and `events()` iterators are counted for every event name, so an array adds them up more than once.
+
 	@example
 	```
 	import Emittery from 'emittery';
@@ -764,12 +798,12 @@ export default class Emittery<
 	emitter.listenerCount(); // 2
 	```
 	*/
-	listenerCount<Name extends keyof EventData>(eventName?: Name | readonly Name[]): number;
+	listenerCount<Name extends keyof AllEventData>(eventName?: Name | ReadonlyArray<Name | undefined>): number;
 
 	/**
 	Log debug information if debug mode is enabled (either globally via `Emittery.isDebugEnabled` or per-instance via `debug.enabled`).
 	*/
-	logIfDebugEnabled<Name extends keyof EventData>(type: string, eventName?: Name, eventData?: EventData[Name]): void;
+	logIfDebugEnabled<Name extends keyof AllEventData>(type: string, eventName?: Name, eventData?: AllEventData[Name]): void;
 
 	/**
 	Bind the given `methodNames`, or all `Emittery` methods if `methodNames` is not defined, into the `target` object.
@@ -785,5 +819,6 @@ export default class Emittery<
 	object.emit('event');
 	```
 	*/
-	bindMethods(target: Record<string, unknown>, methodNames?: readonly string[]): void;
+	// eslint-disable-next-line @typescript-eslint/no-restricted-types -- A `Record<string, unknown>` would reject class instances, which have no index signature.
+	bindMethods(target: object, methodNames?: readonly EmitteryMethodName[]): void;
 }

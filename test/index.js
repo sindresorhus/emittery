@@ -1910,7 +1910,7 @@ test.serial('emit() - does not require the Iterator Helpers proposal', async t =
 	const names = ['toArray', 'filter', 'map', 'flatMap', 'forEach'];
 	const descriptors = new Map(names.map(name => [name, Object.getOwnPropertyDescriptor(Iterator.prototype, name)]));
 
-	// eslint-disable-next-line no-extend-native -- The helpers are restored in the finally block right after.
+	// The helpers are restored in the finally block right after.
 	delete Iterator.prototype.toArray;
 	delete Iterator.prototype.filter;
 	delete Iterator.prototype.map;
@@ -2993,6 +2993,31 @@ test('bindMethods() - target must be an object', t => {
 	t.throws(() => {
 		emitter.bindMethods(undefined, []);
 	});
+});
+
+test('bindMethods() - works on a class instance', async t => {
+	class Target {
+		#value = 41;
+
+		get value() {
+			return this.#value;
+		}
+	}
+
+	const emitter = new Emittery();
+	const target = new Target();
+	emitter.bindMethods(target);
+
+	const calls = [];
+	target.on('🦄', () => {
+		calls.push('listener');
+	});
+	await target.emit('🦄', '🌈');
+	t.deepEqual(calls, ['listener']);
+
+	// The private field is untouched and the bound methods are not enumerable own properties.
+	t.is(target.value, 41);
+	t.deepEqual(Object.keys(target), []);
 });
 
 test('mixin()', t => {

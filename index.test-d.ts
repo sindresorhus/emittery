@@ -6,7 +6,7 @@ import {
 	expectAssignable,
 } from 'tsd';
 import {pEventIterator} from 'p-event';
-import Emittery, {type EmitteryEvent, type EventName} from './index.js';
+import Emittery, {type EmitteryAsyncIterator, type EmitteryEvent, type EventName} from './index.js';
 
 type AnyListener = (event: unknown) => void | Promise<void>;
 
@@ -307,12 +307,49 @@ type AnyListener = (event: unknown) => void | Promise<void>;
 	});
 }
 
-// Mixin - return type is preserved as T
+// Mixin - the returned class is still assignable to T
 class MixinBase {
 	test() {}
 }
 
-expectType<typeof MixinBase>(Emittery.mixin('emittery')(MixinBase));
+expectAssignable<typeof MixinBase>(Emittery.mixin('emittery')(MixinBase));
+
+// Mixin - the direct call form is typed with the mixed in members
+{
+	class MixedBase {
+		test() {}
+	}
+
+	const mixedClass = Emittery.mixin('emittery')(MixedBase);
+	const useInstance = (instance: InstanceType<typeof mixedClass>) => {
+		expectType<Promise<void>>(instance.emit('anEvent'));
+		expectType<Emittery>(instance.emittery);
+	};
+
+	expectAssignable<unknown>(useInstance);
+}
+
+// Mixin - the direct call form with specific method names
+{
+	class MixedBase {
+		test() {}
+	}
+
+	const mixedClass = Emittery.mixin('emittery', ['emit', 'on'])(MixedBase);
+	const useInstance = (instance: InstanceType<typeof mixedClass>) => {
+		instance.emit('anEvent');
+		instance.on('anEvent', () => {});
+	};
+
+	expectAssignable<unknown>(useInstance);
+	expectError((instance: InstanceType<typeof mixedClass>) => {
+		instance.off('anEvent', () => {});
+	});
+}
+
+// Mixin - the emittery property cannot also be a mixed in method, which the runtime rejects
+expectError(Emittery.mixin('emit', ['emit', 'on'])(class {})); // eslint-disable-line @typescript-eslint/no-extraneous-class
+expectError(Emittery.mixin('emit')(class {})); // eslint-disable-line @typescript-eslint/no-extraneous-class
 
 // Mixin - works with parameterized constructor
 Emittery.mixin('emittery')(class { // eslint-disable-line @typescript-eslint/no-extraneous-class
@@ -391,4 +428,75 @@ expectError(Emittery.mixin('emittery')({}));
 {
 	const ee = new Emittery();
 	ee.anyEvent({signal: new AbortController().signal});
+}
+
+// BindMethods accepts any object, including a class instance
+{
+	const ee = new Emittery();
+
+	class Target {
+		value = 1;
+	}
+
+	const target = new Target();
+	ee.bindMethods(target);
+	ee.bindMethods({}, ['on', 'off']);
+	ee.bindMethods(target, ['emit']);
+	expectError(ee.bindMethods({}, ['notAMethod']));
+}
+
+// The meta event names are valid everywhere the runtime accepts them
+{
+	const ee = new Emittery<{open: string; close: undefined}>();
+
+	ee.on(Emittery.listenerAdded, () => {});
+	ee.events(Emittery.listenerAdded);
+	ee.events(Emittery.listenerRemoved);
+	ee.listenerCount(Emittery.listenerAdded);
+	ee.clearListeners(Emittery.listenerAdded);
+	ee.logIfDebugEnabled('emit', Emittery.listenerAdded);
+
+	// The meta event names are still blocked where the runtime rejects them.
+	expectError(ee.init(Emittery.listenerAdded, () => {}));
+	expectError(ee.emit(Emittery.listenerAdded));
+	expectError(ee.emitSerial(Emittery.listenerRemoved));
+}
+
+// Emit without data works on an untyped emitter
+{
+	const ee = new Emittery();
+	ee.emit('anEvent');
+	ee.emit('anEvent', 'data');
+	ee.emit('anEvent', undefined);
+	expectError(ee.emit());
+}
+
+// The iterators are disposable, iterable, and have a callable return()
+{
+	const ee = new Emittery<{open: string; close: undefined}>();
+	const iterator = ee.events('open');
+	// `TReturn` is spelled out because `IteratorResult` defaults it to `any`, which would make these assertions pass for any iterator type.
+	expectType<Promise<IteratorResult<EmitteryEvent<'open', string>, undefined>>>(iterator.return());
+	expectType<Promise<IteratorResult<EmitteryEvent<'open', string>, 'value'>>>(iterator.return('value'));
+	expectType<Promise<IteratorResult<EmitteryEvent<'open', string>, undefined>>>(iterator.next());
+
+	// `return()` awaits its argument, so a thenable resolves to the value it holds.
+	expectType<Promise<IteratorResult<EmitteryEvent<'open', string>, number>>>(iterator.return(Promise.resolve(1)));
+
+	// The iterator returns itself, so the result of `[Symbol.asyncIterator]()` is just as narrow and still disposable.
+	expectType<EmitteryAsyncIterator<EmitteryEvent<'open', string>>>(iterator[Symbol.asyncIterator]());
+	expectAssignable<AsyncIteratorObject<EmitteryEvent<'open', string>, undefined>>(iterator);
+
+	const anyIterator = ee.anyEvent();
+	expectType<Promise<IteratorResult<EmitteryEvent<'open', string> | EmitteryEvent<'close', undefined>, undefined>>>(anyIterator.return());
+}
+
+// An event name array can contain undefined, which means "everything"
+{
+	const ee = new Emittery<{open: string; close: undefined}>();
+
+	ee.clearListeners(['open', undefined]);
+	ee.listenerCount(['open', undefined]);
+	ee.clearListeners(undefined);
+	ee.listenerCount(undefined);
 }
