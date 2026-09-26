@@ -1,10 +1,8 @@
 /* eslint-disable @typescript-eslint/no-empty-function, @typescript-eslint/no-floating-promises */
-import {
-	expectType,
-	expectError,
-	expectNotAssignable,
-	expectAssignable,
-} from 'tsd';
+// `tsd` used to load the `esnext` lib, which has `Disposable` and `AsyncDisposable`.
+// eslint-disable-next-line @typescript-eslint/triple-slash-reference
+/// <reference lib="esnext.disposable" />
+import {expectTypeOf, expectError} from 'nz';
 import {pEventIterator} from 'p-event';
 import Emittery, {type EmitteryAsyncIterator, type EmitteryEvent, type EventName} from './index.js';
 
@@ -28,12 +26,12 @@ type AnyListener = (event: unknown) => void | Promise<void>;
 	ee.on('anEvent', async event => {}, {signal: new AbortController().signal});
 	ee.on(['anEvent', 'anotherEvent'], async event => undefined);
 	ee.on(Emittery.listenerAdded, ({data: {eventName, listener}}) => {
-		expectType<PropertyKey | undefined>(eventName);
-		expectType<AnyListener>(listener);
+		expectTypeOf(eventName).toBe<PropertyKey | undefined>();
+		expectTypeOf(listener).toBe<AnyListener>();
 	});
 	ee.on(Emittery.listenerRemoved, ({data: {eventName, listener}}) => {
-		expectType<PropertyKey | undefined>(eventName);
-		expectType<AnyListener>(listener);
+		expectTypeOf(eventName).toBe<PropertyKey | undefined>();
+		expectTypeOf(listener).toBe<AnyListener>();
 	});
 }
 
@@ -54,11 +52,11 @@ type AnyListener = (event: unknown) => void | Promise<void>;
 	const test = async () => {
 		await ee.once('anEvent');
 		const listenerAddedEvent = await ee.once(Emittery.listenerAdded);
-		expectType<PropertyKey | undefined>(listenerAddedEvent.data.eventName);
-		expectType<AnyListener>(listenerAddedEvent.data.listener);
+		expectTypeOf(listenerAddedEvent.data.eventName).toBe<PropertyKey | undefined>();
+		expectTypeOf(listenerAddedEvent.data.listener).toBe<AnyListener>();
 		const listenerRemovedEvent = await ee.once(Emittery.listenerRemoved);
-		expectType<PropertyKey | undefined>(listenerRemovedEvent.data.eventName);
-		expectType<AnyListener>(listenerRemovedEvent.data.listener);
+		expectTypeOf(listenerRemovedEvent.data.eventName).toBe<PropertyKey | undefined>();
+		expectTypeOf(listenerRemovedEvent.data.listener).toBe<AnyListener>();
 		const oncePromise = ee.once('anotherEvent');
 		oncePromise.off();
 		await oncePromise;
@@ -86,36 +84,36 @@ type AnyListener = (event: unknown) => void | Promise<void>;
 	const ee = new Emittery<MyEventData>();
 
 	const myLogger = (type: string, debugName?: string, eventName?: keyof MyEventData, eventData?: MyEventData[keyof MyEventData]): void => {
-		expectAssignable<string>(type);
-		expectAssignable<string | undefined>(debugName);
-		expectAssignable<string | undefined>(eventName);
-		expectAssignable<MyEventData[keyof MyEventData]>(eventData);
+		expectTypeOf(type).toBeAssignableTo<string>();
+		expectTypeOf(debugName).toBeAssignableTo<string | undefined>();
+		expectTypeOf(eventName).toBeAssignableTo<string | undefined>();
+		expectTypeOf(eventData).toBeAssignableTo<MyEventData[keyof MyEventData]>();
 	};
 
 	const debugOptions = {name: 'test', enabled: true, logger: myLogger};
 	const emitterWithEnabledDebugOnly = new Emittery<MyEventData>({debug: {enabled: true}});
 	const unsafeLogger = (type: string, debugName: string): void => {
-		expectAssignable<string>(type);
-		expectAssignable<string>(debugName);
+		expectTypeOf(type).toBeAssignableTo<string>();
+		expectTypeOf(debugName).toBeAssignableTo<string>();
 	};
 
 	expectError(new Emittery<MyEventData>({debug: {enabled: true, logger: unsafeLogger}}));
 
 	// Global debug flag
-	expectAssignable<boolean>(Emittery.isDebugEnabled);
+	expectTypeOf(Emittery.isDebugEnabled).toBeAssignableTo<boolean>();
 
 	// General debug options
-	expectAssignable<typeof ee.debug>(debugOptions);
-	expectAssignable<Emittery<MyEventData>>(emitterWithEnabledDebugOnly);
-	expectAssignable<string | undefined>(ee.debug.name);
-	expectAssignable<boolean | undefined>(ee.debug.enabled);
+	expectTypeOf(debugOptions).toBeAssignableTo<typeof ee.debug>();
+	expectTypeOf(emitterWithEnabledDebugOnly).toBeAssignableTo<Emittery<MyEventData>>();
+	expectTypeOf(ee.debug.name).toBeAssignableTo<string | undefined>();
+	expectTypeOf(ee.debug.enabled).toBeAssignableTo<boolean | undefined>();
 
 	// Debug logger
-	expectNotAssignable<() => undefined>(ee.debug.logger);
-	expectNotAssignable<(data: unknown) => undefined>(ee.debug.logger);
-	expectNotAssignable<(type: string, debugName: number) => undefined>(ee.debug.logger);
-	expectNotAssignable<((type: string, debugName?: number, eventName?: string, eventData?: Record<string, any>) => void) | undefined>(ee.debug.logger);
-	expectAssignable<typeof ee.debug.logger>(myLogger);
+	expectTypeOf(ee.debug.logger).not.toBeAssignableTo<() => undefined>();
+	expectTypeOf(ee.debug.logger).not.toBeAssignableTo<(data: unknown) => undefined>();
+	expectTypeOf(ee.debug.logger).not.toBeAssignableTo<(type: string, debugName: number) => undefined>();
+	expectTypeOf(ee.debug.logger).not.toBeAssignableTo<((type: string, debugName?: number, eventName?: string, eventData?: Record<string, any>) => void) | undefined>();
+	expectTypeOf(myLogger).toBeAssignableTo<typeof ee.debug.logger>();
 }
 
 // Strict typing for emission
@@ -143,40 +141,40 @@ type AnyListener = (event: unknown) => void | Promise<void>;
 	}>();
 	ee.on('open', () => {});
 	ee.on('open', event => {
-		expectType<EmitteryEvent<'open', undefined>>(event);
-		expectAssignable<{name: 'open'; data?: undefined}>(event);
-		expectNotAssignable<{name: 'open'; data: undefined}>(event);
+		expectTypeOf(event).toBe<EmitteryEvent<'open', undefined>>();
+		expectTypeOf(event).toBeAssignableTo<{name: 'open'; data?: undefined}>();
+		expectTypeOf(event).not.toBeAssignableTo<{name: 'open'; data: undefined}>();
 	});
 	ee.on('open', ({data}) => {
-		expectType<undefined>(data);
+		expectTypeOf(data).toBe<undefined>();
 	});
 
 	ee.on('value', () => {});
 	ee.on('value', ({data}) => {
-		expectType<string>(data);
+		expectTypeOf(data).toBe<string>();
 	});
 	ee.on(['value', 'other'], ({name, data}) => {
-		expectType<'value' | 'other'>(name);
-		expectType<string | number>(data);
+		expectTypeOf(name).toBe<'value' | 'other'>();
+		expectTypeOf(data).toBe<string | number>();
 	});
 	ee.on(['value', 'other'], event => {
 		if (event.name === 'value') {
-			expectType<string>(event.data);
+			expectTypeOf(event.data).toBe<string>();
 		} else {
-			expectType<number>(event.data);
+			expectTypeOf(event.data).toBe<number>();
 		}
 	});
 	ee.on('maybe', event => {
-		expectType<string | undefined>(event.data);
+		expectTypeOf(event.data).toBe<string | undefined>();
 	});
 	const listener = ({data}: EmitteryEvent<'value', string>) => undefined;
 	ee.on('value', listener);
 	ee.off('value', listener);
 	const test = async () => {
 		const event = await ee.once('value');
-		expectType<EmitteryEvent<'value', string>>(event);
+		expectTypeOf(event).toBe<EmitteryEvent<'value', string>>();
 		const multiEvent = await ee.once(['value', 'other']);
-		expectType<EmitteryEvent<'value', string> | EmitteryEvent<'other', number>>(multiEvent);
+		expectTypeOf(multiEvent).toBe<EmitteryEvent<'value', string> | EmitteryEvent<'other', number>>();
 	};
 
 	expectError(ee.on('value', (value: number) => {}));
@@ -192,7 +190,7 @@ type AnyListener = (event: unknown) => void | Promise<void>;
 	ee.on('open', async () => {});
 	ee.on('open', async () => {});
 	ee.on('close', async ({data}) => {
-		expectType<string>(data);
+		expectTypeOf(data).toBe<string>();
 	});
 }
 
@@ -207,7 +205,7 @@ type AnyListener = (event: unknown) => void | Promise<void>;
 
 	ee.onAny(event => {
 		// Some events are dataless so `data` only exists on some union variants
-		expectType<'value' | 'open' | 'close' | 'other'>(event.name);
+		expectTypeOf(event.name).toBe<'value' | 'open' | 'close' | 'other'>();
 	});
 
 	ee.onAny(() => {}, {signal: new AbortController().signal});
@@ -225,8 +223,8 @@ type AnyListener = (event: unknown) => void | Promise<void>;
 	}>();
 
 	ee.onAny(({name, data}) => {
-		expectType<'value' | 'other'>(name);
-		expectType<string | number>(data);
+		expectTypeOf(name).toBe<'value' | 'other'>();
+		expectTypeOf(data).toBe<string | number>();
 	});
 }
 
@@ -240,7 +238,7 @@ type AnyListener = (event: unknown) => void | Promise<void>;
 		}>();
 
 		for await (const event of ee.anyEvent()) {
-			expectType<'value' | 'open' | 'close'>(event.name);
+			expectTypeOf(event.name).toBe<'value' | 'open' | 'close'>();
 		}
 
 		const ee2 = new Emittery<{
@@ -249,8 +247,8 @@ type AnyListener = (event: unknown) => void | Promise<void>;
 		}>();
 
 		for await (const event of ee2.anyEvent()) {
-			expectType<'value' | 'other'>(event.name);
-			expectType<string | number>(event.data);
+			expectTypeOf(event.name).toBe<'value' | 'other'>();
+			expectTypeOf(event.data).toBe<string | number>();
 		}
 	};
 }
@@ -266,22 +264,22 @@ type AnyListener = (event: unknown) => void | Promise<void>;
 		}>();
 
 		for await (const event of ee.events('value')) {
-			expectType<string>(event.data);
-			expectType<'value'>(event.name);
+			expectTypeOf(event.data).toBe<string>();
+			expectTypeOf(event.name).toBe<'value'>();
 		}
 
 		for await (const event of ee.events(['value', 'other'])) {
-			expectType<'value' | 'other'>(event.name);
-			expectType<string | number>(event.data);
+			expectTypeOf(event.name).toBe<'value' | 'other'>();
+			expectTypeOf(event.data).toBe<string | number>();
 		}
 
 		for await (const event of ee.events(['value', 'open'])) {
-			expectType<'value' | 'open'>(event.name);
+			expectTypeOf(event.name).toBe<'value' | 'open'>();
 		}
 
 		const ee2 = new Emittery();
 		for await (const event of ee2.events('unknown')) {
-			expectAssignable<{name: EventName}>(event);
+			expectTypeOf(event).toBeAssignableTo<{name: EventName}>();
 		}
 	};
 }
@@ -312,7 +310,7 @@ class MixinBase {
 	test() {}
 }
 
-expectAssignable<typeof MixinBase>(Emittery.mixin('emittery')(MixinBase));
+expectTypeOf(Emittery.mixin('emittery')(MixinBase)).toBeAssignableTo<typeof MixinBase>();
 
 // Mixin - the direct call form is typed with the mixed in members
 {
@@ -322,11 +320,11 @@ expectAssignable<typeof MixinBase>(Emittery.mixin('emittery')(MixinBase));
 
 	const mixedClass = Emittery.mixin('emittery')(MixedBase);
 	const useInstance = (instance: InstanceType<typeof mixedClass>) => {
-		expectType<Promise<void>>(instance.emit('anEvent'));
-		expectType<Emittery>(instance.emittery);
+		expectTypeOf(instance.emit('anEvent')).toBe<Promise<void>>();
+		expectTypeOf(instance.emittery).toBe<Emittery>();
 	};
 
-	expectAssignable<unknown>(useInstance);
+	expectTypeOf(useInstance).toBeAssignableTo<unknown>();
 }
 
 // Mixin - the direct call form with specific method names
@@ -341,7 +339,7 @@ expectAssignable<typeof MixinBase>(Emittery.mixin('emittery')(MixinBase));
 		instance.on('anEvent', () => {});
 	};
 
-	expectAssignable<unknown>(useInstance);
+	expectTypeOf(useInstance).toBeAssignableTo<unknown>();
 	expectError((instance: InstanceType<typeof mixedClass>) => {
 		instance.off('anEvent', () => {});
 	});
@@ -390,24 +388,24 @@ expectError(Emittery.mixin('emittery')({}));
 {
 	const ee = new Emittery();
 	const off = ee.on('anEvent', () => {});
-	expectAssignable<Disposable>(off);
-	expectType<() => void>(off[Symbol.dispose]);
+	expectTypeOf(off).toBeAssignableTo<Disposable>();
+	expectTypeOf(off[Symbol.dispose]).toBe<() => void>();
 
 	const offAny = ee.onAny(() => {});
-	expectAssignable<Disposable>(offAny);
+	expectTypeOf(offAny).toBeAssignableTo<Disposable>();
 
 	const offInit = ee.init('anEvent', () => {});
-	expectAssignable<Disposable>(offInit);
+	expectTypeOf(offInit).toBeAssignableTo<Disposable>();
 }
 
 // Symbol.asyncDispose - iterators are AsyncDisposable
 {
 	const ee = new Emittery();
 	const eventsIterator = ee.events('anEvent');
-	expectAssignable<AsyncDisposable>(eventsIterator);
+	expectTypeOf(eventsIterator).toBeAssignableTo<AsyncDisposable>();
 
 	const anyIterator = ee.anyEvent();
-	expectAssignable<AsyncDisposable>(anyIterator);
+	expectTypeOf(anyIterator).toBeAssignableTo<AsyncDisposable>();
 }
 
 // Once with signal option
@@ -476,19 +474,19 @@ expectError(Emittery.mixin('emittery')({}));
 	const ee = new Emittery<{open: string; close: undefined}>();
 	const iterator = ee.events('open');
 	// `TReturn` is spelled out because `IteratorResult` defaults it to `any`, which would make these assertions pass for any iterator type.
-	expectType<Promise<IteratorResult<EmitteryEvent<'open', string>, undefined>>>(iterator.return());
-	expectType<Promise<IteratorResult<EmitteryEvent<'open', string>, 'value'>>>(iterator.return('value'));
-	expectType<Promise<IteratorResult<EmitteryEvent<'open', string>, undefined>>>(iterator.next());
+	expectTypeOf(iterator.return()).toBe<Promise<IteratorResult<EmitteryEvent<'open', string>, undefined>>>();
+	expectTypeOf(iterator.return('value' as const)).toBe<Promise<IteratorResult<EmitteryEvent<'open', string>, 'value'>>>();
+	expectTypeOf(iterator.next()).toBe<Promise<IteratorResult<EmitteryEvent<'open', string>, undefined>>>();
 
 	// `return()` awaits its argument, so a thenable resolves to the value it holds.
-	expectType<Promise<IteratorResult<EmitteryEvent<'open', string>, number>>>(iterator.return(Promise.resolve(1)));
+	expectTypeOf(iterator.return(Promise.resolve(1))).toBe<Promise<IteratorResult<EmitteryEvent<'open', string>, number>>>();
 
 	// The iterator returns itself, so the result of `[Symbol.asyncIterator]()` is just as narrow and still disposable.
-	expectType<EmitteryAsyncIterator<EmitteryEvent<'open', string>>>(iterator[Symbol.asyncIterator]());
-	expectAssignable<AsyncIteratorObject<EmitteryEvent<'open', string>, undefined>>(iterator);
+	expectTypeOf(iterator[Symbol.asyncIterator]()).toBe<EmitteryAsyncIterator<EmitteryEvent<'open', string>>>();
+	expectTypeOf(iterator).toBeAssignableTo<AsyncIteratorObject<EmitteryEvent<'open', string>, undefined>>();
 
 	const anyIterator = ee.anyEvent();
-	expectType<Promise<IteratorResult<EmitteryEvent<'open', string> | EmitteryEvent<'close', undefined>, undefined>>>(anyIterator.return());
+	expectTypeOf(anyIterator.return()).toBe<Promise<IteratorResult<EmitteryEvent<'open', string> | EmitteryEvent<'close', undefined>, undefined>>>();
 }
 
 // An event name array can contain undefined, which means "everything"

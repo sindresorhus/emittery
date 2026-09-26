@@ -20,7 +20,7 @@
 		"node": ">=22"
 	},
 	"scripts": {
-		"test": "xo && ava && tsd"
+		"test": "xo && ava && nz"
 	},
 	"files": [
 		"index.js",
@@ -55,10 +55,11 @@
 	],
 	"devDependencies": {
 		"@types/node": "^25.3.2",
+		"@typescript/native": "npm:typescript@^7.0.2",
 		"ava": "^6.4.1",
 		"delay": "^7.0.0",
+		"nz": "^0.1.0",
 		"p-event": "^7.1.0",
-		"tsd": "^0.33.0",
 		"xo": "^1.2.3"
 	}
 }

@@ -1,8 +1,12 @@
 import process from 'node:process';
+import {promisify} from 'node:util';
+import childProcess from 'node:child_process';
 import test from 'ava';
 import delay from 'delay';
 import {pEvent, pEventMultiple} from 'p-event';
 import Emittery from '../index.js';
+
+const execFile = promisify(childProcess.execFile);
 
 // Fails fast, instead of hanging the test run, when a promise never settles.
 const settle = async promise => {
@@ -796,6 +800,29 @@ test('meta event - offAny() of a listener that was never subscribed does not fir
 
 	await delay(20);
 	t.deepEqual(removed, []);
+});
+
+test('meta event - an error from a meta listener is reported as an unhandled rejection instead of being lost', async t => {
+	// AVA fails the whole run on an unhandled rejection, so this runs in a separate process.
+	const code = `
+		import Emittery from ${JSON.stringify(new URL('../index.js', import.meta.url).href)};
+
+		const emitter = new Emittery();
+		emitter.on(Emittery.listenerAdded, () => {
+			throw new Error('meta listener failed');
+		});
+
+		emitter.on('🦄', () => {});
+		console.log(emitter.listenerCount('🦄'));
+	`;
+
+	// The mode is explicit so a `NODE_OPTIONS` setting cannot change it.
+	const error = await t.throwsAsync(execFile(process.execPath, ['--unhandled-rejections=throw', '--input-type=module', '--eval', code]));
+	t.is(error.code, 1);
+	// The subscription still happens, because the error comes after it.
+	t.is(error.stdout.trim(), '1');
+	t.regex(error.stderr, /AggregateError: One or more listeners threw an error/);
+	t.regex(error.stderr, /meta listener failed/);
 });
 
 test('on() - isDebug logs output', t => {

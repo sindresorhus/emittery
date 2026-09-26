@@ -81,11 +81,11 @@ emitter2.on('otherTest', () => {
 });
 
 emitter1.emit('test');
-//=> [16:43:20.417][emittery:subscribe][myEmitter1] Event Name: test
+//=> [16:43:20.417][emittery:emit][myEmitter1] Event Name: test
 //	data: undefined
 
 emitter2.emit('otherTest');
-//=> [16:43:20.417][emittery:subscribe][myEmitter2] Event Name: otherTest
+//=> [16:43:20.417][emittery:emit][myEmitter2] Event Name: otherTest
 //	data: undefined
 ```
 
@@ -126,7 +126,7 @@ emitter.on('test', () => {
 });
 
 emitter.emit('test');
-//=> [16:43:20.417][emittery:subscribe][myEmitter] Event Name: test
+//=> [16:43:20.417][emittery:emit][myEmitter] Event Name: test
 //	data: undefined
 ```
 
@@ -154,7 +154,7 @@ emitter2.on('test', () => {
 });
 
 emitter1.emit('test');
-//=> [16:43:20.417][emittery:subscribe][emitter1] Event Name: test
+//=> [16:43:20.417][emittery:emit][emitter1] Event Name: test
 //	data: undefined
 
 emitter2.emit('test');
@@ -208,7 +208,7 @@ emitter.on('test', () => {
 });
 
 emitter.emit('test');
-//=> [subscribe]: test
+//=> [emit]: test
 ```
 
 #### on(eventName | eventName[], listener, options?: {signal?: AbortSignal})
@@ -275,6 +275,8 @@ Emittery exports some symbols which represent "meta" events that can be passed t
 
 - `Emittery.listenerAdded` - Fires when an event listener was added.
 - `Emittery.listenerRemoved` - Fires when an event listener was removed.
+
+Errors thrown by listeners of these events cannot be caught by the caller of the method that added or removed the listener. They become an unhandled rejection, which crashes Node.js by default. Catch errors inside the listener if they can happen.
 
 ```js
 import Emittery from 'emittery';

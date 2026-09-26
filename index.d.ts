@@ -83,7 +83,7 @@ export type DebugOptions<EventData> = {
 	});
 
 	emitter.emit('test');
-	//=> [16:43:20.417][emittery:subscribe][myEmitter] Event Name: test
+	//=> [16:43:20.417][emittery:emit][myEmitter] Event Name: test
 	//	data: undefined
 	```
 	*/
@@ -110,7 +110,7 @@ export type DebugOptions<EventData> = {
 	});
 
 	emitter1.emit('test');
-	//=> [16:43:20.417][emittery:subscribe][emitter1] Event Name: test
+	//=> [16:43:20.417][emittery:emit][emitter1] Event Name: test
 	//	data: undefined
 
 	emitter2.emit('test');
@@ -288,11 +288,11 @@ export default class Emittery<
 	});
 
 	emitter1.emit('test');
-	//=> [16:43:20.417][emittery:subscribe][myEmitter1] Event Name: test
+	//=> [16:43:20.417][emittery:emit][myEmitter1] Event Name: test
 	//	data: undefined
 
 	emitter2.emit('otherTest');
-	//=> [16:43:20.417][emittery:subscribe][myEmitter2] Event Name: otherTest
+	//=> [16:43:20.417][emittery:emit][myEmitter2] Event Name: otherTest
 	//	data: undefined
 	```
 	*/
@@ -302,6 +302,8 @@ export default class Emittery<
 	Fires when an event listener was added.
 
 	An object with `listener` and `eventName` (if `on` or `off` was used) is provided as event data.
+
+	Errors thrown by listeners of this event cannot be caught by the caller of the method that added or removed the listener. They become an unhandled rejection, which crashes Node.js by default. Catch errors inside the listener if they can happen.
 
 	@example
 	```
@@ -328,6 +330,8 @@ export default class Emittery<
 	Fires when an event listener was removed.
 
 	An object with `listener` and `eventName` (if `on` or `off` was used) is provided as event data.
+
+	Errors thrown by listeners of this event cannot be caught by the caller of the method that added or removed the listener. They become an unhandled rejection, which crashes Node.js by default. Catch errors inside the listener if they can happen.
 
 	@example
 	```
@@ -822,3 +826,5 @@ export default class Emittery<
 	// eslint-disable-next-line @typescript-eslint/no-restricted-types -- A `Record<string, unknown>` would reject class instances, which have no index signature.
 	bindMethods(target: object, methodNames?: readonly EmitteryMethodName[]): void;
 }
+
+export {};
