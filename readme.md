@@ -741,6 +741,63 @@ const instance = new MyClass();
 instance.emit('event');
 ```
 
+### ReadonlyEmittery
+
+A subscribe-only view of an `Emittery` instance. It has the methods to subscribe, unsubscribe, and count listeners, but not the methods to emit events, clear listeners, or register `init()` hooks.
+
+Use it to expose an emitter to consumers without letting them emit events. An `Emittery` instance is assignable to it.
+
+This is only a type, so a consumer can still emit after a type cast. To also prevent that at runtime, see [below](#runtime-protection).
+
+```ts
+import Emittery, {type ReadonlyEmittery} from 'emittery';
+
+type Events = {
+	open: undefined;
+	message: string;
+};
+
+class Connection {
+	readonly #emitter = new Emittery<Events>();
+
+	get events(): ReadonlyEmittery<Events> {
+		return this.#emitter;
+	}
+}
+
+const connection = new Connection();
+
+connection.events.on('message', ({data}) => {
+	console.log(data);
+});
+
+// TS compilation error because `emit` is not available.
+connection.events.emit('open');
+```
+
+#### Runtime protection
+
+To also prevent emitting at runtime, expose an object with only the subscribe methods instead of the instance. The methods of an `Emittery` instance are bound to it, so they work without the instance, and the object does not give access to it.
+
+```ts
+import Emittery, {type ReadonlyEmittery} from 'emittery';
+
+const emitter = new Emittery<Events>();
+
+const events: ReadonlyEmittery<Events> = Object.freeze({
+	on: emitter.on,
+	off: emitter.off,
+	once: emitter.once,
+	events: emitter.events,
+	onAny: emitter.onAny,
+	offAny: emitter.offAny,
+	anyEvent: emitter.anyEvent,
+	listenerCount: emitter.listenerCount,
+});
+```
+
+This does not isolate consumers from each other. A consumer can get the listeners of other consumers from [`Emittery.listenerAdded`](#custom-subscribable-events), and then call them or remove them with `off()`.
+
 ## Scheduling details
 
 Listeners are not invoked for events emitted *before* the listener was added. Removing a listener will prevent that listener from being invoked, even if events are in the process of being (asynchronously!) emitted. This also applies to `.clearListeners()`, which removes all listeners. Listeners will be called in the order they were added. So-called *any* listeners are called *after* event-specific listeners.

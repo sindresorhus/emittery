@@ -3195,6 +3195,44 @@ test('bindMethods() - works on a class instance', async t => {
 	t.deepEqual(Object.keys(target), []);
 });
 
+test('instance methods work without the instance, so an object with only the subscribe methods is a readonly emitter', async t => {
+	const emitter = new Emittery();
+	const events = Object.freeze({
+		on: emitter.on,
+		off: emitter.off,
+		once: emitter.once,
+		events: emitter.events,
+		onAny: emitter.onAny,
+		offAny: emitter.offAny,
+		anyEvent: emitter.anyEvent,
+		listenerCount: emitter.listenerCount,
+	});
+
+	const calls = [];
+	const listener = ({name, data}) => {
+		calls.push([name, data]);
+	};
+
+	events.on('🦄', listener);
+	events.onAny(listener);
+	const oncePromise = events.once('🦄');
+	const iterator = events.events('🦄');
+	const anyIterator = events.anyEvent();
+	t.is(events.listenerCount('🦄'), 5);
+
+	await emitter.emit('🦄', '🌈');
+	t.deepEqual(calls, [['🦄', '🌈'], ['🦄', '🌈']]);
+	t.deepEqual(await oncePromise, {name: '🦄', data: '🌈'});
+	t.deepEqual(await iterator.next(), {done: false, value: {name: '🦄', data: '🌈'}});
+	t.deepEqual(await anyIterator.next(), {done: false, value: {name: '🦄', data: '🌈'}});
+
+	events.off('🦄', listener);
+	events.offAny(listener);
+	await iterator.return();
+	await anyIterator.return();
+	t.is(events.listenerCount('🦄'), 0);
+});
+
 test('mixin()', t => {
 	class TestClass {
 		constructor(v) {

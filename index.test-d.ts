@@ -4,7 +4,9 @@
 /// <reference lib="esnext.disposable" />
 import {expectTypeOf, expectError} from 'nz';
 import {pEventIterator} from 'p-event';
-import Emittery, {type EmitteryAsyncIterator, type EmitteryEvent, type EventName} from './index.js';
+import Emittery, {
+	type EmitteryAsyncIterator, type EmitteryEvent, type EmitteryOncePromise, type EventName, type ReadonlyEmittery,
+} from './index.js';
 
 type AnyListener = (event: unknown) => void | Promise<void>;
 
@@ -497,4 +499,48 @@ expectError(Emittery.mixin('emittery')({}));
 	ee.listenerCount(['open', undefined]);
 	ee.clearListeners(undefined);
 	ee.listenerCount(undefined);
+}
+
+// A readonly emitter can subscribe but not emit
+{
+	const ee = new Emittery<{open: string; close: undefined}>();
+	const readonlyEmitter: ReadonlyEmittery<{open: string; close: undefined}> = ee;
+
+	readonlyEmitter.on('open', ({data}) => {
+		expectTypeOf(data).toBe<string>();
+	});
+	readonlyEmitter.on(Emittery.listenerAdded, () => {});
+	readonlyEmitter.off('close', () => {});
+	readonlyEmitter.onAny(() => {});
+	readonlyEmitter.offAny(() => {});
+	readonlyEmitter.events('open');
+	readonlyEmitter.anyEvent();
+	readonlyEmitter.listenerCount('open');
+	expectTypeOf(readonlyEmitter.once('open')).toBe<EmitteryOncePromise<EmitteryEvent<'open', string>>>();
+
+	expectError(readonlyEmitter.on('other', () => {}));
+	expectError(readonlyEmitter.emit('close'));
+	expectError(readonlyEmitter.emitSerial('close'));
+	expectError(readonlyEmitter.clearListeners());
+	expectError(readonlyEmitter.init('open', () => {}));
+
+	// An untyped emitter and an emitter with a custom `DatalessEvents` type argument are assignable too.
+	expectTypeOf(new Emittery()).toBeAssignableTo<ReadonlyEmittery>();
+	expectTypeOf(new Emittery<{open: string}, {open: string}, 'open'>()).toBeAssignableTo<ReadonlyEmittery<{open: string}>>();
+}
+
+// An object with the bound subscribe methods of an emitter is a readonly emitter
+{
+	const ee = new Emittery<{open: string; close: undefined}>();
+	const readonlyEmitter: ReadonlyEmittery<{open: string; close: undefined}> = Object.freeze({
+		on: ee.on,
+		off: ee.off,
+		once: ee.once,
+		events: ee.events,
+		onAny: ee.onAny,
+		offAny: ee.offAny,
+		anyEvent: ee.anyEvent,
+		listenerCount: ee.listenerCount,
+	});
+	readonlyEmitter.on('open', () => {});
 }
